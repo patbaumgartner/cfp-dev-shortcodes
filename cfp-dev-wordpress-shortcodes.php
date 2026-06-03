@@ -3,7 +3,7 @@
  * Plugin Name:       CFP.DEV shortcodes
  * Plugin URI:        https://gitlab.com/voxxed/cfp.dev/wikis/Wordpress-Plugin
  * Description:       The CFP.DEV WordPress shortcodes (DARK MODE). This version supports the new PWA mobile app! (MySchedule and Home shortcodes have been removed)
- * Version:           4.0.1
+ * Version:           4.1.0
  * Author:            Stephan Janssen, Patrick Baumgartner
  * Author URI:        https://x.com/stephan007
  * License:           GPL-2.0+
@@ -27,7 +27,7 @@ if ( ! defined( 'CFP_DEV_APPLICATION_JSON' ) ) {
 
 // Plugin version.
 if ( ! defined( 'CFP_DEV_VERSION' ) ) {
-	define( 'CFP_DEV_VERSION', '4.0.1' );
+	define( 'CFP_DEV_VERSION', '4.1.0' );
 }
 
 if ( ! defined( 'CFP_DEV_NAME' ) ) {
@@ -77,6 +77,13 @@ function cfp_dev_log( string $message ): void {
 	if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
 		error_log( '[CFP.DEV] ' . $message ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- intentional debug logging gated on WP_DEBUG_LOG
 	}
+}
+
+/**
+ * Offline mode crawler & snapshot manager.
+ */
+if ( file_exists( CFP_DEV_DIR . '/shortcode/include/offline-crawler.php' ) ) {
+	require_once CFP_DEV_DIR . '/shortcode/include/offline-crawler.php';
 }
 
 /**
@@ -464,6 +471,22 @@ function cfp_dev_plugin_options() {
 		update_option( 'cfp_dev_show_rooms', sanitize_text_field( wp_unslash( $_POST['cfp_dev_show_rooms'] ) ) );
 	}
 
+	// Handle offline mode form submission.
+	if ( isset( $_POST['cfp_dev_offline_mode_save'] ) ) {
+		$new_offline  = isset( $_POST['cfp_dev_offline_mode'] ) ? 1 : 0;
+		$old_offline  = get_option( 'cfp_dev_offline_mode', 0 );
+		$crawl_status = ( get_option( 'cfp_dev_crawl_state', [] )['status'] ) ?? 'idle';
+
+		if ( 0 === $new_offline ) {
+			// Unchecked → disable offline mode (keep snapshot data).
+			update_option( 'cfp_dev_offline_mode', 0 );
+		} elseif ( 1 === $new_offline && 0 === (int) $old_offline && ! in_array( $crawl_status, [ 'running', 'pending' ], true ) ) {
+			// Newly checked and no crawl already running → start a fresh crawl.
+			// Offline mode is activated automatically when the crawl completes.
+			cfp_dev_start_crawl();
+		}
+	}
+
 	echo '<div class="wrap">';
 	echo '<h1>CFP.DEV Settings</h1>';
 
@@ -692,6 +715,75 @@ function cfp_dev_plugin_options() {
 	}
 
 	echo '</div>'; // Close the wrap div
+
+	// ─────────────────────────────────────────────────────────────────────────
+	// Offline Mode Section
+	// ─────────────────────────────────────────────────────────────────────────
+	$offline_mode    = (int) get_option( 'cfp_dev_offline_mode', 0 );
+	$crawl_state     = get_option( 'cfp_dev_crawl_state', [] );
+	$crawl_status    = $crawl_state['status'] ?? 'idle';
+	$latest_snapshot = cfp_dev_get_latest_snapshot();
+
+	// Keep the checkbox checked while a crawl is in progress — offline mode
+	// only flips to 1 when the crawl finishes, but the user intent is already set.
+	if ( 0 === $offline_mode && in_array( $crawl_status, [ 'running', 'pending' ], true ) ) {
+		$offline_mode = 1;
+	}
+
+	echo '<div class="wrap">';
+	echo '<hr style="border-color: black">';
+	echo '<h3>Offline Mode</h3>';
+	echo '<p>When enabled, all API data and images are served from a local snapshot — no external requests are made.</p>';
+	echo '<p><em>Checking the box starts a fresh crawl. Unchecking disables offline mode but keeps the snapshot data. Re-checking creates a new snapshot.</em></p>';
+
+	echo '<form name="cfp_offline_form" method="post" action="">';
+	wp_nonce_field( 'cfp_dev_options', 'cfp_dev_nonce' );
+	echo '<input type="hidden" name="cfp_dev_offline_mode_save" value="1">';
+	echo '<table class="form-table">';
+	echo '<tr>
+			<th scope="row"><label for="cfp_dev_offline_mode">Enable Offline Mode</label></th>
+			<td>
+				<input type="checkbox" id="cfp_dev_offline_mode" name="cfp_dev_offline_mode" value="1" ' . checked( 1, $offline_mode, false ) . '>
+				<span class="description">Check to start a new crawl. Offline mode activates automatically when the crawl finishes.</span>
+			</td>
+		  </tr>';
+	echo '</table>';
+	echo '<p class="submit"><input type="submit" name="Submit" class="button-primary" value="Save Offline Mode"></p>';
+	echo '</form>';
+
+	// Snapshot status box (populated / updated by admin-offline-crawler.js)
+	echo '<h4>Snapshot Status</h4>';
+	echo '<div id="cfp-crawl-status">';
+
+	if ( 'running' === $crawl_status || 'pending' === $crawl_status ) {
+		echo '<p>Status: <strong>' . esc_html( ucfirst( $crawl_status ) ) . '</strong> — ' . esc_html( $crawl_state['step_label'] ?? '' ) . '</p>';
+		if ( ! empty( $crawl_state['items_total'] ) && $crawl_state['items_total'] > 0 ) {
+			$pct = intval( $crawl_state['items_done'] / $crawl_state['items_total'] * 100 );
+			echo '<progress value="' . esc_attr( $crawl_state['items_done'] ) . '" max="' . esc_attr( $crawl_state['items_total'] ) . '"></progress> '
+				. esc_html( $pct . '% (' . $crawl_state['items_done'] . '/' . $crawl_state['items_total'] . ')' );
+		}
+	} elseif ( 'done' === $crawl_status ) {
+		echo '<p>Status: <strong>Complete</strong></p>';
+		if ( ! empty( $crawl_state['snapshot_name'] ) ) {
+			echo '<p>Active snapshot: <code>' . esc_html( $crawl_state['snapshot_name'] ) . '</code></p>';
+		}
+		if ( ! empty( $crawl_state['errors'] ) ) {
+			echo '<p style="color:orange;">Warnings: ' . esc_html( $crawl_state['errors'] ) . ' item(s) had errors (see manifest.json).</p>';
+		}
+	} elseif ( 'error' === $crawl_status ) {
+		echo '<p style="color:red;">Status: <strong>Error</strong> — ' . esc_html( $crawl_state['step_label'] ?? '' ) . '</p>';
+	} else {
+		if ( ! empty( $latest_snapshot ) ) {
+			echo '<p>Last snapshot: <code>' . esc_html( basename( $latest_snapshot ) ) . '</code></p>';
+		} else {
+			echo '<p>No snapshot available. Enable offline mode or click <strong>Re-crawl Now</strong> to create one.</p>';
+		}
+	}
+
+	echo '</div>';
+	echo '<p><button type="button" id="cfp-recrawl-btn" class="button">Re-crawl Now</button></p>';
+
+	echo '</div>'; // Close offline section wrap
 }
 
 function generate_cfp_cache_key( $type, $id ) {
@@ -880,6 +972,11 @@ function compareName( $x, $y ) {
 }
 
 function getJSON( $queryPath ) {
+	// Offline mode: serve from local snapshot instead of the live API.
+	if ( get_option( 'cfp_dev_offline_mode', 0 ) ) {
+		return cfp_dev_get_json_offline( $queryPath );
+	}
+
 	$query_url = CFP_DEV_URL_DOMAIN . $queryPath;
 
 	$response = wp_remote_get(
@@ -917,6 +1014,11 @@ function getJSON( $queryPath ) {
 }
 
 function searchJSON( $query ) {
+	// Offline mode: live search is not available without the API.
+	if ( get_option( 'cfp_dev_offline_mode', 0 ) ) {
+		return [];
+	}
+
 	$safe_query = rawurlencode( sanitize_text_field( $query ) );
 	$response   = wp_remote_get( CFP_DEV_SEARCH_DOMAIN . $safe_query, [ 'timeout' => 30 ] );
 	if ( is_wp_error( $response ) ) {
@@ -949,6 +1051,18 @@ function cfp_dev_enqueue_admin_scripts( $hook ) {
 		[
 			'ajaxurl' => admin_url( 'admin-ajax.php' ),
 			'nonce'   => wp_create_nonce( 'cfp_dev_delete_cache' ),
+		]
+	);
+
+	$crawl_state = get_option( 'cfp_dev_crawl_state', [] );
+	wp_enqueue_script( 'cfp-dev-admin-offline', plugins_url( 'js/admin-offline-crawler.js', __FILE__ ), [ 'jquery' ], CFP_DEV_VERSION, true );
+	wp_localize_script(
+		'cfp-dev-admin-offline',
+		'cfp_dev_offline_ajax',
+		[
+			'ajaxurl'        => admin_url( 'admin-ajax.php' ),
+			'nonce'          => wp_create_nonce( 'cfp_dev_offline_nonce' ),
+			'initial_status' => $crawl_state['status'] ?? 'idle',
 		]
 	);
 }
@@ -992,6 +1106,40 @@ function cfp_dev_delete_cache_handler() {
 }
 add_action( 'wp_ajax_cfp_dev_delete_cache', 'cfp_dev_delete_cache_handler' );
 // Note: cache deletion requires manage_options capability; not exposed to non-authenticated users.
+
+/**
+ * AJAX: return the current crawl state as JSON (polled by admin-offline-crawler.js).
+ */
+function cfp_dev_crawl_progress_handler() {
+	if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'cfp_dev_offline_nonce' ) ) {
+		wp_send_json_error( [ 'message' => 'Security check failed.' ] );
+		return;
+	}
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_send_json_error( [ 'message' => 'Insufficient permissions.' ] );
+		return;
+	}
+	$state = get_option( 'cfp_dev_crawl_state', [] );
+	wp_send_json_success( $state );
+}
+add_action( 'wp_ajax_cfp_dev_crawl_progress', 'cfp_dev_crawl_progress_handler' );
+
+/**
+ * AJAX: start a new crawl immediately (used by the Re-crawl Now button).
+ */
+function cfp_dev_start_crawl_ajax_handler() {
+	if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'cfp_dev_offline_nonce' ) ) {
+		wp_send_json_error( [ 'message' => 'Security check failed.' ] );
+		return;
+	}
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_send_json_error( [ 'message' => 'Insufficient permissions.' ] );
+		return;
+	}
+	cfp_dev_start_crawl();
+	wp_send_json_success( [ 'message' => 'Crawl started.' ] );
+}
+add_action( 'wp_ajax_cfp_dev_start_crawl_ajax', 'cfp_dev_start_crawl_ajax_handler' );
 
 function cfp_dev_add_rewrite_rules() {
 	$prefix = get_option( 'cfp_dev_path_prefix', '' );

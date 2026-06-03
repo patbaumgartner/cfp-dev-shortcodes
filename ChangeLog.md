@@ -1,5 +1,16 @@
 # ChangeLog
 
+### Version 4.1.0
+
+- (03 June 2026). Add Offline Mode: new admin setting that crawls all API endpoints and CDN images into a local dated snapshot; once active, every `getJSON()` call is served from the snapshot and no external requests are made
+- (03 June 2026). Add background crawler (`shortcode/include/offline-crawler.php`): fetches event, tracks, session types, rooms, all speakers + detail pages, photo albums, all talks + detail pages, talks-by-track, talks-by-session-type, full-day and per-room schedules for every event day
+- (03 June 2026). Crawler step 2–4: collect all external CDN image URLs (`imageUrl`, `imageURL`, `trackImageURL`, `thumbnailUrl`), download to `wp-content/uploads/cfp-dev-offline/{snapshot}/images/`, rewrite every URL in every saved JSON file in a single pass
+- (03 June 2026). CDN coverage: speaker photos (AWS S3, Google, GitHub avatars), track images (AWS S3), Flickr album thumbnails (`live.staticflickr.com`) — all downloaded and served locally
+- (03 June 2026). Crawl progress polled live in the admin UI via AJAX (`cfp_dev_crawl_progress`); progress bar and step label update every 3 seconds
+- (03 June 2026). Admin: Re-crawl Now button triggers a new snapshot without touching the existing one; disabling offline mode preserves snapshot data
+- (03 June 2026). Search (`searchJSON`) returns an empty result set in offline mode — no broken requests to search.cfp.dev
+- (03 June 2026). Manifest file (`manifest.json`) written at crawl completion with per-URL fetch log and summary stats
+
 ### Version 4.0.1
 
 - (03 June 2026). Modernise for PHP 8+ and WordPress 6.0+: replace cURL with `wp_remote_get()`, `wp_date()`, spaceship operator, `str_contains()`

@@ -4,7 +4,7 @@ Donate link: https://gitlab.com/voxxed/cfp.dev/wikis/Wordpress-Plugin
 Tags: CFP, Speakers, Schedule, Devoxx, VoxxedDays
 Requires at least: 6.0
 Tested up to: 6.8
-Stable tag: 4.0.1
+Stable tag: 4.1.0
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -91,6 +91,14 @@ Yes, you can override the used cfp-dev CSS properties to override the look and f
 2. Screenshot of the [speaker details page](https://gitlab.com/voxxed/cfp.dev/wikis/uploads/070328301772e63aa363f128e98b08af/image.png)
 
 == Changelog ==
+
+= 4.1.0 =
+
+- (03 June 2026). Add Offline Mode: crawls all API endpoints and CDN images into a local dated snapshot; serving everything locally with zero external requests
+- (03 June 2026). Background crawler fetches speakers, talks, tracks, schedules (full-day + per-room), photo albums and all CDN images
+- (03 June 2026). All image URLs rewritten in saved JSON to point to local copies (speaker photos, track images, Flickr album thumbnails)
+- (03 June 2026). Live crawl-progress polling in the admin settings page with progress bar
+- (03 June 2026). Search returns empty results in offline mode; auth/favourites/rating requests silently pass through unchanged
 
 = 4.0.1 =
 
