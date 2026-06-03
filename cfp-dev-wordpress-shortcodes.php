@@ -523,12 +523,10 @@ function cfp_dev_plugin_options() {
 		}
 	} elseif ( 'error' === $crawl_status ) {
 		echo '<p style="color:red;">Status: <strong>Error</strong> — ' . esc_html( $crawl_state['step_label'] ?? '' ) . '</p>';
+	} elseif ( ! empty( $latest_snapshot ) ) {
+		echo '<p>Last snapshot: <code>' . esc_html( basename( $latest_snapshot ) ) . '</code></p>';
 	} else {
-		if ( ! empty( $latest_snapshot ) ) {
-			echo '<p>Last snapshot: <code>' . esc_html( basename( $latest_snapshot ) ) . '</code></p>';
-		} else {
-			echo '<p>No snapshot available. Enable offline mode or click <strong>Re-crawl Now</strong> to create one.</p>';
-		}
+		echo '<p>No snapshot available. Enable offline mode or click <strong>Re-crawl Now</strong> to create one.</p>';
 	}
 
 	echo '</div>';
