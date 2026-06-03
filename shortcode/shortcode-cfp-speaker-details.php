@@ -179,7 +179,6 @@ if ( ! function_exists( 'cfp_speaker_details_shortcode' ) ) {
 		$content .= '        <div class="cfp-type">';
 		$content .= '            <a href="' . cfp_dev_url( '/talks-by-sessions/?id=' . esc_attr( $talk->sessionType->id ) ) . '">' . esc_html( $talk->sessionType->name ) . '</a> <em>(' . esc_html( $talk->audienceLevel ) . ' level)</em>';
 		$content .= '        </div>';
-		$content .= '        <input type="hidden" id="cfpTalkId" value="' . esc_attr( $talk->id ) . '">';
 
 		$content .= generateTalkScheduleInfo( $talk );
 		$content .= getTalkKeywords( $talk );
