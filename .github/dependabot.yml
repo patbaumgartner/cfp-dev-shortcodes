@@ -1,0 +1,25 @@
+version: 2
+updates:
+  # Composer (phpcs, wpcs, phpcompatibility)
+  - package-ecosystem: "composer"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      phpcs-stack:
+        patterns:
+          - "squizlabs/php_codesniffer"
+          - "wp-coding-standards/wpcs"
+          - "phpcompatibility/*"
+          - "dealerdirect/phpcodesniffer-composer-installer"
+          - "phpcsstandards/*"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
