@@ -1,0 +1,91 @@
+<?xml version="1.0"?>
+<ruleset name="CFP-Dev-Shortcodes">
+    <description>CFP.DEV Shortcodes WordPress Plugin coding standards</description>
+
+    <!-- Files and directories to check -->
+    <file>cfp-dev-wordpress-shortcodes.php</file>
+    <file>shortcode/</file>
+
+    <!-- Ignore generated/third-party assets -->
+    <exclude-pattern>shortcode/font/</exclude-pattern>
+    <exclude-pattern>shortcode/gfx/</exclude-pattern>
+    <exclude-pattern>shortcode/template/</exclude-pattern>
+    <exclude-pattern>shortcode/include/</exclude-pattern>
+    <exclude-pattern>shortcode/css/</exclude-pattern>
+    <exclude-pattern>vendor/</exclude-pattern>
+    <exclude-pattern>js/</exclude-pattern>
+    <exclude-pattern>css/</exclude-pattern>
+
+    <!-- Show progress and use colours -->
+    <arg value="sp"/>
+    <arg name="colors"/>
+    <arg name="extensions" value="php"/>
+
+    <!-- WordPress Coding Standards -->
+    <rule ref="WordPress-Core"/>
+    <rule ref="WordPress-Extra"/>
+
+    <!-- Enforce short array syntax [] over array() — override WordPress-Extra's opposite rule -->
+    <rule ref="Universal.Arrays.DisallowShortArraySyntax">
+        <severity>0</severity>
+    </rule>
+    <rule ref="Generic.Arrays.DisallowLongArraySyntax"/>
+
+    <!-- PHP version compatibility: require PHP 8.0+ -->
+    <config name="testVersion" value="8.0-"/>
+    <rule ref="PHPCompatibilityWP"/>
+
+    <!-- Minimum supported WordPress version -->
+    <config name="minimum_supported_wp_version" value="6.0"/>
+
+    <!-- Suppress filename rule (plugin uses non-standard naming) -->
+    <rule ref="WordPress.Files.FileName">
+        <exclude-pattern>cfp-dev-wordpress-shortcodes.php</exclude-pattern>
+    </rule>
+
+    <!-- Allow short prefixes used throughout this plugin -->
+    <rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+        <properties>
+            <property name="prefixes" type="array">
+                <element value="cfp_dev"/>
+                <element value="cfp_"/>
+                <element value="CFP_DEV"/>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Functions in global namespace are the WordPress plugin pattern -->
+    <rule ref="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound">
+        <severity>0</severity>
+    </rule>
+
+    <!-- API response objects use camelCase property names (external data, cannot rename) -->
+    <rule ref="WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase">
+        <severity>0</severity>
+    </rule>
+
+    <!-- Local camelCase variables are an established pattern in this codebase -->
+    <rule ref="WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase">
+        <severity>0</severity>
+    </rule>
+
+    <!-- camelCase function names are an established pattern; renaming would be a breaking API change -->
+    <rule ref="WordPress.NamingConventions.ValidFunctionName.FunctionNameInvalid">
+        <severity>0</severity>
+    </rule>
+
+    <!-- error_log() in cfp_dev_log() is intentional debug logging gated on WP_DEBUG_LOG -->
+    <rule ref="WordPress.PHP.DevelopmentFunctions.error_log_error_log">
+        <severity>0</severity>
+    </rule>
+
+    <!-- Strict comparisons (== → ===): many occurrences in established code; phpcbf cannot auto-fix these -->
+    <rule ref="Universal.Operators.StrictComparisons">
+        <severity>0</severity>
+    </rule>
+
+    <!-- Commented-out code is intentional (placeholder / future work notes) -->
+    <rule ref="Squiz.PHP.CommentedOutCode">
+        <severity>0</severity>
+    </rule>
+</ruleset>

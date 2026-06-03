@@ -1,11 +1,11 @@
 === CFP.DEV shortcodes ===
-Contributors: sjadevoxx
+Contributors: sjadevoxx, patbaumgartner
 Donate link: https://gitlab.com/voxxed/cfp.dev/wikis/Wordpress-Plugin
 Tags: CFP, Speakers, Schedule, Devoxx, VoxxedDays
-Requires at least: 4.6
-Tested up to: 6.1.0
-Stable tag: 4.3
-Requires PHP: 5.2.4
+Requires at least: 6.0
+Tested up to: 6.8
+Stable tag: 4.0.1
+Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -91,6 +91,17 @@ Yes, you can override the used cfp-dev CSS properties to override the look and f
 2. Screenshot of the [speaker details page](https://gitlab.com/voxxed/cfp.dev/wikis/uploads/070328301772e63aa363f128e98b08af/image.png)
 
 == Changelog ==
+
+= 4.0.1 =
+
+- (03 June 2026). Modernise for PHP 8+ and WordPress 6.0+: replace cURL with wp_remote_get(), wp_date(), spaceship operator, str_contains()
+- (03 June 2026). Security: add esc_html/esc_url/esc_attr/wp_kses_post/absint throughout all shortcode output
+- (03 June 2026). Security: add CSRF nonce to admin settings form; sanitize all $_POST inputs
+- (03 June 2026). Add cfp_dev_log() debug helper gated on WP_DEBUG_LOG
+- (03 June 2026). Fix uninitialized variables; remove deprecated COUNT_NORMAL and date_default_timezone_set()
+- (03 June 2026). Add PHP_CodeSniffer + WordPress Coding Standards linter via Composer
+- (03 June 2026). Add GitHub Actions CI workflow for syntax check and phpcs
+- (03 June 2026). CSS: fix missing space after comma in multi-speaker separator
 
 = 3.6.2 =
 

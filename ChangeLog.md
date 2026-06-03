@@ -1,5 +1,22 @@
 # ChangeLog
 
+### Version 4.0.1
+
+- (03 June 2026). Modernise for PHP 8+ and WordPress 6.0+: replace cURL with `wp_remote_get()`, `wp_date()`, spaceship operator, `str_contains()`
+- (03 June 2026). Security: add `esc_html`/`esc_url`/`esc_attr`/`wp_kses_post`/`absint` throughout all shortcode output
+- (03 June 2026). Security: add CSRF nonce to admin settings form; sanitize all `$_POST` inputs with `sanitize_text_field(wp_unslash(...))`
+- (03 June 2026). Add `cfp_dev_log()` debug helper gated on `WP_DEBUG_LOG`
+- (03 June 2026). Fix uninitialized variables (`$content`, `$trackDescr`, `$sessionDescr`); remove deprecated `COUNT_NORMAL` and `date_default_timezone_set()`
+- (03 June 2026). Add PHP_CodeSniffer + WordPress Coding Standards linter via Composer (`composer lint`)
+- (03 June 2026). Add GitHub Actions CI workflow for syntax check and phpcs
+- (03 June 2026). CSS: fix missing space after comma in multi-speaker separator (`content: ', '`)
+- (03 June 2026). Add Patrick Baumgartner as co-author
+- (03 June 2026). Fix fatal PHP 8 error: rename `CFP_DEV_CFP_DEV_APPLICATION_JSON` constant to `CFP_DEV_APPLICATION_JSON` (all API calls were crashing)
+- (03 June 2026). Fix silent bug in `get_speaker_photos()`: `echo $content;` was accidentally on the same line as a phpcs:ignore comment and was never executed; speaker photo albums now render correctly
+- (03 June 2026). Inline all external resources: jQuery UI 1.14.2 (JS + CSS), Luxon 3.7.2 (renamed from `luxon2.0.min.js`), Moment.js 2.30.1 — no longer loaded from CDN
+- (03 June 2026). Convert all indentation to tabs in PHP, CSS, and JS files; zero phpcs errors/warnings across all 9 PHP files
+- (03 June 2026). Remove dead code: `isCurrentCache()`, `currentSummaryFlag()`, `storeCfpDevSummary()`, `getEventDetails()`, `getHTMLSummary()`, `searchBooks()`, `register_cfp_shortcodes()` duplicate, `cfp_speaker_details_template()`, unused constants (`CFP_DEV_THEME`, `CFP_DEV_SEARCH_BOOKS`), and commented-out JS code in `ajax-cfp-v3.4.js`
+
 ### Version 3.6.2
 
 - (09 June 2025). Use CSS Uppercase for speaker names on the agenda page

@@ -5,11 +5,11 @@ function change(id) {
   document.getElementById(cname + "-rating").innerHTML = rating;
   document.getElementById(cname + "-rating").value = rating;
   for (let i = rating; i >= 1; i--) {
-    document.getElementById(cname + i).src = "https://s3.eu-west-1.amazonaws.com/cfp.dev/images/star2.png";
+	document.getElementById(cname + i).src = "https://s3.eu-west-1.amazonaws.com/cfp.dev/images/star2.png";
   }
   const id2 = parseInt(rating) + 1;
   for (let j = id2; j <= 5; j++) {
-    document.getElementById(cname + j).src = "https://s3.eu-west-1.amazonaws.com/cfp.dev/images/star1.png";
+	document.getElementById(cname + j).src = "https://s3.eu-west-1.amazonaws.com/cfp.dev/images/star1.png";
   }
   document.getElementById("dev-cfp-rating-txt").innerHTML = ratings[rating-1];
 }

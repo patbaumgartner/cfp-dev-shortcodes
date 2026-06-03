@@ -1,4 +1,5 @@
 @charset "UTF-8";
+
 /* ////////////////////////////////////////////////////////////////////////////// */
 /* /////////////////////////////////////////////////////////////////// GLOBAL /// */
 /* ////////////////////////////////////////////////////////////////////////////// */
@@ -98,6 +99,7 @@ input::placeholder {
   ascent-override: 90%;
   src: url('../font/acumin_300.woff2') format('woff2'), url('../font/acumin_300.woff') format('woff');
 }
+
 /* ------------------------------------------------------------- ACUMIN : 400 --- */
 @font-face {
   font-family: 'Acumin';
@@ -106,6 +108,7 @@ input::placeholder {
   ascent-override: 90%;
   src: url('../font/acumin_400.woff2') format('woff2'), url('../font/acumin_400.woff') format('woff');
 }
+
 /* ------------------------------------------------------------- ACUMIN : 600 --- */
 @font-face {
   font-family: 'Acumin';
@@ -114,6 +117,7 @@ input::placeholder {
   ascent-override: 90%;
   src: url('../font/acumin_600.woff2') format('woff2'), url('../font/acumin_600.woff') format('woff');
 }
+
 /* --------------------------------------------------------------- TYPOGRAPHY --- */
 /* ////////////////////////////////////////////////////////////////////////////// */
 /* /////////////////////////////////////////////////////////////// TYPOGRAPHY /// */
@@ -382,6 +386,7 @@ nav.cfp-filter a.cfp-a,
 form.cfp-search {
   width: 288px;
 }
+
 @media (max-width: 800px) {
   form.cfp-search {
 	width: 100%;
@@ -459,6 +464,16 @@ nav.cfp-social a.cfp-linkedIn {
   mask-image: url('../gfx/social/linkedIn.svg');
 }
 
+nav.cfp-social a.cfp-bluesky {
+  -webkit-mask-image: url('../gfx/social/bluesky.svg');
+  mask-image: url('../gfx/social/bluesky.svg');
+}
+
+nav.cfp-social a.cfp-mastodon {
+  -webkit-mask-image: url('../gfx/social/mastodon.svg');
+  mask-image: url('../gfx/social/mastodon.svg');
+}
+
 nav.cfp-social a.cfp-linkedIn::before {
   padding-top: 81.25%;
 }
@@ -474,7 +489,7 @@ nav.cfp-social a.cfp-linkedIn::before {
   gap: calc(var(--cfp-gutter) * 1.5) 0;
 }
 
-.cfp-subject + * {
+.cfp-subject+* {
   margin-top: calc(var(--cfp-gutter) * 3);
 }
 
@@ -484,11 +499,13 @@ nav.cfp-social a.cfp-linkedIn::before {
   align-items: flex-end;
   flex-direction: row;
 }
+
 @media (min-width: 801px) {
   .cfp-subject .cfp-primary {
 	justify-content: space-between;
   }
 }
+
 @media (max-width: 800px) {
   .cfp-subject .cfp-primary {
 	align-items: center;
@@ -553,6 +570,25 @@ nav.cfp-tab {
   user-select: text;
 }
 
+/* --------------------------------------------------------- ERASE BACKGROUND --- */
+
+.cfp-text * {
+  color: var(--cfp-text-primary) !important;
+  background-color: transparent !important;
+}
+
+@media(prefers-color-scheme: dark) {
+  .cfp-text * {
+	color: var(--cfp-text-primary) !important;
+  }
+}
+
+.cfp-podcast {
+  margin: 20px 0 20px 0;
+  text-align: center;
+  text-align: -webkit-center;
+}
+
 /* ------------------------------------------------------------------ CONTENT --- */
 .cfp-text *:where(p, ul, ol):not(:first-child) {
   margin-top: 1.25em;
@@ -597,6 +633,7 @@ nav.cfp-tab {
   opacity: 1;
   pointer-events: auto;
 }
+
 @media (pointer: fine) {
   .cfp-theme a.cfp-a {
 	transition: opacity 200ms 100ms;
@@ -845,11 +882,13 @@ nav.cfp-tab {
 :root {
   --cfp-layout-x: 1024px;
 }
+
 @media (max-width: 1024px) {
   :root {
 	--cfp-layout-x: calc((100vw - (var(--cfp-gutter) * 4)));
   }
 }
+
 @media (max-width: 460px) {
   :root {
 	--cfp-layout-x: calc((100vw - (var(--cfp-gutter) * 2)));
@@ -860,6 +899,7 @@ nav.cfp-tab {
 :root {
   --cfp-gutter: 20px;
 }
+
 @media (max-width: 460px) {
   :root {
 	--cfp-gutter: 18px;
@@ -911,11 +951,13 @@ footer.cfp-footer {
   flex-direction: row;
   /*background-color: var(--cfp-background-primary);*/
 }
+
 @media (min-width: 801px) {
   footer.cfp-footer {
 	justify-content: space-between;
   }
 }
+
 @media (max-width: 800px) {
   footer.cfp-footer {
 	flex-direction: column;
@@ -949,6 +991,7 @@ footer.cfp-footer .cfp-legal {
   flex-direction: column;
   gap: 0.25em 0;
 }
+
 @media (min-width: 801px) {
   footer.cfp-footer .cfp-legal {
 	align-items: flex-end;
@@ -979,6 +1022,7 @@ header.cfp-header {
   background-color: var(--cfp-background-primary);
   border-bottom: 1px solid var(--cfp-border-primary);
 }
+
 @media (min-width: 801px) {
   header.cfp-header {
 	height: 32px;
@@ -987,6 +1031,7 @@ header.cfp-header {
 	grid-template-rows: auto;
   }
 }
+
 @media (max-width: 800px) {
   header.cfp-header {
 	display: flex;
@@ -1023,6 +1068,7 @@ header.cfp-header nav.cfp-nav a.cfp-a {
   opacity: 1;
   pointer-events: auto;
 }
+
 @media (pointer: fine) {
   header.cfp-header nav.cfp-nav a.cfp-a {
 	transition: opacity 200ms 100ms;
@@ -1171,6 +1217,7 @@ section.cfp-access nav.cfp-nav a.cfp-a {
   text-transform: uppercase;
   pointer-events: auto;
 }
+
 @media (pointer: fine) {
   section.cfp-access nav.cfp-nav a.cfp-a {
 	transition: opacity 200ms 100ms;
@@ -1220,7 +1267,7 @@ form.cfp-form input.cfp-input:-webkit-autofill {
   -webkit-text-fill-color: var(--cfp-text-primary);
 }
 
-form.cfp-form input.cfp-input + label.cfp-label {
+form.cfp-form input.cfp-input+label.cfp-label {
   position: absolute;
   top: 0;
   left: 0;
@@ -1233,7 +1280,7 @@ form.cfp-form input.cfp-input + label.cfp-label {
   pointer-events: none;
 }
 
-form.cfp-form input.cfp-input:not(:focus):-moz-placeholder-shown + label.cfp-label {
+form.cfp-form input.cfp-input:not(:focus):-moz-placeholder-shown+label.cfp-label {
   top: 50%;
   color: #a7a7a7;
   font-size: clamp(10px, calc(((100vw - 460px) / 884) * (12 - 10) + (10 * 1px)), 12px);
@@ -1241,7 +1288,7 @@ form.cfp-form input.cfp-input:not(:focus):-moz-placeholder-shown + label.cfp-lab
   transform: translateY(-50%);
 }
 
-form.cfp-form input.cfp-input:not(:focus):placeholder-shown + label.cfp-label {
+form.cfp-form input.cfp-input:not(:focus):placeholder-shown+label.cfp-label {
   top: 50%;
   color: #a7a7a7;
   font-size: clamp(10px, calc(((100vw - 460px) / 884) * (12 - 10) + (10 * 1px)), 12px);
@@ -1262,12 +1309,14 @@ form.cfp-form button.cfp-button {
 section.cfp-list .cfp-group {
   margin-top: calc(var(--cfp-gutter) * 3);
 }
+
 @media (max-width: 1024px) {
   section.cfp-list .cfp-group {
 	display: grid;
 	gap: var(--cfp-gutter) 0;
   }
 }
+
 @media (max-width: 1024px) and (min-width: 801px) {
   section.cfp-list .cfp-group {
 	grid-auto-flow: row;
@@ -1275,6 +1324,7 @@ section.cfp-list .cfp-group {
 	grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
 @media (max-width: 1024px) {
   section.cfp-list .cfp-group {
 	display: flex;
@@ -1288,6 +1338,7 @@ section.cfp-list .cfp-foreword {
   flex-direction: column;
   gap: var(--cfp-gutter) 0;
 }
+
 @media (max-width: 1024px) {
   section.cfp-list .cfp-foreword {
 	grid-column: 1/-1;
@@ -1387,6 +1438,7 @@ section.cfp-list .cfp-field .cfp-datetime time.cfp-time:not(:first-child)::befor
 	gap: 0 var(--cfp-gutter);
   }
 }
+
 @media (max-width: 1024px) {
   section.cfp-list .cfp-row.cfp-headline {
 	display: none;
@@ -1409,11 +1461,13 @@ section.cfp-list article.cfp-row.cfp-event {
   gap: 0 var(--cfp-gutter);
   font-size: clamp(13px, calc(((100vw - 460px) / 884) * (15 - 13) + (13 * 1px)), 15px);
 }
+
 @media (min-width: 1025px) {
   section.cfp-list article.cfp-row.cfp-event {
 	height: 64px;
   }
 }
+
 @media (max-width: 1024px) {
   section.cfp-list article.cfp-row.cfp-event {
 	align-items: flex-start;
@@ -1459,6 +1513,7 @@ section.cfp-list article.cfp-row.cfp-event .cfp-field.cfp-speaker a.cfp-a {
   color: var(--cfp-accept-primary);
   pointer-events: auto;
 }
+
 @media (pointer: fine) {
   section.cfp-list article.cfp-row.cfp-event .cfp-field.cfp-speaker a.cfp-a {
 	transition: opacity 200ms;
@@ -1475,12 +1530,13 @@ section.cfp-list article.cfp-row.cfp-event .cfp-field.cfp-speaker a.cfp-a {
 
 section.cfp-list article.cfp-row.cfp-event .cfp-field.cfp-speaker a.cfp-a:not(:last-child)::after {
   color: var(--cfp-text-primary);
-  content: ',';
+  content: ', ';
 }
 
 section.cfp-list article.cfp-row.cfp-event .cfp-track {
   width: 24px;
 }
+
 @media (min-width: 1025px) {
   section.cfp-list article.cfp-row.cfp-event .cfp-track {
 	transform: translateX(10px);
@@ -1528,10 +1584,8 @@ section.cfp-schedule .cfp-scope {
   grid-template-columns: max(var(--column-x), 64px);
   grid-template-rows: auto;
   gap: 0 calc(var(--cfp-gutter) * 0.5);
-  background-image: repeating-linear-gradient(
-	transparent 0 calc(var(--cfp-gutter) * 2 - 1px),
-	var(--cfp-border-primary) calc(var(--cfp-gutter) * 2 - 1px) calc(var(--cfp-gutter) * 2)
-  );
+  background-image: repeating-linear-gradient(transparent 0 calc(var(--cfp-gutter) * 2 - 1px),
+	  var(--cfp-border-primary) calc(var(--cfp-gutter) * 2 - 1px) calc(var(--cfp-gutter) * 2));
 }
 
 /* ------------------------------------------------------------------- COLUMN --- */
@@ -1752,6 +1806,7 @@ section.cfp-schedule article.cfp-article.cfp-session .cfp-speaker {
   -webkit-user-select: text;
   -moz-user-select: text;
   user-select: text;
+  text-transform: uppercase;
 }
 
 /* --------------------------------------------------------- ARTICLE : RECESS --- */
@@ -4005,16 +4060,19 @@ section.cfp-search article.cfp-article {
   flex-direction: row;
   gap: var(--cfp-gutter);
 }
+
 @media (min-width: 1345px) {
   section.cfp-search article.cfp-article {
 	margin: 0 calc(((1 / 12) * (var(--cfp-layout-x) + var(--cfp-gutter))) - var(--cfp-gutter));
   }
 }
+
 @media (min-width: 1025px) {
   section.cfp-search article.cfp-article {
 	flex-wrap: wrap;
   }
 }
+
 @media (max-width: 1024px) {
   section.cfp-search article.cfp-article {
 	align-items: center;
@@ -4102,6 +4160,7 @@ section.cfp-search .cfp-block {
   grid-template-rows: auto;
   gap: calc(var(--cfp-gutter) * 2) var(--cfp-gutter);
 }
+
 @media (max-width: 1024px) {
   section.cfp-search .cfp-block {
 	grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
@@ -4126,11 +4185,13 @@ section.cfp-session {
   flex-direction: row;
   gap: 0 var(--cfp-gutter);
 }
+
 @media (min-width: 1345px) {
   section.cfp-session {
 	margin: 0 calc(((1 / 12) * (var(--cfp-layout-x) + var(--cfp-gutter))) - var(--cfp-gutter));
   }
 }
+
 @media (max-width: 800px) {
   section.cfp-session {
 	flex-direction: column;
@@ -4144,11 +4205,13 @@ section.cfp-session .cfp-foreword {
   align-items: flex-start;
   flex-direction: column;
 }
+
 @media (min-width: 801px) {
   section.cfp-session .cfp-foreword {
 	width: calc(((3 / 12) * (var(--cfp-layout-x) + var(--cfp-gutter))) - var(--cfp-gutter));
   }
 }
+
 @media (max-width: 1344px) and (min-width: 801px) {
   section.cfp-session .cfp-foreword {
 	width: calc(((4 / 12) * (var(--cfp-layout-x) + var(--cfp-gutter))) - var(--cfp-gutter));
@@ -4304,25 +4367,31 @@ section.cfp-session .cfp-foreword button.cfp-button {
 
 /* ------------------------------------------------------------------ CONTENT --- */
 @media (min-width: 801px) {
-  section.cfp-session > .cfp-content {
+  section.cfp-session>.cfp-content {
 	width: calc(((6 / 12) * (var(--cfp-layout-x) + var(--cfp-gutter))) - var(--cfp-gutter));
 	margin-left: calc((((1 / 12) * (var(--cfp-layout-x) + var(--cfp-gutter))) - var(--cfp-gutter)) + var(--cfp-gutter));
 	flex: 2;
   }
 }
+
 @media (max-width: 1344px) and (min-width: 801px) {
-  section.cfp-session > .cfp-content {
+  section.cfp-session>.cfp-content {
 	width: calc(((7 / 12) * (var(--cfp-layout-x) + var(--cfp-gutter))) - var(--cfp-gutter));
 	margin-left: var(--cfp-gutter);
   }
 }
 
-section.cfp-session > .cfp-content .cfp-text {
+section.cfp-session>.cfp-content .cfp-text {
   color: var(--cfp-text-primary);
   font-size: clamp(13px, calc(((100vw - 460px) / 884) * (15 - 13) + (13 * 1px)), 15px);
 }
 
-section.cfp-session > .cfp-book {
+section.cfp-session>.cfp-content .cfp-text small {
+  color: var(--cfp-text-primary);
+  font-size: clamp(10px, calc(((100vw - 460px) / 884) * (10 - 8) + (12 * 1px)), 10px);
+}
+
+section.cfp-session>.cfp-book {
   display: flex;
   flex-direction: row;
   background-color: var(--cfp-background-secondary);
@@ -4333,12 +4402,12 @@ section.cfp-session > .cfp-book {
   width: 100%;
 }
 
-section.cfp-session > .cfp-book .cfp-book-item {
+section.cfp-session>.cfp-book .cfp-book-item {
   width: 25%;
   box-sizing: border-box;
 }
 
-section.cfp-session > .cfp-book .cfp-book-item img {
+section.cfp-session>.cfp-book .cfp-book-item img {
   transition: transform 0.2s;
   min-height: 200px;
   min-width: 200px;
@@ -4346,7 +4415,7 @@ section.cfp-session > .cfp-book .cfp-book-item img {
   height: 200px;
 }
 
-section.cfp-session > .cfp-book .cfp-book-item img:hover {
+section.cfp-session>.cfp-book .cfp-book-item img:hover {
   transform: scale(1.5);
 }
 
@@ -4371,6 +4440,7 @@ html.cfp-html.cfp-page\:index section.cfp-overview .cfp-block {
   grid-template-columns: repeat(2, 1fr);
   gap: var(--cfp-gutter);
 }
+
 @media (max-width: 800px) {
   html.cfp-html.cfp-page\:index section.cfp-overview .cfp-block {
 	grid-template-columns: 1fr;
@@ -4461,11 +4531,13 @@ html.cfp-html.cfp-page\:schedule section.cfp-schedule .cfp-subject .cfp-secondar
   flex-direction: row;
   gap: 0 var(--cfp-gutter);
 }
+
 @media (min-width: 801px) {
   html.cfp-html.cfp-page\:schedule section.cfp-schedule .cfp-subject .cfp-secondary {
 	justify-content: space-between;
   }
 }
+
 @media (max-width: 800px) {
   html.cfp-html.cfp-page\:schedule section.cfp-schedule .cfp-subject .cfp-secondary {
 	align-items: flex-start;
@@ -4536,7 +4608,7 @@ html.cfp-html.cfp-page\:session.cfp-view\:detail section.cfp-session .cfp-qualit
   mask-image: url('../gfx/session/quality/active.svg');
 }
 
-html.cfp-html.cfp-page\:session.cfp-view\:detail section.cfp-session .cfp-quality a.cfp-a:hover ~ a.cfp-a {
+html.cfp-html.cfp-page\:session.cfp-view\:detail section.cfp-session .cfp-quality a.cfp-a:hover~a.cfp-a {
   -webkit-mask-image: url('../gfx/session/quality/idle.svg');
   mask-image: url('../gfx/session/quality/idle.svg');
 }
@@ -4548,6 +4620,7 @@ html.cfp-html.cfp-page\:session.cfp-view\:detail section.cfp-session .cfp-profil
   background-color: var(--cfp-background-secondary);
   border-radius: 10px;
 }
+
 @media (min-width: 461px) {
   html.cfp-html.cfp-page\:session.cfp-view\:detail section.cfp-session .cfp-profile {
 	align-items: start;
@@ -4557,6 +4630,7 @@ html.cfp-html.cfp-page\:session.cfp-view\:detail section.cfp-session .cfp-profil
 	gap: 0 calc(var(--cfp-gutter) * 2);
   }
 }
+
 @media (max-width: 460px) {
   html.cfp-html.cfp-page\:session.cfp-view\:detail section.cfp-session .cfp-profile {
 	display: flex;
@@ -4568,11 +4642,13 @@ html.cfp-html.cfp-page\:session.cfp-view\:detail section.cfp-session .cfp-profil
 html.cfp-html.cfp-page\:session.cfp-view\:detail section.cfp-session .cfp-profile .cfp-picture {
   border-radius: 50%;
 }
+
 @media (min-width: 461px) {
   html.cfp-html.cfp-page\:session.cfp-view\:detail section.cfp-session .cfp-profile .cfp-picture {
 	grid-area: picture;
   }
 }
+
 @media (max-width: 460px) {
   html.cfp-html.cfp-page\:session.cfp-view\:detail section.cfp-session .cfp-profile .cfp-picture {
 	width: 50%;
@@ -4598,6 +4674,7 @@ html.cfp-html.cfp-page\:session.cfp-view\:detail section.cfp-session .cfp-profil
 	grid-area: detail;
   }
 }
+
 @media (max-width: 460px) {
   html.cfp-html.cfp-page\:session.cfp-view\:detail section.cfp-session .cfp-profile .cfp-detail {
 	margin-top: var(--cfp-gutter);
@@ -4614,8 +4691,8 @@ html.cfp-html.cfp-page\:session.cfp-view\:detail section.cfp-session .cfp-profil
 }
 
 html.cfp-html.cfp-page\:session.cfp-view\:detail section.cfp-session .cfp-profile nav.cfp-social {
-  margin-left: 0.25rem;
-  gap: 0 0.5em;
+  margin-left: 0.65rem;
+  gap: 0 0.05em;
 }
 
 html.cfp-html.cfp-page\:session.cfp-view\:detail section.cfp-session .cfp-profile nav.cfp-social a.cfp-a {
@@ -4627,11 +4704,13 @@ html.cfp-html.cfp-page\:session.cfp-view\:detail section.cfp-session .cfp-profil
   color: var(--cfp-text-primary);
   font-size: clamp(10px, calc(((100vw - 460px) / 884) * (12 - 10) + (10 * 1px)), 12px);
 }
+
 @media (min-width: 461px) {
   html.cfp-html.cfp-page\:session.cfp-view\:detail section.cfp-session .cfp-profile .cfp-text {
 	grid-area: detail;
   }
 }
+
 @media (max-width: 460px) {
   html.cfp-html.cfp-page\:session.cfp-view\:detail section.cfp-session .cfp-profile .cfp-text {
 	text-align: left;
@@ -4757,15 +4836,16 @@ html.cfp-html.cfp-page\:speaker.cfp-view\:detail section.cfp-profile {
 
 @media (min-width: 1345px) {
   html.cfp-html.cfp-page\:speaker.cfp-view\:detail section.cfp-profile {
-	margin: 0 calc(((2 / 12) * (var(--cfp-layout-x) + var(--cfp-gutter))) - var(--cfp-gutter)) 0
-	  calc(((3 / 12) * (var(--cfp-layout-x) + var(--cfp-gutter))) - var(--cfp-gutter));
+	margin: 0 calc(((2 / 12) * (var(--cfp-layout-x) + var(--cfp-gutter))) - var(--cfp-gutter)) 0 calc(((3 / 12) * (var(--cfp-layout-x) + var(--cfp-gutter))) - var(--cfp-gutter));
   }
 }
+
 @media (min-width: 801px) {
   html.cfp-html.cfp-page\:speaker.cfp-view\:detail section.cfp-profile {
 	align-items: center;
   }
 }
+
 @media (max-width: 800px) {
   html.cfp-html.cfp-page\:speaker.cfp-view\:detail section.cfp-profile {
 	flex-direction: column;
@@ -4778,6 +4858,7 @@ html.cfp-html.cfp-page\:speaker.cfp-view\:detail section.cfp-profile .cfp-pictur
   grid-area: picture;
   border-radius: 50%;
 }
+
 @media (max-width: 800px) {
   html.cfp-html.cfp-page\:speaker.cfp-view\:detail section.cfp-profile .cfp-picture {
 	width: 96px;
@@ -4822,6 +4903,7 @@ html.cfp-html.cfp-page\:speaker.cfp-view\:detail section.cfp-profile .cfp-text {
   color: var(--cfp-text-primary);
   font-size: clamp(12px, calc(((100vw - 460px) / 884) * (14 - 12) + (12 * 1px)), 14px);
 }
+
 @media (max-width: 1344px) {
   html.cfp-html.cfp-page\:speaker.cfp-view\:detail section.cfp-profile .cfp-text {
 	max-width: 42em;
@@ -4881,6 +4963,7 @@ html.cfp-html.cfp-page\:speaker.cfp-view\:detail section.cfp-gallery {
   align-items: center;
   flex-direction: column;
 }
+
 @media (min-width: 1345px) {
   html.cfp-html.cfp-page\:speaker.cfp-view\:detail section.cfp-gallery {
 	margin: 0 calc(((1 / 12) * (var(--cfp-layout-x) + var(--cfp-gutter))) - var(--cfp-gutter));
@@ -4934,6 +5017,7 @@ html.cfp-html.cfp-page\:speaker:not(.cfp-view\:detail) section.cfp-speaker .cfp-
   grid-template-rows: auto;
   gap: calc(var(--cfp-gutter) * 3) var(--cfp-gutter);
 }
+
 @media (max-width: 1024px) {
   html.cfp-html.cfp-page\:speaker:not(.cfp-view\:detail) section.cfp-speaker .cfp-block {
 	grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
