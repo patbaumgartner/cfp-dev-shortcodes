@@ -475,6 +475,12 @@ function cfp_dev_plugin_options() {
 	$crawl_status    = $crawl_state['status'] ?? 'idle';
 	$latest_snapshot = cfp_dev_get_latest_snapshot();
 
+	// Auto-disable offline mode when the snapshot folder has been removed.
+	if ( 1 === $offline_mode && empty( $latest_snapshot ) && ! in_array( $crawl_status, [ 'running', 'pending' ], true ) ) {
+		update_option( 'cfp_dev_offline_mode', 0 );
+		$offline_mode = 0;
+	}
+
 	// Keep the checkbox checked while a crawl is in progress — offline mode
 	// only flips to 1 when the crawl finishes, but the user intent is already set.
 	if ( 0 === $offline_mode && in_array( $crawl_status, [ 'running', 'pending' ], true ) ) {
@@ -723,7 +729,13 @@ function compareName( $x, $y ) {
 function getJSON( $queryPath ) {
 	// Offline mode: serve from local snapshot instead of the live API.
 	if ( get_option( 'cfp_dev_offline_mode', 0 ) ) {
-		return cfp_dev_get_json_offline( $queryPath );
+		$offline_result = cfp_dev_get_json_offline( $queryPath );
+		if ( null !== $offline_result ) {
+			return $offline_result;
+		}
+		// Snapshot missing or incomplete — fall back to live API and disable offline mode.
+		cfp_dev_log( 'getJSON: offline snapshot unavailable for ' . $queryPath . ', falling back to live API and disabling offline mode.' );
+		update_option( 'cfp_dev_offline_mode', 0 );
 	}
 
 	$query_url = CFP_DEV_URL_DOMAIN . $queryPath;
