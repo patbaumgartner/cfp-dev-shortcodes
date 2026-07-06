@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.2.2] — 2026-07-06
+
+### Removed
+- 19 unused image assets (~verified against all emitted markup): `gfx/track/*.png` (11 — track icons always come inline from the API), `gfx/store/{ios,android}.svg` (removed Home shortcode), `gfx/session/quality/*.svg` (removed star-rating feature), `gfx/pagination/{prev,next}.svg`, `gfx/video/play.svg`, `gfx/theme/system.svg` — plus their now-dead CSS rules
+
+---
+
 ## [4.2.1] — 2026-07-06
 
 ### Changed

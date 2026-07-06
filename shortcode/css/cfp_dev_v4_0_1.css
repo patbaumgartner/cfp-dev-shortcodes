@@ -258,18 +258,6 @@ nav.cfp-pagination a.cfp-a::before {
   mask-repeat: no-repeat;
 }
 
-nav.cfp-pagination a.cfp-a.cfp-prev::before {
-  -webkit-mask-image: url('../gfx/pagination/prev.svg');
-  mask-image: url('../gfx/pagination/prev.svg');
-  transform: translateX(-10%);
-}
-
-nav.cfp-pagination a.cfp-next::before {
-  -webkit-mask-image: url('../gfx/pagination/next.svg');
-  mask-image: url('../gfx/pagination/next.svg');
-  transform: translateX(10%);
-}
-
 /* -------------------------------------------------------------------- COUNT --- */
 nav.cfp-pagination .cfp-count {
   display: flex;
@@ -669,13 +657,6 @@ nav.cfp-tab {
   background-color: var(--cfp-accept-primary);
 }
 
-.cfp-theme a.cfp-a.cfp-system::before {
-  width: 1em;
-  -webkit-mask-image: url('../gfx/theme/system.svg');
-  mask-image: url('../gfx/theme/system.svg');
-  transform: translateY(-0.0625em);
-}
-
 .cfp-theme a.cfp-a.cfp-light::before {
   width: 1.25em;
   -webkit-mask-image: url('../gfx/theme/light.svg');
@@ -723,54 +704,6 @@ nav.cfp-tab {
   transform: translate(-50%, -50%);
 }
 
-.cfp-track.cfp-architecture::after {
-  background-image: url('../gfx/track/architecture.png');
-}
-
-.cfp-track.cfp-build_deploy::after {
-  background-image: url('../gfx/track/build_deploy.png');
-}
-
-.cfp-track.cfp-coding_in_2030::after {
-  background-image: url('../gfx/track/coding_in_2030.png');
-}
-
-.cfp-track.cfp-data_ai::after {
-  background-image: url('../gfx/track/data_ai.png');
-}
-
-.cfp-track.cfp-development_practices::after {
-  background-image: url('../gfx/track/development_practices.png');
-}
-
-.cfp-track.cfp-devnation_day::after {
-  background-image: url('../gfx/track/devnation_day.png');
-}
-
-.cfp-track.cfp-java::after {
-  background-image: url('../gfx/track/java.png');
-}
-
-.cfp-track.cfp-mind_the_geek::after {
-  background-image: url('../gfx/track/mind_the_geek.png');
-}
-
-.cfp-track.cfp-people_culture::after {
-  background-image: url('../gfx/track/people_culture.png');
-}
-
-.cfp-track.cfp-progamming_languages::after {
-  background-image: url('../gfx/track/progamming_languages.png');
-}
-
-.cfp-track.cfp-security::after {
-  background-image: url('../gfx/track/security.png');
-}
-
-.cfp-track.cfp-ui_ux::after {
-  background-image: url('../gfx/track/ui_ux.png');
-}
-
 /* ////////////////////////////////////////////////////////////////////////////// */
 /* //////////////////////////////////////////////////////////////////// VIDEO /// */
 /* ////////////////////////////////////////////////////////////////////////////// */
@@ -803,31 +736,6 @@ nav.cfp-tab {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-}
-
-.cfp-video button.cfp-play::before,
-.cfp-video button.cfp-play::after {
-  display: block;
-  content: '';
-}
-
-.cfp-video button.cfp-play::before {
-  padding-top: 100%;
-}
-
-.cfp-video button.cfp-play::after {
-  width: 33.3333333333%;
-  padding-top: 100%;
-  background-color: white;
-  -webkit-mask-image: url('../gfx/video/play.svg');
-  mask-image: url('../gfx/video/play.svg');
-  -webkit-mask-position: center;
-  mask-position: center;
-  -webkit-mask-size: contain;
-  mask-size: contain;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  transform: translateX(15%);
 }
 
 .cfp-video.cfp-active button.cfp-play {
@@ -4501,16 +4409,6 @@ html.cfp-html.cfp-page\:index section.cfp-overview nav.cfp-store a.cfp-a {
   background-size: contain;
 }
 
-html.cfp-html.cfp-page\:index section.cfp-overview nav.cfp-store a.cfp-a.cfp-ios {
-  width: 120px;
-  background-image: url('../gfx/store/ios.svg');
-}
-
-html.cfp-html.cfp-page\:index section.cfp-overview nav.cfp-store a.cfp-a.cfp-android {
-  width: 136px;
-  background-image: url('../gfx/store/android.svg');
-}
-
 /* ////////////////////////////////////////////////////////////////////////////// */
 /* ///////////////////////////////////////////////////////////////// SCHEDULE /// */
 /* ////////////////////////////////////////////////////////////////////////////// */
@@ -4581,36 +4479,6 @@ html.cfp-html.cfp-page\:session.cfp-view\:detail section.cfp-session .cfp-qualit
   margin-top: calc(var(--cfp-gutter) * 1.5);
   flex-direction: row;
   gap: 0 calc(var(--cfp-gutter) * 0.5);
-}
-
-html.cfp-html.cfp-page\:session.cfp-view\:detail section.cfp-session .cfp-quality a.cfp-a {
-  display: block;
-  width: 24px;
-  height: 24px;
-  background-color: var(--cfp-accept-primary);
-  -webkit-mask-image: url('../gfx/session/quality/idle.svg');
-  mask-image: url('../gfx/session/quality/idle.svg');
-  -webkit-mask-position: center;
-  mask-position: center;
-  -webkit-mask-size: contain;
-  mask-size: contain;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  transition: -webkit-mask-image 200ms;
-  transition: mask-image 200ms;
-  transition: mask-image 200ms, -webkit-mask-image 200ms;
-  will-change: mask-image;
-}
-
-html.cfp-html.cfp-page\:session.cfp-view\:detail section.cfp-session .cfp-quality:hover a.cfp-a,
-html.cfp-html.cfp-page\:session.cfp-view\:detail section.cfp-session .cfp-quality a.cfp-a.cfp-active {
-  -webkit-mask-image: url('../gfx/session/quality/active.svg');
-  mask-image: url('../gfx/session/quality/active.svg');
-}
-
-html.cfp-html.cfp-page\:session.cfp-view\:detail section.cfp-session .cfp-quality a.cfp-a:hover~a.cfp-a {
-  -webkit-mask-image: url('../gfx/session/quality/idle.svg');
-  mask-image: url('../gfx/session/quality/idle.svg');
 }
 
 html.cfp-html.cfp-page\:session.cfp-view\:detail section.cfp-session .cfp-profile {
