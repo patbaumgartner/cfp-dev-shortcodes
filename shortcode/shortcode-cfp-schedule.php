@@ -23,10 +23,22 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 	/**
 	 * Shortcode CFP Schedule
 	 *
+	 * @param array $atts  Shortcode attributes: title, hide_title, hide_search.
 	 * @return string
 	 * @since  1.0.0
 	 */
-	function cfp_schedule_shortcode() {
+	function cfp_schedule_shortcode( $atts = [] ) {
+		$defaults = [
+			'title'       => '', // Empty → the event name from the API.
+			'hide_title'  => false,
+			'hide_search' => false,
+		];
+		$_atts    = shortcode_atts( $defaults, $atts );
+
+		$_atts['title']       = trim( (string) $_atts['title'] );
+		$_atts['hide_title']  = cfp_dev_attr_bool( $_atts['hide_title'] );
+		$_atts['hide_search'] = cfp_dev_attr_bool( $_atts['hide_search'] );
+
 		// Whitelist the day name — it is user input and becomes part of API paths
 		// and cache keys (arbitrary values would create unbounded transients).
 		$valid_days = [ 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday' ];
@@ -82,16 +94,16 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 			return 'No schedule available for ' . esc_html( $dayName ) . '.';
 		}
 
-		$_cache_group = cfp_dev_group_cache_key( 'cfp_schedule_' . $dayName );
+		$_cache_group = cfp_dev_group_cache_key( 'cfp_schedule_' . $dayName . cfp_dev_atts_cache_suffix( $_atts, $defaults ) );
 
 		$ttl = cfp_dev_get_cache_ttl();
 		if ( 0 === $ttl ) {
 			cfp_dev_log( 'schedule: cache disabled, generating content for day=' . $dayName );
-			$content = generate_schedule_content( $day_schedule, $rooms, $timeZone, $fromDate, $currentEvent, $dayName );
+			$content = generate_schedule_content( $day_schedule, $rooms, $timeZone, $fromDate, $currentEvent, $dayName, $_atts );
 		} else {
 			$cache = get_transient( $_cache_group );
 			if ( false === $cache ) {
-					$content = generate_schedule_content( $day_schedule, $rooms, $timeZone, $fromDate, $currentEvent, $dayName );
+					$content = generate_schedule_content( $day_schedule, $rooms, $timeZone, $fromDate, $currentEvent, $dayName, $_atts );
 					set_transient( $_cache_group, $content, $ttl );
 			} else {
 				$content = $cache;
@@ -110,9 +122,10 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 	 * @param DateTime     $fromDate      Event start date (mutated while building the day tabs).
 	 * @param object       $currentEvent  Event object from the API.
 	 * @param string       $dayName       Selected day, e.g. 'Tuesday'.
+	 * @param array        $_atts         Normalised shortcode attributes (title, hide_title, hide_search).
 	 * @return string
 	 */
-	function generate_schedule_content( $day_schedule, $rooms, $timeZone, $fromDate, $currentEvent, $dayName ) {
+	function generate_schedule_content( $day_schedule, $rooms, $timeZone, $fromDate, $currentEvent, $dayName, $_atts = [] ) {
 		$toDate = new DateTime( $currentEvent->toDate, $timeZone );
 		$toDate->setTimezone( $timeZone );
 
@@ -125,10 +138,11 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 			// Title.
 			$content .= '<section id="cfp-schedule" class="cfp-schedule cfp-general">';
 			$content .= '    <div class="cfp-subject">';
-			$content .= '        <div class="cfp-primary">';
-			$content .= '            <div class="cfp-name">' . esc_html( $currentEvent->name ) . '</div>';
-			$content .= getSearchForm();
-			$content .= '        </div>';
+
+			$title    = empty( $_atts['hide_title'] )
+				? ( ! empty( $_atts['title'] ) ? $_atts['title'] : $currentEvent->name )
+				: '';
+			$content .= cfp_dev_page_header( (string) $title, '', empty( $_atts['hide_search'] ) );
 
 			// Day-tab navigation bar.
 			$content .= '	<div class="cfp-secondary">';

@@ -3,7 +3,7 @@
  * Plugin Name:       CFP.DEV shortcodes
  * Plugin URI:        https://github.com/patbaumgartner/cfp-dev-shortcodes
  * Description:       Display CFP.DEV conference content on your WordPress site: speakers, talks, schedule, and search — with light/dark theming, caching, and offline mode.
- * Version:           4.2.4
+ * Version:           4.3.0
  * Author:            Stephan Janssen, Patrick Baumgartner
  * Author URI:        https://x.com/stephan007
  * License:           GPL-2.0+
@@ -26,7 +26,7 @@ if ( ! defined( 'CFP_DEV_APPLICATION_JSON' ) ) {
 
 // Plugin version.
 if ( ! defined( 'CFP_DEV_VERSION' ) ) {
-	define( 'CFP_DEV_VERSION', '4.2.4' );
+	define( 'CFP_DEV_VERSION', '4.3.0' );
 }
 
 if ( ! defined( 'CFP_DEV_NAME' ) ) {
@@ -156,6 +156,7 @@ function cfp_dev_speakers_default_atts(): array {
 		'size'        => 300,
 		'title'       => '',
 		'subtitle'    => '',
+		'hide_title'  => false,
 		'hide_search' => false,
 	];
 }
@@ -166,6 +167,51 @@ function cfp_dev_speakers_default_atts(): array {
  */
 function cfp_dev_speakers_cache_key( array $atts ): string {
 	return cfp_dev_group_cache_key( 'speakers_cache_group_' . md5( wp_json_encode( $atts ) ) );
+}
+
+/**
+ * Normalises a shortcode boolean attribute: 'yes'/'true'/'1' → true,
+ * 'no'/'false'/'0'/'' → false (any non-empty string is truthy in plain PHP).
+ *
+ * @param mixed $value  Raw attribute value.
+ */
+function cfp_dev_attr_bool( $value ): bool {
+	return filter_var( $value, FILTER_VALIDATE_BOOLEAN );
+}
+
+/**
+ * Cache-key suffix for a shortcode's attribute set: empty for the defaults
+ * (so admin tooling can address the standard variant by its plain key),
+ * hashed for any customised set.
+ *
+ * @param array $atts      Normalised attributes.
+ * @param array $defaults  The shortcode's default attributes.
+ */
+function cfp_dev_atts_cache_suffix( array $atts, array $defaults ): string {
+	return ( $atts == $defaults ) ? '' : '_' . md5( wp_json_encode( $atts ) ); // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- order-insensitive array comparison intended
+}
+
+/**
+ * Renders the shared page header block (title, optional subtitle, optional
+ * search form) — the '.cfp-primary' element used by every list shortcode.
+ *
+ * @param string $title        Heading text; pass '' to render no heading.
+ * @param string $subtitle     Optional sub-heading.
+ * @param bool   $show_search  Whether to render the search form.
+ */
+function cfp_dev_page_header( string $title, string $subtitle = '', bool $show_search = true ): string {
+	$content = '<div class="cfp-primary">';
+	if ( '' !== $title ) {
+		$content .= '<div class="cfp-name">' . esc_html( $title ) . '</div>';
+	}
+	if ( '' !== $subtitle ) {
+		$content .= '<div class="cfp-company">' . esc_html( $subtitle ) . '</div>';
+	}
+	if ( $show_search ) {
+		$content .= getSearchForm();
+	}
+	$content .= '</div>';
+	return $content;
 }
 
 /**

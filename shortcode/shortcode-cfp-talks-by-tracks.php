@@ -22,22 +22,37 @@ if ( ! function_exists( 'cfp_talks_by_tracks_shortcode' ) ) {
 
 	/**
 	 * Shortcode CFP talks by tracks
+	 *
+	 * @param array $atts  Shortcode attributes: all, title, hide_title, hide_search.
 	 * @return string
 	 * @since  1.0.0
 	 */
 	function cfp_talks_by_tracks_shortcode( $atts ) {
+		$defaults = [
+			'all'         => false,
+			'title'       => 'Talks grouped by Track',
+			'hide_title'  => false,
+			'hide_search' => false,
+		];
+		$_atts    = shortcode_atts( $defaults, $atts );
+
+		$_atts['all']         = cfp_dev_attr_bool( $_atts['all'] );
+		$_atts['title']       = trim( (string) $_atts['title'] );
+		$_atts['hide_title']  = cfp_dev_attr_bool( $_atts['hide_title'] );
+		$_atts['hide_search'] = cfp_dev_attr_bool( $_atts['hide_search'] );
+
 		// absint: the id is user input and becomes part of API paths and cache keys.
 		$trackId = absint( get_query_var( 'id' ) );
 
 		$ttl = cfp_dev_get_cache_ttl();
 		if ( 0 === $ttl ) {
-			return cfp_get_talks_by_tracks( $trackId, $atts );
+			return cfp_get_talks_by_tracks( $trackId, $_atts );
 		}
 
-		$cacheGroup = cfp_dev_group_cache_key( 'talks_by_tracks_cache_group_' . $trackId );
+		$cacheGroup = cfp_dev_group_cache_key( 'talks_by_tracks_cache_group_' . $trackId . cfp_dev_atts_cache_suffix( $_atts, $defaults ) );
 		$cache      = get_transient( $cacheGroup );
 		if ( false === $cache ) {
-			$content = cfp_get_talks_by_tracks( $trackId, $atts );
+			$content = cfp_get_talks_by_tracks( $trackId, $_atts );
 			set_transient( $cacheGroup, $content, $ttl );
 		} else {
 			$content = $cache;
@@ -45,7 +60,7 @@ if ( ! function_exists( 'cfp_talks_by_tracks_shortcode' ) ) {
 		return $content;
 	}
 
-	function cfp_get_talks_by_tracks( $trackId, $atts ) {
+	function cfp_get_talks_by_tracks( $trackId, $_atts ) {
 		// Get the Tracks
 		$tracks = getJSON( 'public/tracks' );
 
@@ -57,17 +72,7 @@ if ( ! function_exists( 'cfp_talks_by_tracks_shortcode' ) ) {
 
 		// Track id was not given
 		if ( empty( $trackId ) ) {
-			// Save $atts.
-			$_atts = shortcode_atts(
-				[
-					'all' => false,
-				],
-				$atts
-			);
-
-			$showAll = filter_var( $_atts['all'], FILTER_VALIDATE_BOOLEAN );
-
-			if ( $showAll ) {
+			if ( ! empty( $_atts['all'] ) ) {
 				$trackId = -1;
 			} else {
 				// Take the first one from the list
@@ -96,7 +101,7 @@ if ( ! function_exists( 'cfp_talks_by_tracks_shortcode' ) ) {
 
 		if ( ! empty( $tracks ) ) {
 			usort( $tracks, 'compareName' );
-			$content .= displayTalksByTrack( $tracks, $trackId );
+			$content .= displayTalksByTrack( $tracks, $trackId, $_atts );
 		} else {
 			$content .= displayNoTracksMessage();
 		}
@@ -119,7 +124,6 @@ if ( ! function_exists( 'cfp_talks_by_tracks_shortcode' ) ) {
 		return $content;
 	}
 
-	/**
 	/**
 	 * Emits the root-element class script for this page type.
 	 *
@@ -208,14 +212,14 @@ if ( ! function_exists( 'cfp_talks_by_tracks_shortcode' ) ) {
 	 *
 	 * @param array $tracks   All tracks from the API.
 	 * @param int   $trackId  Currently selected track id.
+	 * @param array $_atts    Normalised shortcode attributes (title, hide_title, hide_search).
 	 * @return string
 	 */
-	function displayTalksByTrack( $tracks, $trackId ) {
+	function displayTalksByTrack( $tracks, $trackId, $_atts = [] ) {
+		$title = empty( $_atts['hide_title'] ) ? (string) ( $_atts['title'] ?? 'Talks grouped by Track' ) : '';
+
 		$content  = '<div class="cfp-subject">';
-		$content .= '    <div class="cfp-primary">';
-		$content .= '        <div class="cfp-name">Talks grouped by Track</div>';
-		$content .= getSearchForm();
-		$content .= '    </div>';
+		$content .= cfp_dev_page_header( $title, '', empty( $_atts['hide_search'] ) );
 		$content .= '    <nav class="cfp-filter">';
 		foreach ( $tracks as $track ) {
 			$isActive = ( (int) $track->id === (int) $trackId ) ? 'cfp-active' : '';

@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.3.0] — 2026-07-06
+
+### Added
+- Configurable page headings across all list shortcodes: `[cfp_schedule]`, `[cfp_talks_by_tracks]`, and `[cfp_talks_by_sessions]` now accept `title`, `hide_title`, and `hide_search` attributes (matching `[cfp_speakers]`, which also gains `hide_title`)
+- Shared `cfp_dev_page_header()` helper renders the heading/subtitle/search block identically on every page — headings were previously hardcoded per shortcode
+
+### Changed
+- Detail pages (`[cfp_speaker_details]`, `[cfp_talk_details]`) intentionally render no page heading — the speaker name / talk title is the heading (now documented)
+- Cache keys for schedule/tracks/sessions include the attribute set when customised, so different `title` configurations no longer share cached HTML
+
+---
+
 ## [4.2.4] — 2026-07-06
 
 ### Fixed

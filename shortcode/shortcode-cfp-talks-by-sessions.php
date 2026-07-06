@@ -23,22 +23,34 @@ if ( ! function_exists( 'cfp_talks_by_sessions_shortcode' ) ) {
 	/**
 	 * Shortcode CFP talks by session types
 	 *
+	 * @param array $atts  Shortcode attributes: title, hide_title, hide_search.
 	 * @return string
 	 * @since  1.0.0
 	 */
-	function cfp_talks_by_sessions_shortcode() {
+	function cfp_talks_by_sessions_shortcode( $atts = [] ) {
+		$defaults = [
+			'title'       => 'Talks grouped by Session Types',
+			'hide_title'  => false,
+			'hide_search' => false,
+		];
+		$_atts    = shortcode_atts( $defaults, $atts );
+
+		$_atts['title']       = trim( (string) $_atts['title'] );
+		$_atts['hide_title']  = cfp_dev_attr_bool( $_atts['hide_title'] );
+		$_atts['hide_search'] = cfp_dev_attr_bool( $_atts['hide_search'] );
+
 		// absint: the id is user input and becomes part of API paths and cache keys.
 		$sessionId = absint( get_query_var( 'id' ) );
 
 		$ttl = cfp_dev_get_cache_ttl();
 		if ( 0 === $ttl ) {
-			return get_talks_by_sessions( $sessionId );
+			return get_talks_by_sessions( $sessionId, $_atts );
 		}
 
-		$_cache_group = cfp_dev_group_cache_key( 'talks_by_sessions_cache_group_' . $sessionId );
+		$_cache_group = cfp_dev_group_cache_key( 'talks_by_sessions_cache_group_' . $sessionId . cfp_dev_atts_cache_suffix( $_atts, $defaults ) );
 		$cache        = get_transient( $_cache_group );
 		if ( false === $cache ) {
-			$content = get_talks_by_sessions( $sessionId );
+			$content = get_talks_by_sessions( $sessionId, $_atts );
 			set_transient( $_cache_group, $content, $ttl );
 		} else {
 			$content = $cache;
@@ -46,7 +58,7 @@ if ( ! function_exists( 'cfp_talks_by_sessions_shortcode' ) ) {
 		return $content;
 	}
 
-	function get_talks_by_sessions( $sessionId ) {
+	function get_talks_by_sessions( $sessionId, $_atts = [] ) {
 		// The Session Types
 		$sessions = getJSON( 'public/session-types' );
 
@@ -82,11 +94,10 @@ if ( ! function_exists( 'cfp_talks_by_sessions_shortcode' ) ) {
 
 		if ( ! empty( $sessions ) ) {
 
+			$title = empty( $_atts['hide_title'] ) ? (string) ( $_atts['title'] ?? 'Talks grouped by Session Types' ) : '';
+
 			$content .= '<div class="cfp-subject">';
-			$content .= '    <div class="cfp-primary">';
-			$content .= '        <div class="cfp-name">Talks grouped by Session Types</div>';
-			$content .= getSearchForm();
-			$content .= '    </div>';
+			$content .= cfp_dev_page_header( $title, '', empty( $_atts['hide_search'] ) );
 			$content .= '    <nav class="cfp-filter">';
 			foreach ( $sessions as $session ) {
 

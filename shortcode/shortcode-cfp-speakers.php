@@ -23,9 +23,9 @@ if ( ! function_exists( 'cfp_speakers_shortcode' ) ) {
 	function cfp_speakers_shortcode( $atts ) {
 		$_atts = shortcode_atts( cfp_dev_speakers_default_atts(), $atts );
 
-		// Normalise: 'no'/'false'/'0' must be falsy (any non-empty string is truthy in PHP).
-		$_atts['random']      = filter_var( $_atts['random'], FILTER_VALIDATE_BOOLEAN );
-		$_atts['hide_search'] = filter_var( $_atts['hide_search'], FILTER_VALIDATE_BOOLEAN );
+		$_atts['random']      = cfp_dev_attr_bool( $_atts['random'] );
+		$_atts['hide_title']  = cfp_dev_attr_bool( $_atts['hide_title'] );
+		$_atts['hide_search'] = cfp_dev_attr_bool( $_atts['hide_search'] );
 		$_atts['size']        = absint( $_atts['size'] );
 
 		$ttl = cfp_dev_get_cache_ttl();
@@ -63,21 +63,14 @@ if ( ! function_exists( 'cfp_speakers_shortcode' ) ) {
 		$content .= '<main class="cfp-main">';
 		$content .= '<section class="cfp-speaker">';
 		$content .= '    <div class="cfp-subject">';
-		$content .= '        <div class="cfp-primary">';
 
 		$_title   = trim( (string) $_atts['title'] );
-		$content .= '            <div class="cfp-name">' . esc_html( '' !== $_title ? $_title : 'Speakers' ) . '</div>';
+		$content .= cfp_dev_page_header(
+			$_atts['hide_title'] ? '' : ( '' !== $_title ? $_title : 'Speakers' ),
+			trim( (string) $_atts['subtitle'] ),
+			! $_atts['hide_search']
+		);
 
-		$_subtitle = trim( (string) $_atts['subtitle'] );
-		if ( '' !== $_subtitle ) {
-			$content .= '            <div class="cfp-company">' . esc_html( $_subtitle ) . '</div>';
-		}
-
-		if ( ! $_atts['hide_search'] ) {
-			$content .= getSearchForm();
-		}
-
-		$content .= '        </div>';
 		$content .= '    </div>';
 		$content .= '    <div class="cfp-block">';
 

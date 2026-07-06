@@ -4,7 +4,7 @@
 [![PHP Version](https://img.shields.io/badge/PHP-%3E%3D8.0-8892BF?logo=php)](https://php.net)
 [![WordPress](https://img.shields.io/badge/WordPress-6.0%2B-21759B?logo=wordpress)](https://wordpress.org)
 [![License: GPL v2+](https://img.shields.io/badge/License-GPL%20v2%2B-blue.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
-[![Stable Tag](https://img.shields.io/badge/stable-4.2.4-brightgreen)](https://github.com/patbaumgartner/cfp-dev-shortcodes/releases)
+[![Stable Tag](https://img.shields.io/badge/stable-4.3.0-brightgreen)](https://github.com/patbaumgartner/cfp-dev-shortcodes/releases)
 
 > WordPress shortcodes plugin for [CFP.DEV](https://cfp.dev) — display speakers, talks, schedules, and search results from your CFP.DEV instance directly on your WordPress site (Devoxx, VoxxedDays, and more).
 
@@ -89,8 +89,9 @@ Displays a grid of all speakers.
 |-----------|---------|-------------|
 | `size` | `300` | Maximum number of speakers to fetch |
 | `random` | `false` | Randomise the order (`yes` / `true`) |
-| `title` | — | Heading above the grid |
+| `title` | `Speakers` | Heading above the grid |
 | `subtitle` | — | Sub-heading |
+| `hide_title` | `false` | Hide the heading |
 | `hide_search` | `false` | Hide the search form |
 
 ```
@@ -101,23 +102,29 @@ Displays a grid of all speakers.
 
 ### `[cfp_speaker_details]`
 
-Renders the full speaker profile page. Reads `speaker_slug` or `id` from the URL query string — no attributes needed.
+Renders the full speaker profile page. Reads `speaker_slug` or `id` from the URL query string — no attributes needed. No page heading is rendered by design (the speaker's name is the heading).
 
 ---
 
 ### `[cfp_talk_details]`
 
-Renders the full talk details page. Reads `talk_slug` or `id` from the URL query string — no attributes needed.
+Renders the full talk details page. Reads `talk_slug` or `id` from the URL query string — no attributes needed. No page heading is rendered by design (the talk title is the heading).
 
 ---
 
 ### `[cfp_schedule]`
 
 Displays the conference schedule grid. Reads the day from the URL query string
-(`?id=Tuesday`); defaults to the first day of the event. No attributes needed.
+(`?id=Tuesday`); defaults to the first day of the event.
+
+| Attribute | Default | Description |
+|-----------|---------|-------------|
+| `title` | *(event name)* | Heading above the schedule |
+| `hide_title` | `false` | Hide the heading |
+| `hide_search` | `false` | Hide the search form |
 
 ```
-[cfp_schedule]
+[cfp_schedule title="Programme"]
 ```
 
 ---
@@ -129,9 +136,12 @@ Lists talks grouped by track.
 | Attribute | Default | Description |
 |-----------|---------|-------------|
 | `all` | `false` | Show all tracks at once (`true`) instead of the tab selected by `id` |
+| `title` | `Talks grouped by Track` | Heading above the list |
+| `hide_title` | `false` | Hide the heading |
+| `hide_search` | `false` | Hide the search form |
 
 ```
-[cfp_talks_by_tracks all=true]
+[cfp_talks_by_tracks all=true title="Tracks"]
 ```
 
 ---
@@ -139,6 +149,12 @@ Lists talks grouped by track.
 ### `[cfp_talks_by_sessions]`
 
 Lists talks grouped by session type (Conference, Workshop, BOF, Lightning Talk, …).
+
+| Attribute | Default | Description |
+|-----------|---------|-------------|
+| `title` | `Talks grouped by Session Types` | Heading above the list |
+| `hide_title` | `false` | Hide the heading |
+| `hide_search` | `false` | Hide the search form |
 
 ---
 
