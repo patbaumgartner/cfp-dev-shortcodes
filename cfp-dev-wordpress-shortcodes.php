@@ -1,9 +1,9 @@
 <?php
 /**
  * Plugin Name:       CFP.DEV shortcodes
- * Plugin URI:        https://gitlab.com/voxxed/cfp.dev/wikis/Wordpress-Plugin
- * Description:       The CFP.DEV WordPress shortcodes (DARK MODE). This version supports the new PWA mobile app! (MySchedule and Home shortcodes have been removed)
- * Version:           4.2.0
+ * Plugin URI:        https://github.com/patbaumgartner/cfp-dev-shortcodes
+ * Description:       Display CFP.DEV conference content on your WordPress site: speakers, talks, schedule, and search — with light/dark theming, caching, and offline mode.
+ * Version:           4.2.1
  * Author:            Stephan Janssen, Patrick Baumgartner
  * Author URI:        https://x.com/stephan007
  * License:           GPL-2.0+
@@ -26,7 +26,7 @@ if ( ! defined( 'CFP_DEV_APPLICATION_JSON' ) ) {
 
 // Plugin version.
 if ( ! defined( 'CFP_DEV_VERSION' ) ) {
-	define( 'CFP_DEV_VERSION', '4.2.0' );
+	define( 'CFP_DEV_VERSION', '4.2.1' );
 }
 
 if ( ! defined( 'CFP_DEV_NAME' ) ) {

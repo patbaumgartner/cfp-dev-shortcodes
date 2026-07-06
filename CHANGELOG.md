@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.2.1] — 2026-07-06
+
+### Changed
+- Rewrote the plugin description shown in the WordPress admin — the old text referenced removed shortcodes (MySchedule, Home) and read like a release note
+- Plugin URI now points to the GitHub repository (the old GitLab wiki link was dead)
+
+---
+
 ## [4.2.0] — 2026-07-06
 
 ### Added

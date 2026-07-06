@@ -4,7 +4,7 @@
 [![PHP Version](https://img.shields.io/badge/PHP-%3E%3D8.0-8892BF?logo=php)](https://php.net)
 [![WordPress](https://img.shields.io/badge/WordPress-6.0%2B-21759B?logo=wordpress)](https://wordpress.org)
 [![License: GPL v2+](https://img.shields.io/badge/License-GPL%20v2%2B-blue.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
-[![Stable Tag](https://img.shields.io/badge/stable-4.2.0-brightgreen)](https://github.com/patbaumgartner/cfp-dev-shortcodes/releases)
+[![Stable Tag](https://img.shields.io/badge/stable-4.2.1-brightgreen)](https://github.com/patbaumgartner/cfp-dev-shortcodes/releases)
 
 > WordPress shortcodes plugin for [CFP.DEV](https://cfp.dev) — display speakers, talks, schedules, and search results from your CFP.DEV instance directly on your WordPress site (Devoxx, VoxxedDays, and more).
 
