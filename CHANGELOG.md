@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.2.4] — 2026-07-06
+
+### Fixed
+- Speaker/talk pages rendered squeezed into a narrow column when the WordPress theme's page template uses a narrow content container (e.g. 747px in the voxxed-conference theme; the previously used Neve theme's 1170px container masked this). `main.cfp-main` now breaks out of the theme container to the plugin's design width (`--cfp-layout-x`, 1024px) capped at the viewport, centred on the page — verified live on vdz27.voxxeddays.ch speaker and talk pages
+
+---
+
 ## [4.2.3] — 2026-07-06
 
 ### Fixed
