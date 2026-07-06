@@ -823,6 +823,15 @@ html.cfp-html {
   user-select: none;
 }
 
+/* The WordPress theme paints <body> with its own (usually white) background,
+   covering the html-level theme colour above. Repaint the body whenever a
+   cfp theme class is active so dark mode works on light WP themes too. */
+html.cfp-html.cfp-theme\:dark body,
+html.cfp-html.cfp-theme\:light body {
+  background-color: var(--cfp-background-primary);
+  color: var(--cfp-text-primary);
+}
+
 html.cfp-html:where(.cfp-browser\:load, .cfp-browser\:resize) *,
 html.cfp-html:where(.cfp-browser\:load, .cfp-browser\:resize) *::before,
 html.cfp-html:where(.cfp-browser\:load, .cfp-browser\:resize) *::after {

@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.2.3] — 2026-07-06
+
+### Fixed
+- Dark theme rendered white-on-white on sites whose WordPress theme paints an opaque `<body>` background: the plugin only coloured the `html` element, so the theme's body background covered it. The active cfp theme now repaints `<body>` with `--cfp-background-primary` / `--cfp-text-primary` (verified live on vdz27.voxxeddays.ch)
+
+---
+
 ## [4.2.2] — 2026-07-06
 
 ### Removed
