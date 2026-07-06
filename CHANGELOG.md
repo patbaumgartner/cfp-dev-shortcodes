@@ -6,6 +6,59 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.2.0] — 2026-07-06
+
+### Added
+- `uninstall.php`: deleting the plugin now removes all options, legacy transients, cached content, and offline snapshot files
+- `[cfp_speakers]` renders the documented `subtitle` attribute (was accepted but silently ignored)
+- Directory-listing guard `index.php` files in `js/`, `images/`, and `shortcode/include/`
+- `shortcode/include/` (offline crawler) and `uninstall.php` are now covered by PHPCS linting
+
+### Security
+- Fixed stored/reflected XSS in the speaker photo gallery: the `speaker_name` GET parameter is now escaped with `esc_attr()` before being written into the `alt` attribute (and into the transient cache)
+- Removed the wide-open `Access-Control-Allow-Origin: *` CORS headers from the `get_speaker_photos` AJAX endpoint
+- All `id` query vars are now `absint()`-validated and the schedule day name is whitelisted — user input can no longer reach API paths, snapshot file paths, or transient keys unchecked
+- `getJSON()` rejects paths containing `..`; offline snapshot reads enforce a `realpath()` containment check
+- Spotify podcast embeds now validate the URL host (`open.spotify.com`) instead of a substring match, and escape the iframe `src`
+- Social links (`mastodonUsername` et al.) escaped with `esc_url()` (blocks `javascript:` URIs) and carry `rel="noopener noreferrer"`
+- CFP.DEV key restricted to `[a-z0-9-]` so it cannot alter the API hostname
+- Track/session descriptions, event/track/session names, room names and similarity scores are now escaped (`wp_kses_post` / `esc_html`)
+- The speaker photo AJAX URL is built with `add_query_arg()` and injected as a JSON literal — speaker names can no longer break the inline script
+
+### Fixed
+- Cache-delete forms on the settings page were rejected by the nonce check (they had no nonce field); nonce fields added to every form
+- AJAX cache deletion deleted the wrong transient keys (raw id instead of the hashed key) — now routed through `generate_cfp_cache_key()`
+- Admin schedule-cache list used lowercase day names and never matched the capitalised keys written by the shortcode
+- Removed rewrite rules referencing non-existent regex capture groups (`$matches[1]`/`$matches[2]`)
+- Changing the URL path prefix now rebuilds and flushes rewrite rules immediately
+- “Enable Theme Switching” could never be switched off (unchecked checkboxes are absent from POST)
+- Settings are stored in options instead of transients (transients can be evicted by object caches, silently wiping the API key); legacy values migrate automatically, and the settings form no longer shows stale values after save
+- Photo cache was stored with no expiry when caching was set to “No Cache”; caching is now skipped entirely in that mode
+- Shortcode boolean attributes (`random=false`, `hide_search=no`, `all=false`) were treated as true; now parsed with `FILTER_VALIDATE_BOOLEAN`
+- `[cfp_speakers]` cache is keyed per attribute set — two pages with different `size`/`title`/`random` no longer serve each other's HTML
+- Numerous PHP 8 fatals when the API is unavailable (null dereferences in schedule, talk details, speaker details, talks-by-tracks/-sessions)
+- `searchJSON()` returned an error string on failure, crashing callers that expect an array; it now returns `[]`
+- `getFooter()` returned `null` when theme switching is off (PHP 8.1 deprecation on concatenation)
+- Stray `</a>` producing malformed HTML in speaker-page talk cards
+- The search form posted to a relative URL and 404ed on nested pages; it now posts to the absolute search-results URL
+- Cache deletions on the settings page are processed before rendering, so tables reflect the new state
+- Failed slug lookups are negative-cached (5 min) instead of re-downloading the full speaker/talk list on every hit
+- `og:title`/`og:url` meta tags use the `property` attribute; descriptions are stripped of tags before truncation (multibyte-safe)
+- Page auto-creation uses `get_page_by_path()` so existing drafts no longer cause duplicates
+
+### Changed
+- Cache invalidation redesigned: every transient key embeds a cache version, so “clear cache” is a single option increment (previously ~20+ blocking API round-trips enumerating keys — many of which missed)
+- `sleep(5)` retry in the public photo endpoint replaced with a 250 ms pause (a pinned PHP-FPM worker per anonymous request was a DoS amplifier)
+- Offline snapshots are pruned after each successful crawl (newest 2 kept) — disk usage no longer grows unboundedly
+- Plugin CSS is registered once under the `cfp-dev-style` handle (was registered 7× as the collision-prone `style1`); `site.js` moved to the footer
+- The duplicated inline root-class script (6 copies) is now a single shared helper, `cfp_dev_root_class_script()`
+- Duplicate `query_vars` filters consolidated into `cfp_dev_add_query_vars()`
+- Settings menu slug renamed from boilerplate `my-unique-identifier` to `cfp-dev-settings`
+- Speaker-list fetch size unified into `CFP_DEV_SPEAKERS_FETCH_SIZE` (was 300/400/500 in different places)
+- Documentation pass: corrected copy-pasted file headers, fixed inaccurate docblocks, removed commented-out code and stale comments; README documents the actual `[cfp_schedule]` URL parameter, cache behaviour, snapshot retention, and uninstall cleanup
+
+---
+
 ## [4.1.0] — 2026-06-03
 
 ### Added

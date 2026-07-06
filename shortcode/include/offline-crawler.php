@@ -75,6 +75,37 @@ function cfp_dev_get_latest_snapshot(): string {
 	return '';
 }
 
+/**
+ * Deletes all but the newest $keep completed snapshots.
+ * Prevents unbounded disk growth — every re-crawl creates a full new snapshot
+ * (all JSON + all images).
+ *
+ * @param int $keep  Number of snapshots to retain (newest first).
+ */
+function cfp_dev_prune_snapshots( int $keep = 2 ): void {
+	$base = cfp_dev_offline_dir();
+	if ( ! is_dir( $base ) ) {
+		return;
+	}
+	$dirs = glob( $base . '/[0-9]*', GLOB_ONLYDIR );
+	if ( empty( $dirs ) || count( $dirs ) <= $keep ) {
+		return;
+	}
+	rsort( $dirs ); // newest first
+
+	require_once ABSPATH . 'wp-admin/includes/file.php';
+	WP_Filesystem();
+	global $wp_filesystem;
+
+	foreach ( array_slice( $dirs, $keep ) as $old_dir ) {
+		if ( $wp_filesystem && $wp_filesystem->delete( $old_dir, true ) ) {
+			cfp_dev_log( 'crawl: pruned old snapshot ' . basename( $old_dir ) );
+		} else {
+			cfp_dev_log( 'crawl: failed to prune snapshot ' . basename( $old_dir ) );
+		}
+	}
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Offline JSON serving
 // ─────────────────────────────────────────────────────────────────────────────
@@ -104,8 +135,17 @@ function cfp_dev_get_json_offline( string $queryPath ) {
 		return null;
 	}
 
+	// Containment check: the resolved path must stay inside the snapshot's api
+	// directory — query paths can embed user-supplied ids.
+	$real_base = realpath( $snapshot . '/api' );
+	$real_file = realpath( $file_path );
+	if ( false === $real_base || false === $real_file || ! str_starts_with( $real_file, $real_base . DIRECTORY_SEPARATOR ) ) {
+		cfp_dev_log( 'offline: rejected path outside snapshot: ' . $queryPath );
+		return null;
+	}
+
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local snapshot file
-	$body    = file_get_contents( $file_path );
+	$body    = file_get_contents( $real_file );
 	$decoded = json_decode( $body );
 
 	if ( json_last_error() !== JSON_ERROR_NONE ) {
@@ -206,7 +246,7 @@ function cfp_dev_start_crawl(): void {
  * @return mixed               Decoded JSON or null on failure.
  */
 function cfp_dev_fetch_and_save( string $query_path, string $snapshot_dir, array &$fetch_log, int &$error_count, int $timeout = 30, bool $optional = false ) {
-	$url       = CFP_DEV_URL_DOMAIN . $query_path;
+	$url       = cfp_dev_api_base() . $query_path;
 	$file_rel  = preg_replace( '/\?.*$/', '', $query_path );
 	$file_path = $snapshot_dir . '/api/' . $file_rel . '.json';
 
@@ -227,7 +267,11 @@ function cfp_dev_fetch_and_save( string $query_path, string $snapshot_dir, array
 		if ( ! $optional ) {
 			++$error_count;
 		}
-		$fetch_log[] = [ 'url' => $url, 'status' => 'error', 'msg' => $response->get_error_message() ];
+		$fetch_log[] = [
+			'url'    => $url,
+			'status' => 'error',
+			'msg'    => $response->get_error_message(),
+		];
 		cfp_dev_log( 'crawl fetch_error: ' . $query_path . ' — ' . $response->get_error_message() );
 		return null;
 	}
@@ -235,7 +279,10 @@ function cfp_dev_fetch_and_save( string $query_path, string $snapshot_dir, array
 	$code = wp_remote_retrieve_response_code( $response );
 	$body = wp_remote_retrieve_body( $response );
 
-	$fetch_log[] = [ 'url' => $url, 'status' => $code ];
+	$fetch_log[] = [
+		'url'    => $url,
+		'status' => $code,
+	];
 
 	// 204 No Content means the endpoint is valid but has no data (e.g. room with no sessions).
 	// Save an empty JSON array so offline reads return [] instead of null.
@@ -278,7 +325,7 @@ function cfp_dev_collect_image_urls( array $data, array $keys, array &$map ): vo
 	foreach ( $data as $k => $v ) {
 		if ( is_string( $k ) && in_array( $k, $keys, true ) && is_string( $v ) && strlen( $v ) > 0 ) {
 			if ( ! isset( $map[ $v ] ) ) {
-				$url_path = parse_url( $v, PHP_URL_PATH ) ?? '';
+				$url_path = (string) ( wp_parse_url( $v, PHP_URL_PATH ) ?? '' );
 				$raw_ext  = strtolower( pathinfo( $url_path, PATHINFO_EXTENSION ) );
 				// Keep only safe 2-4 character extensions; fall back to jpg.
 				$ext       = preg_match( '/^[a-z]{2,4}$/', $raw_ext ) ? $raw_ext : 'jpg';
@@ -305,7 +352,11 @@ function cfp_dev_download_image( string $url, string $dest_path, array &$fetch_l
 
 	if ( is_wp_error( $response ) ) {
 		++$error_count;
-		$fetch_log[] = [ 'url' => $url, 'status' => 'error', 'msg' => $response->get_error_message() ];
+		$fetch_log[] = [
+			'url'    => $url,
+			'status' => 'error',
+			'msg'    => $response->get_error_message(),
+		];
 		cfp_dev_log( 'crawl image_error: ' . $url . ' — ' . $response->get_error_message() );
 		return false;
 	}
@@ -313,7 +364,10 @@ function cfp_dev_download_image( string $url, string $dest_path, array &$fetch_l
 	$code = wp_remote_retrieve_response_code( $response );
 	if ( 200 !== $code ) {
 		++$error_count;
-		$fetch_log[] = [ 'url' => $url, 'status' => $code ];
+		$fetch_log[] = [
+			'url'    => $url,
+			'status' => $code,
+		];
 		cfp_dev_log( 'crawl image HTTP ' . $code . ': ' . $url );
 		return false;
 	}
@@ -321,7 +375,10 @@ function cfp_dev_download_image( string $url, string $dest_path, array &$fetch_l
 	wp_mkdir_p( dirname( $dest_path ) );
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- binary image to local uploads dir
 	file_put_contents( $dest_path, wp_remote_retrieve_body( $response ) );
-	$fetch_log[] = [ 'url' => $url, 'status' => 200 ];
+	$fetch_log[] = [
+		'url'    => $url,
+		'status' => 200,
+	];
 	return true;
 }
 
@@ -350,7 +407,12 @@ function cfp_dev_do_crawl(): void {
 	$snapshot = $state['snapshot'] ?? '';
 
 	if ( empty( $snapshot ) || ! is_dir( $snapshot ) ) {
-		cfp_dev_update_crawl_state( [ 'status' => 'error', 'step_label' => 'Snapshot directory missing. Please start a new crawl.' ] );
+		cfp_dev_update_crawl_state(
+			[
+				'status'     => 'error',
+				'step_label' => 'Snapshot directory missing. Please start a new crawl.',
+			]
+		);
 		return;
 	}
 
@@ -372,10 +434,10 @@ function cfp_dev_do_crawl(): void {
 		]
 	);
 
-	$event         = cfp_dev_fetch_and_save( 'public/event',         $snapshot, $fetch_log, $error_count );
-	$tracks        = cfp_dev_fetch_and_save( 'public/tracks',        $snapshot, $fetch_log, $error_count );
+	$event         = cfp_dev_fetch_and_save( 'public/event', $snapshot, $fetch_log, $error_count );
+	$tracks        = cfp_dev_fetch_and_save( 'public/tracks', $snapshot, $fetch_log, $error_count );
 	$session_types = cfp_dev_fetch_and_save( 'public/session-types', $snapshot, $fetch_log, $error_count );
-	$rooms         = cfp_dev_fetch_and_save( 'public/rooms',         $snapshot, $fetch_log, $error_count );
+	$rooms         = cfp_dev_fetch_and_save( 'public/rooms', $snapshot, $fetch_log, $error_count );
 
 	// --- Speakers -----------------------------------------------------------
 	cfp_dev_update_crawl_state( [ 'step_label' => 'Fetching speakers list...' ] );
@@ -454,7 +516,13 @@ function cfp_dev_do_crawl(): void {
 	}
 
 	// --- Talks by track & session type --------------------------------------
-	cfp_dev_update_crawl_state( [ 'step_label' => 'Fetching talks by track & session type...', 'items_done' => 0, 'items_total' => 0 ] );
+	cfp_dev_update_crawl_state(
+		[
+			'step_label'  => 'Fetching talks by track & session type...',
+			'items_done'  => 0,
+			'items_total' => 0,
+		]
+	);
 	if ( ! empty( $tracks ) && is_array( $tracks ) ) {
 		foreach ( $tracks as $track ) {
 			if ( ! empty( $track->id ) ) {
@@ -566,16 +634,29 @@ function cfp_dev_do_crawl(): void {
 		if ( ! file_exists( $dest ) ) {
 			cfp_dev_download_image( $ext_url, $dest, $fetch_log, $error_count );
 		} else {
-			$fetch_log[] = [ 'url' => $ext_url, 'status' => 'cached' ];
+			$fetch_log[] = [
+				'url'    => $ext_url,
+				'status' => 'cached',
+			];
 		}
 
 		$image_url_rewrite[ $ext_url ] = $local_url;
 		++$done;
 		if ( 0 === $done % 5 ) {
-			cfp_dev_update_crawl_state( [ 'items_done' => $done, 'errors' => $error_count ] );
+			cfp_dev_update_crawl_state(
+				[
+					'items_done' => $done,
+					'errors'     => $error_count,
+				]
+			);
 		}
 	}
-	cfp_dev_update_crawl_state( [ 'items_done' => $done, 'errors' => $error_count ] );
+	cfp_dev_update_crawl_state(
+		[
+			'items_done' => $done,
+			'errors'     => $error_count,
+		]
+	);
 
 	// =========================================================================
 	// STEP 4 — Rewrite external image URLs in every saved JSON file.
@@ -589,8 +670,8 @@ function cfp_dev_do_crawl(): void {
 		]
 	);
 
-	$done            = 0;
-	$ext_url_strings = array_keys( $image_url_rewrite );
+	$done              = 0;
+	$ext_url_strings   = array_keys( $image_url_rewrite );
 	$local_url_strings = array_values( $image_url_rewrite );
 
 	foreach ( $json_files as $json_file ) {
@@ -633,6 +714,9 @@ function cfp_dev_do_crawl(): void {
 
 	// Activate offline mode — from this point getJSON() serves from snapshot.
 	update_option( 'cfp_dev_offline_mode', 1 );
+
+	// Retention: drop everything but the newest snapshots.
+	cfp_dev_prune_snapshots( 2 );
 
 	cfp_dev_update_crawl_state(
 		[

@@ -2,9 +2,9 @@
 /**
  * CFP.DEV shortcodes
  *
- * [cfp_talk_by_sessions]  List all talks grouped by session types
+ * [cfp_talks_by_sessions]  Talks grouped by session type with filter navigation.
  *
- * @package     CFP.DEV
+ * @package  CFP.DEV
  * @since    1.0.0
  */
 if ( ! function_exists( 'cfp_talks_by_sessions_shortcode' ) ) {
@@ -20,22 +20,6 @@ if ( ! function_exists( 'cfp_talks_by_sessions_shortcode' ) ) {
 		}
 	);
 
-	add_filter(
-		'query_vars',
-		function ( $vars ) {
-			$vars[] = 'id';
-			return $vars;
-		}
-	);
-
-	add_action(
-		'wp_enqueue_scripts',
-		function () {
-			$plugin_url = plugin_dir_url( __FILE__ );
-			wp_enqueue_style( 'style1', $plugin_url . CFP_DEV_CSS, [], CFP_DEV_VERSION );
-		}
-	);
-
 	/**
 	 * Shortcode CFP talks by session types
 	 *
@@ -43,19 +27,21 @@ if ( ! function_exists( 'cfp_talks_by_sessions_shortcode' ) ) {
 	 * @since  1.0.0
 	 */
 	function cfp_talks_by_sessions_shortcode() {
-		$sessionId = get_query_var( 'id' );
+		// absint: the id is user input and becomes part of API paths and cache keys.
+		$sessionId = absint( get_query_var( 'id' ) );
 
-		if ( CFP_DEV_CACHE == 0 ) {
+		$ttl = cfp_dev_get_cache_ttl();
+		if ( 0 === $ttl ) {
 			return get_talks_by_sessions( $sessionId );
+		}
+
+		$_cache_group = cfp_dev_group_cache_key( 'talks_by_sessions_cache_group_' . $sessionId );
+		$cache        = get_transient( $_cache_group );
+		if ( false === $cache ) {
+			$content = get_talks_by_sessions( $sessionId );
+			set_transient( $_cache_group, $content, $ttl );
 		} else {
-			$_cache_group = 'talks_by_sessions_cache_group_' . $sessionId;
-			$cache        = get_transient( $_cache_group );
-			if ( false === $cache ) {
-				$content = get_talks_by_sessions( $sessionId );
-				set_transient( $_cache_group, $content, CFP_DEV_CACHE );
-			} else {
-				$content = $cache;
-			}
+			$content = $cache;
 		}
 		return $content;
 	}
@@ -66,49 +52,35 @@ if ( ! function_exists( 'cfp_talks_by_sessions_shortcode' ) ) {
 
 		$sessionDescr = '';
 
-		if ( empty( $sessionId ) ) {
-			foreach ( $sessions as $session ) {
-				if ( ! $session->pause ) {
-					$sessionId    = $session->id;
-					$sessionDescr = $session->description ?? '';
-					break;
+		if ( ! empty( $sessions ) && is_array( $sessions ) ) {
+			if ( empty( $sessionId ) ) {
+				foreach ( $sessions as $session ) {
+					if ( ! $session->pause ) {
+						$sessionId    = $session->id;
+						$sessionDescr = $session->description ?? '';
+						break;
+					}
 				}
-			}
-		} else {
-			foreach ( $sessions as $session ) {
-				if ( $session->id == $sessionId ) {
-					$sessionDescr = $session->description ?? '';
-					break;
+			} else {
+				foreach ( $sessions as $session ) {
+					if ( absint( $session->id ) === $sessionId ) {
+						$sessionDescr = $session->description ?? '';
+						break;
+					}
 				}
 			}
 		}
 
-		// Get talks by session type
-		$talks = getJSON( 'public/talks/session-type/' . $sessionId );
+		// Get talks by session type.
+		$talks = ! empty( $sessionId ) ? getJSON( 'public/talks/session-type/' . absint( $sessionId ) ) : null;
 
-		// ------------------------------------------------------------------------------------------------
-		$content  = '<script>';
-		$content .= 'const qs = document.querySelector(":root");';
-		$content .= 'qs.classList.forEach(value => {';
-		$content .= '   if (value.startsWith("cfp-")) {';
-		$content .= '       qs.classList.remove(value);';
-		$content .= '   }';
-		$content .= '});';
-		$content .= 'qs.classList.add("cfp-html");';
-		$content .= 'qs.classList.add("cfp-theme:' . get_option( 'cfp_dev_default_theme', 'dark' ) . '");';
-		$content .= 'qs.classList.add("cfp-page:session");';
-		$content .= '</script>';
+		$content = cfp_dev_root_class_script( 'session' );
 
 		$content .= '<main class="cfp-main">';
 
 		$content .= '<section class="cfp-list">';
 
-		// ------------------------------------------------------------------------------------------------
-
 		if ( ! empty( $sessions ) ) {
-
-			// array_filter($data, "nonBreakSessionsTypes");
-			// usort($sessions, 'compareName');
 
 			$content .= '<div class="cfp-subject">';
 			$content .= '    <div class="cfp-primary">';
@@ -122,14 +94,10 @@ if ( ! function_exists( 'cfp_talks_by_sessions_shortcode' ) ) {
 					continue;
 				}
 
-				if ( $session->id == $sessionId ) {
-					$isActive = 'cfp-active';
-				} else {
-					$isActive = '';
-				}
+				$isActive = ( absint( $session->id ) === absint( $sessionId ) ) ? 'cfp-active' : '';
 
-				$content .= '<a class="cfp-a ' . $isActive . '" href="?id=' . $session->id . '">';
-				$content .= $session->name . '</a>';
+				$content .= '<a class="cfp-a ' . $isActive . '" href="' . esc_url( '?id=' . absint( $session->id ) ) . '">';
+				$content .= esc_html( $session->name ) . '</a>';
 			}
 			$content .= '    </nav>';
 
@@ -143,7 +111,7 @@ if ( ! function_exists( 'cfp_talks_by_sessions_shortcode' ) ) {
 
 		$content .= '<div class="cfp-group">';
 		$content .= '    <div class="cfp-foreword">';
-		$content .= '       <div class="cfp-text">' . $sessionDescr . '</div>';
+		$content .= '       <div class="cfp-text">' . wp_kses_post( $sessionDescr ) . '</div>';
 		$content .= '    </div>';
 
 		// Table heading
@@ -154,30 +122,33 @@ if ( ! function_exists( 'cfp_talks_by_sessions_shortcode' ) ) {
 		$content .= '        <div class="cfp-field"></div>';
 		$content .= '    </div>';
 
-		foreach ( $talks as $talk ) {
-			$content .= '<article class="cfp-article cfp-row cfp-event">';
-			$content .= '    <div class="cfp-field">' . esc_html( $talk->title ) . '</div>';
-			$content .= '    <div class="cfp-field cfp-speaker">';
-			foreach ( $talk->speakers as $speaker ) {
-				if ( get_option( 'cfp_dev_content_by_id', 'yes' ) == 'no' ) {
-					$speaker_slug = generate_slug( $speaker->firstName . '-' . $speaker->lastName );
-					$content     .= '<a class="cfp-a" href="' . cfp_dev_url( "/speaker/{$speaker_slug}" ) . '">' . esc_html( $speaker->firstName ) . '&nbsp;' . esc_html( $speaker->lastName ) . '</a>';
-				} else {
-					$content .= '<a class="cfp-a" href="' . cfp_dev_url( '/speaker?id=' . absint( $speaker->id ) ) . '">' . esc_html( $speaker->firstName ) . '&nbsp;' . esc_html( $speaker->lastName ) . '</a>';
+		if ( ! empty( $talks ) && is_array( $talks ) ) {
+			$use_slugs = ( 'no' === get_option( 'cfp_dev_content_by_id', 'yes' ) );
+			foreach ( $talks as $talk ) {
+				$content .= '<article class="cfp-article cfp-row cfp-event">';
+				$content .= '    <div class="cfp-field">' . esc_html( $talk->title ) . '</div>';
+				$content .= '    <div class="cfp-field cfp-speaker">';
+				foreach ( $talk->speakers as $speaker ) {
+					if ( $use_slugs ) {
+						$speaker_slug = generate_slug( $speaker->firstName . '-' . $speaker->lastName );
+						$content     .= '<a class="cfp-a" href="' . esc_url( cfp_dev_url( "/speaker/{$speaker_slug}" ) ) . '">' . esc_html( $speaker->firstName ) . '&nbsp;' . esc_html( $speaker->lastName ) . '</a>';
+					} else {
+						$content .= '<a class="cfp-a" href="' . esc_url( cfp_dev_url( '/speaker?id=' . absint( $speaker->id ) ) ) . '">' . esc_html( $speaker->firstName ) . '&nbsp;' . esc_html( $speaker->lastName ) . '</a>';
+					}
 				}
+				$content .= '    </div>';
+				$content .= '    <div class="cfp-field">';
+				$content .= '        <div class="cfp-track" style="background-image: url(' . esc_url( $talk->trackImageURL ) . ')"></div>';
+				$content .= '    </div>';
+				$content .= '    <div class="cfp-field">';
+				if ( $use_slugs ) {
+					$content .= '        <a class="cfp-a" href="' . esc_url( cfp_dev_url( '/talk/' . generate_slug( $talk->title ) ) ) . '">View</a>';
+				} else {
+					$content .= '        <a class="cfp-a" href="' . esc_url( cfp_dev_url( '/talk?id=' . absint( $talk->id ) ) ) . '">View</a>';
+				}
+				$content .= '    </div>';
+				$content .= '</article>';
 			}
-			$content .= '    </div>';
-			$content .= '    <div class="cfp-field">';
-			$content .= '        <div class="cfp-track" style="background-image: url(' . esc_url( $talk->trackImageURL ) . ')"></div>';
-			$content .= '    </div>';
-			$content .= '    <div class="cfp-field">';
-			if ( get_option( 'cfp_dev_content_by_id', 'yes' ) == 'no' ) {
-				$content .= '        <a class="cfp-a" href="' . cfp_dev_url( '/talk/' . generate_slug( $talk->title ) ) . '">View</a>';
-			} else {
-				$content .= '        <a class="cfp-a" href="' . cfp_dev_url( '/talk?id=' . absint( $talk->id ) ) . '">View</a>';
-			}
-			$content .= '    </div>';
-			$content .= '</article>';
 		}
 
 		$content .= '</div>';   // End of cfp-group

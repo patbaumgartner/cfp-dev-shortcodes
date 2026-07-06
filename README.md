@@ -4,7 +4,7 @@
 [![PHP Version](https://img.shields.io/badge/PHP-%3E%3D8.0-8892BF?logo=php)](https://php.net)
 [![WordPress](https://img.shields.io/badge/WordPress-6.0%2B-21759B?logo=wordpress)](https://wordpress.org)
 [![License: GPL v2+](https://img.shields.io/badge/License-GPL%20v2%2B-blue.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
-[![Stable Tag](https://img.shields.io/badge/stable-4.1.0-brightgreen)](https://github.com/patbaumgartner/cfp-dev-shortcodes/releases)
+[![Stable Tag](https://img.shields.io/badge/stable-4.2.0-brightgreen)](https://github.com/patbaumgartner/cfp-dev-shortcodes/releases)
 
 > WordPress shortcodes plugin for [CFP.DEV](https://cfp.dev) — display speakers, talks, schedules, and search results from your CFP.DEV instance directly on your WordPress site (Devoxx, VoxxedDays, and more).
 
@@ -113,11 +113,8 @@ Renders the full talk details page. Reads `talk_slug` or `id` from the URL query
 
 ### `[cfp_schedule]`
 
-Displays the conference schedule grid.
-
-| Attribute | Default | Description |
-|-----------|---------|-------------|
-| `day` | *(from URL)* | Day name to display, e.g. `monday` |
+Displays the conference schedule grid. Reads the day from the URL query string
+(`?id=Tuesday`); defaults to the first day of the event. No attributes needed.
 
 ```
 [cfp_schedule]
@@ -156,10 +153,32 @@ Displays keyword search results and semantic similarity results. Reads `query` f
 Enable **Offline Mode** in **Settings → CFP.DEV** to crawl the entire CFP.DEV API and all CDN images (speaker photos, track images, Flickr album thumbnails) into a local dated snapshot under `wp-content/uploads/cfp-dev-offline/`.
 
 Once active:
+
 - All `getJSON()` calls are served from the local snapshot
 - No external requests to `*.cfp.dev` or CDN hosts are made
 - A `manifest.json` is written at crawl completion with per-URL stats
 - Click **Re-crawl Now** in the admin UI to refresh the snapshot at any time
+- Only the two newest snapshots are kept — older ones are pruned automatically after each successful crawl
+
+---
+
+## Caching
+
+Rendered shortcode output is cached in WordPress transients for the configured
+**Cache Duration**. Saving any setting (or clearing caches from the admin page)
+invalidates every cached entry instantly via an internal cache-version bump —
+superseded entries simply expire.
+
+> **Note:** with `random=yes` on `[cfp_speakers]`, the order is shuffled once
+> per cache period, not on every page view. Set **Cache Duration** to
+> *No Cache* for a fresh shuffle on each request.
+
+---
+
+## Uninstall
+
+Deleting the plugin through the WordPress admin removes all of its data:
+settings, cached transients, and offline snapshot files.
 
 ---
 

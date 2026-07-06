@@ -2,8 +2,7 @@
 /**
  * CFP.DEV shortcodes
  *
- * [cfp_speakers]  List all CFP.DEV speakers.
- * [cfp_speaker_details]  List CFP.DEV speaker details.
+ * [cfp_talk_details]  Talk detail page: description, speakers, schedule, video, podcast, related talks.
  *
  * @package  CFP.DEV
  * @since    1.0.0
@@ -20,59 +19,48 @@ if ( ! function_exists( 'cfp_talk_details_shortcode' ) ) {
 		}
 	);
 
-	add_action(
-		'wp_enqueue_scripts',
-		function () {
-			$plugin_url = plugin_dir_url( __FILE__ );
-			wp_enqueue_style( 'style1', $plugin_url . CFP_DEV_CSS, [], CFP_DEV_VERSION );
-		}
-	);
-
-	/**
-	 * @throws Exception
-	 */
 	function cfp_talk_details_shortcode() {
 		$talk_slug = get_query_var( 'talk_slug' );
-		$talk_id   = get_query_var( 'id' );
+		$talk_id   = absint( get_query_var( 'id' ) );
 
 		if ( ! empty( $talk_slug ) ) {
 			cfp_dev_log( 'talk-details: resolving slug=' . $talk_slug );
-			$talk = get_talk_by_slug( $talk_slug );
-		} elseif ( ! empty( $talk_id ) ) {
-			cfp_dev_log( 'talk-details: loading id=' . $talk_id );
-			$talk = getJSON( 'public/talks/' . $talk_id );
-		} else {
+			$talk_id = get_talk_id_from_slug( sanitize_title( $talk_slug ) );
+		}
+
+		if ( empty( $talk_id ) ) {
 			return 'Talk not found.';
 		}
 
-		// Check if caching is disabled
-		if ( CFP_DEV_CACHE == 0 ) {
-			cfp_dev_log( 'talk-details: cache disabled for id=' . $talk->id );
-			$content = generate_talk_details_content( $talk->id );
-		} else {
-			$cacheKey = generate_cfp_cache_key( 'talk', $talk->id );
-			$cache    = get_transient( $cacheKey );
-			if ( false === $cache ) {
-				cfp_dev_log( 'talk-details: cache miss for id=' . $talk->id );
-				$content = generate_talk_details_content( $talk->id );
-				set_transient( $cacheKey, $content, CFP_DEV_CACHE );
-			} else {
-				cfp_dev_log( 'talk-details: cache hit for id=' . $talk->id );
-				$content = $cache;
-			}
+		$ttl = cfp_dev_get_cache_ttl();
+
+		if ( 0 === $ttl ) {
+			cfp_dev_log( 'talk-details: cache disabled for id=' . $talk_id );
+			return generate_talk_details_content( $talk_id );
 		}
 
+		$cacheKey = generate_cfp_cache_key( 'talk', $talk_id );
+		$cache    = get_transient( $cacheKey );
+		if ( false !== $cache ) {
+			cfp_dev_log( 'talk-details: cache hit for id=' . $talk_id );
+			return $cache;
+		}
+
+		cfp_dev_log( 'talk-details: cache miss for id=' . $talk_id );
+		$content = generate_talk_details_content( $talk_id );
+		set_transient( $cacheKey, $content, $ttl );
 		return $content;
 	}
 
-	/**
-	 * @throws Exception
-	 */
 	function generate_talk_details_content( $_talkId ) {
 
 		$talk = get_talk_by_id( $_talkId );
 
-		$content = getQueryScript();
+		if ( empty( $talk ) ) {
+			return 'Talk not found.';
+		}
+
+		$content = cfp_dev_root_class_script( 'session', 'detail' );
 
 		$content .= '<main class="cfp-main">';
 
@@ -83,12 +71,12 @@ if ( ! function_exists( 'cfp_talk_details_shortcode' ) ) {
 			$content .= '<section class="cfp-session">';
 			$content .= '    <div class="cfp-foreword">';
 
-			$content .= '		<a class="cfp-a" href="' . cfp_dev_url( '/talks-by-tracks/?id=' . absint( $talk->trackId ) ) . '">';
+			$content .= '		<a class="cfp-a" href="' . esc_url( cfp_dev_url( '/talks-by-tracks/?id=' . absint( $talk->trackId ) ) ) . '">';
 			$content .= '			<div class="cfp-track" title="' . esc_attr( $talk->trackName ) . '"  style="background-image: url(' . esc_url( $talk->trackImageURL ) . ')"></div>';
 			$content .= '		</a>';
 			$content .= '		<div class="cfp-name">' . esc_html( $talk->title ) . '</div>';
 			$content .= '       <div class="cfp-type">';
-			$content .= '			<a href="' . cfp_dev_url( '/talks-by-sessions/?id=' . absint( $talk->sessionTypeId ) ) . '">'
+			$content .= '			<a href="' . esc_url( cfp_dev_url( '/talks-by-sessions/?id=' . absint( $talk->sessionTypeId ) ) ) . '">'
 				. esc_html( $talk->sessionTypeName ) . '</a> <em>(' . esc_html( $talk->audienceLevel ) . ' level)</em>';
 			$content .= '       </div>';
 
@@ -110,16 +98,7 @@ if ( ! function_exists( 'cfp_talk_details_shortcode' ) ) {
 
 			$content .= '</div>';
 
-			if ( ! empty( $talk->podcastURL ) && str_contains( $talk->podcastURL, 'spotify' ) ) {
-				$content .= '<div class="cfp-podcast">';
-				$content .= '<iframe style="border-radius:12px" src="' . $talk->podcastURL . '?utm_source=WordPress"
-							 width="100%" height="80"
-							 frameBorder="0" allowfullscreen=""
-							 allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-							 loading="lazy"></iframe>';
-				$content .= '<div class="cfp-text"><small>AI-generated (Experimental): may contain inaccuracies, please verify facts.</small></div>';
-				$content .= '</div>';
-			}
+			$content .= getPodcast( $talk );
 
 			$content = getSpeakerInfo( $talk, $content );
 
@@ -135,83 +114,101 @@ if ( ! function_exists( 'cfp_talk_details_shortcode' ) ) {
 	}
 
 	/**
-	 * @param $content
-	 * @param $talk
+	 * Renders the tag pills linking to search results.
+	 *
+	 * @param object $talk  Talk detail object.
 	 * @return string
 	 */
 	function generateTags( $talk ) {
 		$content = '        <div class="cfp-category">';
-		foreach ( $talk->tags as $tag ) {
-			$content .= '<span class="cfp-span">';
-			$content .= '	<a href="' . cfp_dev_url( '/search-results/?query=' . ucwords( $tag->name ) ) . '">' . ucwords( $tag->name ) . '</a>';
-			$content .= '</span>';
-
+		if ( ! empty( $talk->tags ) ) {
+			foreach ( $talk->tags as $tag ) {
+				$content .= '<span class="cfp-span">';
+				$content .= '	<a href="' . esc_url( cfp_dev_url( '/search-results/?query=' . rawurlencode( $tag->name ) ) ) . '">' . esc_html( ucwords( $tag->name ) ) . '</a>';
+				$content .= '</span>';
+			}
 		}
 		$content .= '        </div>';
 		return $content;
 	}
 
 	/**
+	 * Renders the Spotify podcast embed. Only URLs actually hosted on
+	 * open.spotify.com are accepted — a substring check would match
+	 * e.g. https://evil.com/?spotify.
+	 *
+	 * @param object $talk  Talk detail object.
 	 * @return string
 	 */
-	function getQueryScript() {
-		$content  = '<script>';
-		$content .= 'const qs = document.querySelector(":root");';
-		$content .= 'qs.classList.forEach(value => {';
-		$content .= '   if (value.startsWith("cfp-")) {';
-		$content .= '       qs.classList.remove(value);';
-		$content .= '   }';
-		$content .= '});';
-		$content .= 'qs.classList.add("cfp-html");';
-		$content .= 'qs.classList.add("cfp-page:session");';
-		$content .= 'qs.classList.add("cfp-theme:' . get_option( 'cfp_dev_default_theme', 'dark' ) . '");';
-		$content .= 'qs.classList.add("cfp-view:detail");';
-		$content .= '</script>';
+	function getPodcast( $talk ) {
+		if ( empty( $talk->podcastURL ) ) {
+			return '';
+		}
+		$host = wp_parse_url( $talk->podcastURL, PHP_URL_HOST );
+		if ( ! is_string( $host ) || ! in_array( strtolower( $host ), [ 'open.spotify.com', 'spotify.com' ], true ) ) {
+			return '';
+		}
+
+		$content  = '<div class="cfp-podcast">';
+		$content .= '<iframe style="border-radius:12px" src="' . esc_url( $talk->podcastURL . '?utm_source=WordPress' ) . '"
+					 width="100%" height="80"
+					 frameBorder="0" allowfullscreen=""
+					 allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+					 loading="lazy"></iframe>';
+		$content .= '<div class="cfp-text"><small>AI-generated (Experimental): may contain inaccuracies, please verify facts.</small></div>';
+		$content .= '</div>';
 		return $content;
 	}
 
 	/**
-	 * @param $talk
-	 * @param $content
-	 * @return mixed|string
-	 * @throws Exception
+	 * Renders the date/time/room block for the talk's last time slot.
+	 * Returns an empty string when nothing is scheduled.
+	 *
+	 * @param object $talk  Talk detail object with timeSlots.
+	 * @return string
 	 */
 	function getScheduleInfo( $talk ) {
 		$content = '';
-		if ( count( $talk->timeSlots ) > 0 ) {
+		if ( ! empty( $talk->timeSlots ) && is_array( $talk->timeSlots ) && count( $talk->timeSlots ) > 0 ) {
 
 			$slot = array_pop( $talk->timeSlots );
 
 			if ( ! empty( $slot->fromDate ) && ! empty( $slot->toDate ) ) {
-				$timeZone = new DateTimeZone( $slot->timezone );
-				$fromDate = new DateTime( $slot->fromDate, new DateTimeZone( $slot->timezone ) );
-				$fromDate->setTimezone( $timeZone );
+				try {
+					$timeZone = new DateTimeZone( $slot->timezone );
+					$fromDate = new DateTime( $slot->fromDate, $timeZone );
+					$fromDate->setTimezone( $timeZone );
 
-				$toDate = new DateTime( $slot->toDate, new DateTimeZone( $slot->timezone ) );
-				$toDate->setTimezone( $timeZone );
+					$toDate = new DateTime( $slot->toDate, $timeZone );
+					$toDate->setTimezone( $timeZone );
+				} catch ( Exception $e ) {
+					cfp_dev_log( 'talk-details: invalid slot date/timezone — ' . $e->getMessage() );
+					return $content;
+				}
 
 				$content  = '        <div class="cfp-datetime">';
 				$content .= '            <time class="cfp-time" datetime="' . esc_attr( $fromDate->format( 'c' ) ) . '">' . esc_html( $fromDate->format( 'l' ) . ' from ' . $fromDate->format( 'H:i' ) ) . '</time>';
 				$content .= '            <time class="cfp-time" datetime="' . esc_attr( $toDate->format( 'c' ) ) . '">' . esc_html( $toDate->format( 'H:i' ) ) . '</time>';
 				$content .= '        </div>';
 
-				if ( get_option( 'cfp_dev_show_rooms', 'yes' ) == 'yes' ) {
+				if ( 'yes' === get_option( 'cfp_dev_show_rooms', 'yes' ) && ! empty( $slot->roomName ) ) {
 					$content .= '        <div class="cfp-room">' . esc_html( $slot->roomName ) . '</div>';
 				}
 
 				$content .= '<input type="hidden" id="cfpTimezone" value="' . esc_attr( $slot->timezone ) . '">';
-				$content .= '<input type="hidden" id="cfpTalkFrom" value="' . esc_attr( strtotime( $fromDate->format( 'Y-m-d H:i:s' ) ) ) . '">';
-				$content .= '<input type="hidden" id="cfpTalkExpiry" value="' . esc_attr( strtotime( $toDate->format( 'Y-m-d H:i:s' ) ) ) . '">';
+				$content .= '<input type="hidden" id="cfpTalkFrom" value="' . esc_attr( $fromDate->getTimestamp() ) . '">';
+				$content .= '<input type="hidden" id="cfpTalkExpiry" value="' . esc_attr( $toDate->getTimestamp() ) . '">';
 			}
 		}
 		return $content;
 	}
 
 	/**
-	 * Get the YouTube video HTML for the talk.
-	 * @param $talk
-	 * @param $content
-	 * @return mixed|string
+	 * Appends the YouTube video embed for the talk, when available.
+	 *
+	 * @param object $talk     Talk detail object.
+	 * @param string $content  Accumulated page HTML.
+	 * @return string
 	 */
 	function getVideo( $talk, $content ) {
 		if ( ! empty( $talk->videoURL ) ) {
@@ -224,28 +221,32 @@ if ( ! function_exists( 'cfp_talk_details_shortcode' ) ) {
 	}
 
 	/**
-	 * Search for similar talks based on semantic description value.
-	 * @param $talkInfo
-	 * @return mixed|string
+	 * Renders the "Related" list via semantic search on title + description.
+	 *
+	 * @param object $talk  Talk detail object.
+	 * @return string
 	 */
 	function getSimilarTalks( $talk ) {
 		$content = '';
 
-		// Fetch the semantic results first
-		$semanticResult = searchJSON( $talk->title . ' ' . wp_strip_all_tags( $talk->description ) );
+		// Fetch the semantic results first (truncate the query — full descriptions
+		// produce excessively long URLs).
+		$semanticResult = searchJSON( mb_substr( $talk->title . ' ' . wp_strip_all_tags( (string) $talk->description ), 0, 500 ) );
 
 		if ( ! empty( $semanticResult ) && count( $semanticResult ) > 0 ) {
-			// Sort the fetched results by the score in ascending order for PHP < 7.0
+			// Sort the fetched results by score, best (lowest) first.
 			usort( $semanticResult, fn( $a, $b ) => $a->score <=> $b->score );
+
+			$use_slugs = ( 'no' === get_option( 'cfp_dev_content_by_id', 'yes' ) );
 
 			$content .= '<div class="cfp-related-title">Related</div>';
 			foreach ( $semanticResult as $item ) {
-				if ( $item->id != $talk->id && ! str_contains( strtolower( $item->title ), 'overflow' ) ) {
+				if ( absint( $item->id ) !== absint( $talk->id ) && ! str_contains( strtolower( $item->title ), 'overflow' ) ) {
 					$content .= '    <div class="cfp-related">';
-					if ( get_option( 'cfp_dev_content_by_id', 'yes' ) == 'no' ) {
-						$content .= '       <a href="' . cfp_dev_url( '/talk/' . generate_slug( $item->title ) ) . '">' . esc_html( $item->title ) . '</a>';
+					if ( $use_slugs ) {
+						$content .= '       <a href="' . esc_url( cfp_dev_url( '/talk/' . generate_slug( $item->title ) ) ) . '">' . esc_html( $item->title ) . '</a>';
 					} else {
-						$content .= '       <a href="' . cfp_dev_url( '/talk?id=' . absint( $item->id ) ) . '">' . esc_html( $item->title ) . '</a>';
+						$content .= '       <a href="' . esc_url( cfp_dev_url( '/talk?id=' . absint( $item->id ) ) ) . '">' . esc_html( $item->title ) . '</a>';
 					}
 					$content .= '    </div>';
 				}
@@ -255,18 +256,24 @@ if ( ! function_exists( 'cfp_talk_details_shortcode' ) ) {
 	}
 
 	/**
-	 * @param $talk
-	 * @param $content
-	 * @return mixed|string
+	 * Appends a profile card (photo, socials, bio) for every speaker of the talk.
+	 *
+	 * @param object $talk     Talk detail object.
+	 * @param string $content  Accumulated page HTML.
+	 * @return string
 	 */
 	function getSpeakerInfo( $talk, $content ) {
+		if ( empty( $talk->speakers ) ) {
+			return $content;
+		}
+		$use_slugs = ( 'no' === get_option( 'cfp_dev_content_by_id', 'yes' ) );
 		foreach ( $talk->speakers as $speaker ) {
 			$content .= '		<div class="cfp-profile">';
-			if ( get_option( 'cfp_dev_content_by_id', 'yes' ) == 'no' ) {
+			if ( $use_slugs ) {
 				$speaker_slug = generate_slug( $speaker->firstName . '-' . $speaker->lastName );
-				$content     .= '<a class="cfp-a" href="' . cfp_dev_url( "/speaker/{$speaker_slug}" ) . '">';
+				$content     .= '<a class="cfp-a" href="' . esc_url( cfp_dev_url( "/speaker/{$speaker_slug}" ) ) . '">';
 			} else {
-				$content .= '<a class="cfp-a" href="' . cfp_dev_url( "/speaker?id=$speaker->id" ) . '">';
+				$content .= '<a class="cfp-a" href="' . esc_url( cfp_dev_url( '/speaker?id=' . absint( $speaker->id ) ) ) . '">';
 			}
 			if ( empty( $speaker->imageUrl ) ) {
 				$content .= '			<div class="cfp-picture" title="' . esc_attr( $speaker->company ) . '" style="background-image: url(' . esc_url( plugins_url( 'shortcode/gfx/avatar.jpg', __DIR__ ) ) . ')"></div>';

@@ -2,8 +2,7 @@
 /**
  * CFP.DEV shortcodes
  *
- * [cfp_speakers]  List all CFP.DEV speakers.
- * [cfp_speaker_details]  List CFP.DEV speaker details.
+ * [cfp_speakers]  Speaker grid with photos, optional search form.
  *
  * @package  CFP.DEV
  * @since    1.0.0
@@ -21,45 +20,26 @@ if ( ! function_exists( 'cfp_speakers_shortcode' ) ) {
 		}
 	);
 
-	add_action(
-		'wp_enqueue_scripts',
-		function () {
-			$plugin_url = plugin_dir_url( __FILE__ );
-
-			wp_enqueue_style( 'style1', $plugin_url . CFP_DEV_CSS, [], CFP_DEV_VERSION );
-		}
-	);
-
 	function cfp_speakers_shortcode( $atts ) {
-		$boolean_default  = false;
-		$size_default     = 300;
-		$title_default    = '';
-		$subTitle_default = '';
+		$_atts = shortcode_atts( cfp_dev_speakers_default_atts(), $atts );
 
-		$_atts = shortcode_atts(
-			[
-				'random'      => $boolean_default,
-				'size'        => $size_default,
-				'title'       => $title_default,
-				'subtitle'    => $subTitle_default,
-				'hide_search' => $boolean_default,
-			],
-			$atts
-		);
+		// Normalise: 'no'/'false'/'0' must be falsy (any non-empty string is truthy in PHP).
+		$_atts['random']      = filter_var( $_atts['random'], FILTER_VALIDATE_BOOLEAN );
+		$_atts['hide_search'] = filter_var( $_atts['hide_search'], FILTER_VALIDATE_BOOLEAN );
+		$_atts['size']        = absint( $_atts['size'] );
 
-		$_size = $_atts['size'];
+		$ttl = cfp_dev_get_cache_ttl();
 
-		// Check if caching is disabled
-		if ( CFP_DEV_CACHE == 0 ) {
-			$data    = getJSON( 'public/speakers?size=' . $_size );
+		if ( 0 === $ttl ) {
+			$data    = getJSON( 'public/speakers?size=' . $_atts['size'] );
 			$content = generate_speakers_content( $data, $_atts );
 		} else {
-			$_cache_group = 'speakers_cache_group';
-			$cache        = get_transient( $_cache_group );
+			$cache_key = cfp_dev_speakers_cache_key( $_atts );
+			$cache     = get_transient( $cache_key );
 			if ( false === $cache ) {
-				$data    = getJSON( 'public/speakers?size=' . $_size );
+				$data    = getJSON( 'public/speakers?size=' . $_atts['size'] );
 				$content = generate_speakers_content( $data, $_atts );
-				set_transient( $_cache_group, $content, CFP_DEV_CACHE );
+				set_transient( $cache_key, $content, $ttl );
 			} else {
 				$content = $cache;
 			}
@@ -69,73 +49,62 @@ if ( ! function_exists( 'cfp_speakers_shortcode' ) ) {
 	}
 
 	function generate_speakers_content( $data, $_atts ) {
-		$content = '';
-		if ( ! empty( $data ) ) {
-
-			$_random = $_atts['random'];
-			if ( $_random ) {
-				shuffle( $data );
-			} else {
-				usort( $data, 'compareLastName' );
-			}
-			$content .= '<script>';
-			$content .= 'const qs = document.querySelector(":root");';
-			$content .= 'qs.classList.forEach(value => {';
-			$content .= '   if (value.startsWith("cfp-")) {';
-			$content .= '       qs.classList.remove(value);';
-			$content .= '   }';
-			$content .= '});';
-			$content .= 'qs.classList.add("cfp-page:speaker");';
-			$content .= 'qs.classList.add("cfp-html");';
-			$content .= 'qs.classList.add("cfp-theme:' . get_option( 'cfp_dev_default_theme', 'dark' ) . '");';
-			$content .= '</script>';
-
-			$content .= '<main class="cfp-main">';
-			$content .= '<section class="cfp-speaker">';
-			$content .= '    <div class="cfp-subject">';
-			$content .= '        <div class="cfp-primary">';
-
-			$_title = $_atts['title'];
-			if ( null !== $_title ) {
-				$content .= '            <div class="cfp-name">' . $_title . '</div>';
-			} else {
-				$content .= '            <div class="cfp-name">Speakers</div>';
-			}
-
-			$hide_search = $_atts['hide_search'];
-
-			if ( ! $hide_search ) {
-				$content .= getSearchForm();
-			}
-
-			$content .= '        </div>';
-			$content .= '    </div>';
-			$content .= '    <div class="cfp-block">';
-
-			foreach ( $data as $speaker ) {
-				$content     .= ' <div class="cfp-person">';
-				$speaker_slug = generate_slug( $speaker->firstName . '-' . $speaker->lastName );
-				$get_option   = get_option( 'cfp_dev_content_by_id', 'yes' );
-				if ( 'no' === $get_option ) {
-					$content .= '<a class="cfp-a" href="' . cfp_dev_url( "/speaker/{$speaker_slug}" ) . '">';
-				} else {
-					$content .= '<a class="cfp-a" href="' . cfp_dev_url( "/speaker?id=$speaker->id" ) . '">';
-				}
-				$content .= '           <div class="cfp-picture" style="background-image: url(' . esc_url( $speaker->imageUrl ) . ')"></div>';
-				$content .= '        <div class="cfp-name">' . esc_html( $speaker->firstName . ' ' . $speaker->lastName ) . '</div>';
-				if ( ! empty( $speaker->company ) ) {
-					$content .= '        <div class="cfp-company">' . esc_html( $speaker->company ) . '</div>';
-				}
-				$content .= '    </a>';
-				$content .= ' </div>';
-			}
-
-			$content .= '</div>';
-			$content .= '</section>';
-			$content .= '</main>';
-
-			$content .= getFooter();
+		if ( empty( $data ) || ! is_array( $data ) ) {
+			return '<p>No speakers found.</p>';
 		}
+
+		if ( $_atts['random'] ) {
+			shuffle( $data );
+		} else {
+			usort( $data, 'compareLastName' );
+		}
+
+		$content  = cfp_dev_root_class_script( 'speaker' );
+		$content .= '<main class="cfp-main">';
+		$content .= '<section class="cfp-speaker">';
+		$content .= '    <div class="cfp-subject">';
+		$content .= '        <div class="cfp-primary">';
+
+		$_title   = trim( (string) $_atts['title'] );
+		$content .= '            <div class="cfp-name">' . esc_html( '' !== $_title ? $_title : 'Speakers' ) . '</div>';
+
+		$_subtitle = trim( (string) $_atts['subtitle'] );
+		if ( '' !== $_subtitle ) {
+			$content .= '            <div class="cfp-company">' . esc_html( $_subtitle ) . '</div>';
+		}
+
+		if ( ! $_atts['hide_search'] ) {
+			$content .= getSearchForm();
+		}
+
+		$content .= '        </div>';
+		$content .= '    </div>';
+		$content .= '    <div class="cfp-block">';
+
+		$use_slugs = ( 'no' === get_option( 'cfp_dev_content_by_id', 'yes' ) );
+
+		foreach ( $data as $speaker ) {
+			$content .= ' <div class="cfp-person">';
+			if ( $use_slugs ) {
+				$speaker_slug = generate_slug( $speaker->firstName . '-' . $speaker->lastName );
+				$content     .= '<a class="cfp-a" href="' . esc_url( cfp_dev_url( "/speaker/{$speaker_slug}" ) ) . '">';
+			} else {
+				$content .= '<a class="cfp-a" href="' . esc_url( cfp_dev_url( '/speaker?id=' . absint( $speaker->id ) ) ) . '">';
+			}
+			$content .= '           <div class="cfp-picture" style="background-image: url(' . esc_url( $speaker->imageUrl ) . ')"></div>';
+			$content .= '        <div class="cfp-name">' . esc_html( $speaker->firstName . ' ' . $speaker->lastName ) . '</div>';
+			if ( ! empty( $speaker->company ) ) {
+				$content .= '        <div class="cfp-company">' . esc_html( $speaker->company ) . '</div>';
+			}
+			$content .= '    </a>';
+			$content .= ' </div>';
+		}
+
+		$content .= '</div>';
+		$content .= '</section>';
+		$content .= '</main>';
+
+		$content .= getFooter();
 
 		return $content;
 	}

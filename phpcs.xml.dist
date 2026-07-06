@@ -4,39 +4,39 @@
 
     <!-- Files and directories to check -->
     <file>cfp-dev-wordpress-shortcodes.php</file>
+    <file>uninstall.php</file>
     <file>shortcode/</file>
 
     <!-- Ignore generated/third-party assets -->
     <exclude-pattern>shortcode/font/</exclude-pattern>
     <exclude-pattern>shortcode/gfx/</exclude-pattern>
     <exclude-pattern>shortcode/template/</exclude-pattern>
-    <exclude-pattern>shortcode/include/</exclude-pattern>
     <exclude-pattern>shortcode/css/</exclude-pattern>
     <exclude-pattern>vendor/</exclude-pattern>
     <exclude-pattern>js/</exclude-pattern>
     <exclude-pattern>css/</exclude-pattern>
 
     <!-- Show progress and use colours -->
-    <arg value="sp"/>
-    <arg name="colors"/>
-    <arg name="extensions" value="php"/>
+    <arg value="sp" />
+    <arg name="colors" />
+    <arg name="extensions" value="php" />
 
     <!-- WordPress Coding Standards -->
-    <rule ref="WordPress-Core"/>
-    <rule ref="WordPress-Extra"/>
+    <rule ref="WordPress-Core" />
+    <rule ref="WordPress-Extra" />
 
     <!-- Enforce short array syntax [] over array() — override WordPress-Extra's opposite rule -->
     <rule ref="Universal.Arrays.DisallowShortArraySyntax">
         <severity>0</severity>
     </rule>
-    <rule ref="Generic.Arrays.DisallowLongArraySyntax"/>
+    <rule ref="Generic.Arrays.DisallowLongArraySyntax" />
 
     <!-- PHP version compatibility: require PHP 8.0+ -->
-    <config name="testVersion" value="8.0-"/>
-    <rule ref="PHPCompatibilityWP"/>
+    <config name="testVersion" value="8.0-" />
+    <rule ref="PHPCompatibilityWP" />
 
     <!-- Minimum supported WordPress version -->
-    <config name="minimum_supported_wp_version" value="6.0"/>
+    <config name="minimum_supported_wp_version" value="6.0" />
 
     <!-- Suppress filename rule (plugin uses non-standard naming) -->
     <rule ref="WordPress.Files.FileName">
@@ -47,9 +47,9 @@
     <rule ref="WordPress.NamingConventions.PrefixAllGlobals">
         <properties>
             <property name="prefixes" type="array">
-                <element value="cfp_dev"/>
-                <element value="cfp_"/>
-                <element value="CFP_DEV"/>
+                <element value="cfp_dev" />
+                <element value="cfp_" />
+                <element value="CFP_DEV" />
             </property>
         </properties>
     </rule>
@@ -69,7 +69,8 @@
         <severity>0</severity>
     </rule>
 
-    <!-- camelCase function names are an established pattern; renaming would be a breaking API change -->
+    <!-- camelCase function names are an established pattern; renaming would be a breaking API
+    change -->
     <rule ref="WordPress.NamingConventions.ValidFunctionName.FunctionNameInvalid">
         <severity>0</severity>
     </rule>
@@ -79,7 +80,8 @@
         <severity>0</severity>
     </rule>
 
-    <!-- Strict comparisons (== → ===): many occurrences in established code; phpcbf cannot auto-fix these -->
+    <!-- Strict comparisons (== → ===): many occurrences in established code; phpcbf cannot auto-fix
+    these -->
     <rule ref="Universal.Operators.StrictComparisons">
         <severity>0</severity>
     </rule>
