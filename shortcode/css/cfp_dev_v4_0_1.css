@@ -1057,7 +1057,6 @@ main.cfp-main {
 	--cfp-text-primary: #1d1d1d;
 	--cfp-text-secondary: white;
 	--cfp-accept-primary: #2493c7;
-	/*--cfp-logo-image: url("../gfx/logo/light.svg");*/
 	--cfp-border-primary: #dbdbdb;
   }
 }
@@ -1071,7 +1070,6 @@ main.cfp-main {
 	--cfp-text-primary: white;
 	--cfp-text-secondary: #484848;
 	--cfp-accept-primary: #ffa500;
-	--cfp-logo-image: url('../gfx/logo/dark.svg');
 	--cfp-border-primary: #484848;
   }
 }
@@ -1084,7 +1082,6 @@ html.cfp-html.cfp-theme\:light {
   --cfp-text-primary: #1d1d1d;
   --cfp-text-secondary: white;
   --cfp-accept-primary: #2493c7;
-  /*--cfp-logo-image: url("../gfx/logo/light.svg");*/
   --cfp-border-primary: #dbdbdb;
 }
 
@@ -1096,7 +1093,6 @@ html.cfp-html.cfp-theme\:dark {
   --cfp-text-primary: white;
   --cfp-text-secondary: #484848;
   --cfp-accept-primary: #ffa500;
-  --cfp-logo-image: url('../gfx/logo/dark.svg');
   --cfp-border-primary: #484848;
 }
 
@@ -4693,7 +4689,7 @@ html.cfp-html.cfp-page\:session:not(.cfp-view\:detail) main.cfp-main {
 }
 
 /* --------------------------------------------------------------------- LIST --- */
-html.cfp-html.cfp-page\:session:not(.cfp-view\:detail) section.cfp-list:not(:first-child) {
+html.cfp-html.cfp-page\:session:not(.cfp-view\:detail) section.cfp-list:not(:first-of-type) {
   padding-top: calc(var(--cfp-gutter) * 3);
   margin-top: calc(var(--cfp-gutter) * 3);
   border-top: 1px solid var(--cfp-border-primary);
@@ -4708,7 +4704,10 @@ html.cfp-html.cfp-page\:speaker.cfp-view\:detail main.cfp-main {
   padding: calc(var(--cfp-gutter) * 2) 0;
 }
 
-html.cfp-html.cfp-page\:speaker.cfp-view\:detail main.cfp-main section:not(:first-child) {
+/* Divider between sections (profile → talks → gallery) — :first-of-type, not
+   :first-child, so stray non-section siblings (scripts, meta tags) can never
+   push a divider above the first section. */
+html.cfp-html.cfp-page\:speaker.cfp-view\:detail main.cfp-main section:not(:first-of-type) {
   padding-top: calc(var(--cfp-gutter) * 3);
   margin-top: calc(var(--cfp-gutter) * 3);
   border-top: 1px solid var(--cfp-border-primary);
