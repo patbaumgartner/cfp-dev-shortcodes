@@ -60,9 +60,12 @@ if ( ! function_exists( 'cfp_speaker_details_shortcode' ) ) {
 	function generateSpeakerPage( $speaker ) {
 		$content = cfp_dev_root_class_script( 'speaker', 'detail' );
 
+		// Social-card meta tags stay outside <main> so they never affect
+		// sibling-based CSS selectors (and are invalid inside it anyway).
+		$content .= embedSocialSpeakerCard( $speaker );
+
 		$content .= '<main class="cfp-main">';
 
-		$content .= embedSocialSpeakerCard( $speaker );
 		$content .= generateSpeakerContent( $speaker );
 
 		// Placeholder for photo album with loading message

@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.3.1] — 2026-07-06
+
+### Fixed
+- Stray divider line above the speaker profile: the social-card `<meta>` tags were emitted inside `<main>` before the first section, so the between-sections `border-top` rule (`section:not(:first-child)`) matched the profile. Meta tags now sit outside `<main>` on both detail pages, and the divider selectors use `:not(:first-of-type)` so non-section siblings can never trigger them
+
+---
+
 ## [4.3.0] — 2026-07-06
 
 ### Added

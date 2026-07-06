@@ -62,11 +62,13 @@ if ( ! function_exists( 'cfp_talk_details_shortcode' ) ) {
 
 		$content = cfp_dev_root_class_script( 'session', 'detail' );
 
+		// Social-card meta tags stay outside <main> so they never affect
+		// sibling-based CSS selectors (and are invalid inside it anyway).
+		$content .= embedSocialTalkCard( $talk );
+
 		$content .= '<main class="cfp-main">';
 
 		if ( ! empty( $talk ) ) {
-
-			$content .= embedSocialTalkCard( $talk );
 
 			$content .= '<section class="cfp-session">';
 			$content .= '    <div class="cfp-foreword">';
