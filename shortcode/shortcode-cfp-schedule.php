@@ -149,7 +149,7 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 			$content .= '		<nav class="cfp-tab">';
 			while ( $fromDate < $toDate ) {
 				$isActive = ( $fromDate->format( 'l' ) === $dayName ) ? 'cfp-active' : '';
-				$content .= '		<a class="cfp-a ' . $isActive . '" href="' . esc_url( '.?id=' . $fromDate->format( 'l' ) ) . '">' .
+				$content .= '		<a class="cfp-a ' . $isActive . '" href="' . esc_url( '?id=' . $fromDate->format( 'l' ) ) . '">' .
 					esc_html( $fromDate->format( 'l' ) . ' ' . $fromDate->format( 'j' ) ) . '<sup>' .
 					esc_html( $fromDate->format( 'S' ) ) . '</sup> ' . esc_html( $fromDate->format( 'M' ) ) . '</a>';
 				$fromDate->modify( '+1 day' );

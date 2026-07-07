@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.3.2] — 2026-07-07
+
+### Fixed
+- Broken day-tab links on the schedule page: the tab hrefs were built as `.?id=Day`, which `esc_url()` mangled into the invalid absolute URL `http://./?id=Day`. The hrefs now use `?id=Day`, which stays relative to the current page
+
+---
+
 ## [4.3.1] — 2026-07-06
 
 ### Fixed
