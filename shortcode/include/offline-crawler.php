@@ -715,6 +715,11 @@ function cfp_dev_do_crawl(): void {
 	// Activate offline mode — from this point getJSON() serves from snapshot.
 	update_option( 'cfp_dev_offline_mode', 1 );
 
+	// Invalidate all rendered-HTML transients: they were generated from live
+	// API data and still embed external image URLs. Bumping the cache version
+	// forces every shortcode to re-render against the snapshot.
+	clearCache();
+
 	// Retention: drop everything but the newest snapshots.
 	cfp_dev_prune_snapshots( 2 );
 

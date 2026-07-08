@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.3.3] — 2026-07-08
+
+### Fixed
+- Stale rendered-HTML cache after enabling offline mode: completing a crawl (and disabling offline mode, manually or via the missing-snapshot fallback) now bumps the cache version, so all shortcodes re-render against the new data source — previously cached HTML kept serving external image URLs
+- `[cfp_speakers size="N"]` in offline mode rendered the full speaker list: the `?size=` query only exists on the live API, so the size limit is now also enforced locally after fetching
+- A single missing snapshot file (unknown `?id=`, uncrawlable endpoint like `public/search`) silently disabled offline mode for the whole site — offline mode is now only abandoned when no completed snapshot exists at all
+- Talk-page `og:url` pointed at `https://<key>.cfp.dev/talk?id=…` — it now points at the site's own talk permalink
+
+---
+
 ## [4.3.2] — 2026-07-07
 
 ### Fixed

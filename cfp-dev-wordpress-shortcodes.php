@@ -3,7 +3,7 @@
  * Plugin Name:       CFP.DEV shortcodes
  * Plugin URI:        https://github.com/patbaumgartner/cfp-dev-shortcodes
  * Description:       Display CFP.DEV conference content on your WordPress site: speakers, talks, schedule, and search — with light/dark theming, caching, and offline mode.
- * Version:           4.3.2
+ * Version:           4.3.3
  * Author:            Stephan Janssen, Patrick Baumgartner
  * Author URI:        https://x.com/stephan007
  * License:           GPL-2.0+
@@ -26,7 +26,7 @@ if ( ! defined( 'CFP_DEV_APPLICATION_JSON' ) ) {
 
 // Plugin version.
 if ( ! defined( 'CFP_DEV_VERSION' ) ) {
-	define( 'CFP_DEV_VERSION', '4.3.2' );
+	define( 'CFP_DEV_VERSION', '4.3.3' );
 }
 
 if ( ! defined( 'CFP_DEV_NAME' ) ) {
@@ -339,6 +339,10 @@ function cfp_dev_plugin_options() {
 		if ( 0 === $new_offline ) {
 			// Unchecked → disable offline mode (keep snapshot data).
 			update_option( 'cfp_dev_offline_mode', 0 );
+			// Rendered HTML still points at snapshot URLs — re-render from live API.
+			if ( 1 === (int) $old_offline ) {
+				clearCache();
+			}
 		} elseif ( 1 === $new_offline && 0 === (int) $old_offline && ! in_array( $crawl_status, [ 'running', 'pending' ], true ) ) {
 			// Newly checked and no crawl already running → start a fresh crawl.
 			// Offline mode is activated automatically when the crawl completes.
@@ -752,7 +756,7 @@ function embedSocialTalkCard( $talk ) {
 	$content  = '<meta name="twitter:card" content="summary">';
 	$content .= '<meta name="twitter:image" content="' . esc_url( $talk->trackImageURL ) . '">';
 	$content .= '<meta property="og:title" content="' . esc_attr( $title ) . '">';
-	$content .= '<meta property="og:url" content="' . esc_url( 'https://' . cfp_dev_get_key() . '.cfp.dev/talk?id=' . absint( $talk->id ) ) . '">';
+	$content .= '<meta property="og:url" content="' . esc_url( home_url( cfp_dev_url( '/talk?id=' . absint( $talk->id ) ) ) ) . '">';
 	$content .= '<meta name="twitter:title" content="' . esc_attr( $title ) . '">';
 	$content .= '<meta name="twitter:description" content="' . esc_attr( $description ) . '">';
 
@@ -777,13 +781,17 @@ function getJSON( $queryPath ) {
 
 	// Offline mode: serve from local snapshot instead of the live API.
 	if ( get_option( 'cfp_dev_offline_mode', 0 ) ) {
-		$offline_result = cfp_dev_get_json_offline( $queryPath );
-		if ( null !== $offline_result ) {
-			return $offline_result;
+		if ( '' !== cfp_dev_get_latest_snapshot() ) {
+			// A snapshot exists — stay offline. A null here means this specific
+			// resource is not in the snapshot (unknown id, uncrawlable endpoint
+			// like public/search): treat it as "not found" rather than falling
+			// back to the live API and silently leaving offline mode.
+			return cfp_dev_get_json_offline( $queryPath );
 		}
-		// Snapshot missing or incomplete — fall back to live API and disable offline mode.
-		cfp_dev_log( 'getJSON: offline snapshot unavailable for ' . $queryPath . ', falling back to live API and disabling offline mode.' );
+		// No completed snapshot at all — fall back to live API and disable offline mode.
+		cfp_dev_log( 'getJSON: no offline snapshot available, falling back to live API and disabling offline mode.' );
 		update_option( 'cfp_dev_offline_mode', 0 );
+		clearCache();
 	}
 
 	$query_url = cfp_dev_api_base() . $queryPath;

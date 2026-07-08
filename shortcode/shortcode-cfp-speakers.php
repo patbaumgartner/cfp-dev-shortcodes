@@ -59,6 +59,12 @@ if ( ! function_exists( 'cfp_speakers_shortcode' ) ) {
 			usort( $data, 'compareLastName' );
 		}
 
+		// Enforce the size attribute locally: the live API honours ?size=, but
+		// the offline snapshot always returns the full speaker list.
+		if ( $_atts['size'] > 0 && count( $data ) > $_atts['size'] ) {
+			$data = array_slice( $data, 0, $_atts['size'] );
+		}
+
 		$content  = cfp_dev_root_class_script( 'speaker' );
 		$content .= '<main class="cfp-main">';
 		$content .= '<section class="cfp-speaker">';
