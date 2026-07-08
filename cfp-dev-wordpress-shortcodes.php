@@ -3,7 +3,7 @@
  * Plugin Name:       CFP.DEV shortcodes
  * Plugin URI:        https://github.com/patbaumgartner/cfp-dev-shortcodes
  * Description:       Display CFP.DEV conference content on your WordPress site: speakers, talks, schedule, and search — with light/dark theming, caching, and offline mode.
- * Version:           4.3.4
+ * Version:           4.4.0
  * Author:            Stephan Janssen, Patrick Baumgartner
  * Author URI:        https://x.com/stephan007
  * License:           GPL-2.0+
@@ -26,7 +26,7 @@ if ( ! defined( 'CFP_DEV_APPLICATION_JSON' ) ) {
 
 // Plugin version.
 if ( ! defined( 'CFP_DEV_VERSION' ) ) {
-	define( 'CFP_DEV_VERSION', '4.3.4' );
+	define( 'CFP_DEV_VERSION', '4.4.0' );
 }
 
 if ( ! defined( 'CFP_DEV_NAME' ) ) {
@@ -237,6 +237,7 @@ function cfp_dev_root_class_script( string $page, string $view = '' ): string {
 // Load the offline crawler and all shortcode modules.
 $cfp_dev_modules = [
 	'shortcode/include/offline-crawler.php',
+	'shortcode/include/class-cfp-dev-sitemaps-provider.php',
 	'shortcode/shortcode-cfp-speakers.php',
 	'shortcode/shortcode-cfp-speaker-details.php',
 	'shortcode/shortcode-cfp-schedule.php',
@@ -730,43 +731,6 @@ function getFooter() {
 	return '';
 }
 
-function embedSocialSpeakerCard( $speaker ) {
-	$content = '<meta name="twitter:card" content="summary_large_image">';
-	if ( ! empty( $speaker->twitterHandle ) ) {
-		$content .= '<meta name="twitter:site" content="' . esc_attr( $speaker->twitterHandle ) . '">';
-	}
-
-	if ( ! empty( $speaker->imageUrl ) ) {
-		$content .= '<meta name="twitter:image" content="' . esc_url( $speaker->imageUrl ) . '">';
-	}
-	$speakerInfo = $speaker->firstName . ' ' . $speaker->lastName . ' at ' . cfp_dev_get_event_name();
-	// Strip tags BEFORE truncating so we never cut inside an HTML tag; mb-safe.
-	$description = mb_substr( wp_strip_all_tags( (string) ( $speaker->bio ?? '' ) ), 0, 260 );
-	$content    .= '<meta property="og:title" content="' . esc_attr( $speakerInfo ) . '">';
-	$content    .= '<meta name="twitter:title" content="' . esc_attr( $speakerInfo ) . '">';
-	$content    .= '<meta name="twitter:description" content="' . esc_attr( $description ) . '">';
-
-	return $content;
-}
-
-function embedSocialTalkCard( $talk ) {
-	$title       = wp_strip_all_tags( $talk->title ) . ' at ' . cfp_dev_get_event_name();
-	$description = mb_substr( wp_strip_all_tags( (string) ( $talk->description ?? '' ) ), 0, 260 );
-
-	$talk_path = ( 'no' === get_option( 'cfp_dev_content_by_id', 'yes' ) )
-		? '/talk/' . generate_slug( $talk->title )
-		: '/talk?id=' . absint( $talk->id );
-
-	$content  = '<meta name="twitter:card" content="summary">';
-	$content .= '<meta name="twitter:image" content="' . esc_url( $talk->trackImageURL ) . '">';
-	$content .= '<meta property="og:title" content="' . esc_attr( $title ) . '">';
-	$content .= '<meta property="og:url" content="' . esc_url( home_url( cfp_dev_url( $talk_path ) ) ) . '">';
-	$content .= '<meta name="twitter:title" content="' . esc_attr( $title ) . '">';
-	$content .= '<meta name="twitter:description" content="' . esc_attr( $description ) . '">';
-
-	return $content;
-}
-
 function compareLastName( $x, $y ) {
 	return iconv( 'utf-8', 'ascii//TRANSLIT', $x->lastName ) <=> iconv( 'utf-8', 'ascii//TRANSLIT', $y->lastName );
 }
@@ -863,8 +827,11 @@ function getTime( $time, $timezone, $format ) {
 function getSearchForm() {
 	// Absolute action URL — a relative one resolves against the current path
 	// (e.g. /talks-by-tracks/search-results) and 404s.
-	$content  = '<form class="cfp-search" action="' . esc_url( home_url( cfp_dev_url( '/search-results/' ) ) ) . '" method="GET">';
-	$content .= '   <input class="cfp-input" id="dev-cfp-search-term" type="search" minlength="3" name="query" placeholder="Full search..." autofocus>';
+	// toolname/tooldescription = declarative WebMCP metadata for AI agents.
+	$content  = '<form class="cfp-search" action="' . esc_url( home_url( cfp_dev_url( '/search-results/' ) ) ) . '" method="GET"'
+		. ' toolname="search_conference_programme"'
+		. ' tooldescription="Searches the conference programme for talks and speakers matching a keyword (e.g. a technology, topic or speaker name)">';
+	$content .= '   <input class="cfp-input" id="dev-cfp-search-term" type="search" minlength="3" name="query" placeholder="Full search..." toolparamdescription="Search keyword, minimum 3 characters" autofocus>';
 	$content .= '</form>';
 	return $content;
 }
@@ -1150,40 +1117,572 @@ function cfp_create_required_pages() {
 register_activation_hook( __FILE__, 'cfp_create_required_pages' );
 
 
-function add_speaker_title_script() {
-	if ( is_page( 'speaker' ) ) {
-		?>
-		<script>
-			document.addEventListener('DOMContentLoaded', function() {
-				const ogTitle = document.querySelector('meta[property="og:title"], meta[name="og:title"]');
-				if (ogTitle) {
-					document.title = ogTitle.getAttribute('content');
-				}
-			});
-		</script>
-		<?php
+/*
+ * ── SEO head metadata ─────────────────────────────────────────────
+ *
+ * Server-side titles, meta descriptions, Open Graph/Twitter tags,
+ * canonical URLs and JSON-LD for every plugin page. Detail pages
+ * (talk/speaker) resolve the current entity through the same cached,
+ * offline-aware helpers the shortcodes use, so metadata keeps working
+ * from a local snapshot when offline mode is on.
+ *
+ * Themes may call add_theme_support( 'cfp-dev-head-meta' ) and render
+ * the tags themselves from cfp_dev_page_meta(); the plugin then only
+ * contributes the document title, canonical URL and JSON-LD.
+ */
+
+/**
+ * Collapses whitespace and trims text to a meta-description-sized excerpt.
+ *
+ * @param string $text    Raw text (may contain HTML).
+ * @param int    $length  Maximum length in characters.
+ * @return string
+ */
+function cfp_dev_meta_excerpt( $text, $length = 160 ) {
+	$text = trim( preg_replace( '/\s+/u', ' ', wp_strip_all_tags( (string) $text ) ) );
+	if ( mb_strlen( $text ) <= $length ) {
+		return $text;
 	}
+	$cut   = mb_substr( $text, 0, $length );
+	$space = mb_strrpos( $cut, ' ' );
+	return ( false !== $space ? mb_substr( $cut, 0, $space ) : $cut ) . '…';
 }
-add_action( 'wp_footer', 'add_speaker_title_script' );
 
+/**
+ * Fetches a talk/speaker object with a transient cache in front, so the
+ * head-meta lookup does not add a second API round-trip on top of the
+ * shortcode render (whose own cache stores rendered HTML, not data).
+ *
+ * @param string $type  'talk' or 'speaker'.
+ * @param int    $id    Entity id.
+ * @return object|null
+ */
+function cfp_dev_get_entity_cached( $type, $id ) {
+	$ttl = cfp_dev_get_cache_ttl();
+	$key = cfp_dev_group_cache_key( 'cfp_entity_' . $type . '_' . md5( (string) $id ) );
 
-function add_meta_description() {
+	if ( $ttl > 0 ) {
+		$cached = get_transient( $key );
+		if ( false !== $cached ) {
+			return $cached;
+		}
+	}
+
+	$data = ( 'talk' === $type ) ? get_talk_by_id( $id ) : get_speaker_by_id( $id );
+
+	if ( ! empty( $data ) && $ttl > 0 ) {
+		set_transient( $key, $data, $ttl );
+	}
+
+	return empty( $data ) ? null : $data;
+}
+
+/**
+ * Resolves the entity shown on the current request (talk or speaker detail
+ * page), once per request. Returns null on all other pages.
+ *
+ * @return array{type:string,data:object}|null
+ */
+function cfp_dev_current_entity() {
+	static $entity   = null;
+	static $resolved = false;
+
+	if ( $resolved ) {
+		return $entity;
+	}
+	$resolved = true;
+
+	if ( is_page( 'talk' ) ) {
+		$slug = get_query_var( 'talk_slug' );
+		$id   = absint( get_query_var( 'id' ) );
+		if ( ! empty( $slug ) ) {
+			$id = (int) get_talk_id_from_slug( sanitize_title( $slug ) );
+		}
+		if ( $id ) {
+			$talk = cfp_dev_get_entity_cached( 'talk', $id );
+			if ( ! empty( $talk->title ) ) {
+				$entity = [
+					'type' => 'talk',
+					'data' => $talk,
+				];
+			}
+		}
+	} elseif ( is_page( 'speaker' ) ) {
+		$slug = get_query_var( 'speaker_slug' );
+		$id   = absint( get_query_var( 'id' ) );
+		if ( ! empty( $slug ) ) {
+			$id = (int) get_speaker_id_from_slug( sanitize_title( $slug ) );
+		}
+		if ( $id ) {
+			$speaker = cfp_dev_get_entity_cached( 'speaker', $id );
+			if ( ! empty( $speaker->firstName ) ) {
+				$entity = [
+					'type' => 'speaker',
+					'data' => $speaker,
+				];
+			}
+		}
+	}
+
+	return $entity;
+}
+
+/**
+ * Meta description for the talks-by-tracks page: names the selected track
+ * (?id=N) or lists all track names. Cached per track id.
+ *
+ * @param string $event_name  Event display name.
+ * @return string
+ */
+function cfp_dev_tracks_meta_description( $event_name ) {
+	$track_id = absint( get_query_var( 'id' ) );
+	$ttl      = cfp_dev_get_cache_ttl();
+	$key      = cfp_dev_group_cache_key( 'cfp_meta_tracks_' . $track_id );
+
+	if ( $ttl > 0 ) {
+		$cached = get_transient( $key );
+		if ( false !== $cached ) {
+			return $cached;
+		}
+	}
+
+	$description = 'Browse talks by track at ' . $event_name . '.';
+	$tracks      = getJSON( 'public/tracks' );
+
+	if ( is_array( $tracks ) && ! empty( $tracks ) ) {
+		if ( $track_id ) {
+			foreach ( $tracks as $track ) {
+				if ( absint( $track->id ) === $track_id ) {
+					$track_descr = cfp_dev_meta_excerpt( $track->description ?? '', 110 );
+					$description = wp_strip_all_tags( $track->name ) . ' talks at ' . $event_name
+						. ( '' !== $track_descr ? ' — ' . $track_descr : '.' );
+					break;
+				}
+			}
+		} else {
+			$names       = array_map(
+				static function ( $track ) {
+					return wp_strip_all_tags( $track->name );
+				},
+				$tracks
+			);
+			$description = cfp_dev_meta_excerpt(
+				'Browse talks by track at ' . $event_name . ': ' . implode( ', ', $names ) . '.'
+			);
+		}
+	}
+
+	if ( $ttl > 0 ) {
+		set_transient( $key, $description, $ttl );
+	}
+
+	return $description;
+}
+
+/**
+ * Meta description for the talks-by-sessions page: names the selected
+ * session type (?id=N) or lists all non-pause session types. Cached per id.
+ *
+ * @param string $event_name  Event display name.
+ * @return string
+ */
+function cfp_dev_sessions_meta_description( $event_name ) {
+	$session_id = absint( get_query_var( 'id' ) );
+	$ttl        = cfp_dev_get_cache_ttl();
+	$key        = cfp_dev_group_cache_key( 'cfp_meta_sessions_' . $session_id );
+
+	if ( $ttl > 0 ) {
+		$cached = get_transient( $key );
+		if ( false !== $cached ) {
+			return $cached;
+		}
+	}
+
+	$description = 'Browse talks by session type at ' . $event_name . '.';
+	$sessions    = getJSON( 'public/session-types' );
+
+	if ( is_array( $sessions ) && ! empty( $sessions ) ) {
+		if ( $session_id ) {
+			foreach ( $sessions as $session ) {
+				if ( absint( $session->id ) === $session_id ) {
+					$session_descr = cfp_dev_meta_excerpt( $session->description ?? '', 110 );
+					$description   = wp_strip_all_tags( $session->name ) . ' sessions at ' . $event_name
+						. ( '' !== $session_descr ? ' — ' . $session_descr : '.' );
+					break;
+				}
+			}
+		} else {
+			$names = [];
+			foreach ( $sessions as $session ) {
+				if ( empty( $session->pause ) ) {
+					$names[] = wp_strip_all_tags( $session->name );
+				}
+			}
+			// Events may define several session types with the same display
+			// name (e.g. three "Keynote" slots) — list each name once.
+			$names = array_unique( $names );
+			if ( ! empty( $names ) ) {
+				$description = cfp_dev_meta_excerpt(
+					'Browse talks by session type at ' . $event_name . ': ' . implode( ', ', $names ) . '.'
+				);
+			}
+		}
+	}
+
+	if ( $ttl > 0 ) {
+		set_transient( $key, $description, $ttl );
+	}
+
+	return $description;
+}
+
+/**
+ * Page metadata for the current request, or null when the current page is
+ * not one of the plugin's pages. Computed once per request.
+ *
+ * @return array{title:string,description:string,url:string,image:string,og_type:string}|null
+ */
+function cfp_dev_page_meta() {
+	static $meta     = null;
+	static $resolved = false;
+
+	if ( $resolved ) {
+		return $meta;
+	}
+	$resolved = true;
+
+	if ( ! is_page( [ 'talk', 'speaker', 'speakers', 'schedule', 'talks-by-tracks', 'talks-by-sessions', 'search-results' ] ) ) {
+		return null;
+	}
+
 	$event_name = cfp_dev_get_event_name();
+	$entity     = cfp_dev_current_entity();
+
+	if ( $entity && 'talk' === $entity['type'] ) {
+		$talk        = $entity['data'];
+		$title       = wp_strip_all_tags( $talk->title );
+		$description = cfp_dev_meta_excerpt( $talk->description ?? '' );
+		if ( '' === $description ) {
+			$description = $title . ' — a ' . wp_strip_all_tags( $talk->sessionTypeName ?? 'session' ) . ' at ' . $event_name . '.';
+		}
+		$meta = [
+			'title'       => $title . ' - ' . $event_name,
+			'description' => $description,
+			'url'         => home_url( cfp_dev_url( '/talk/' . generate_slug( $talk->title ) ) ),
+			'image'       => cfp_dev_usable_image( $talk->trackImageURL ?? '' ),
+			'og_type'     => 'article',
+		];
+		return $meta;
+	}
+
+	if ( $entity && 'speaker' === $entity['type'] ) {
+		$speaker     = $entity['data'];
+		$name        = trim( $speaker->firstName . ' ' . $speaker->lastName );
+		$description = cfp_dev_meta_excerpt( $speaker->bio ?? '' );
+		if ( '' === $description ) {
+			$description = $name
+				. ( ! empty( $speaker->company ) ? ' (' . wp_strip_all_tags( $speaker->company ) . ')' : '' )
+				. ' speaks at ' . $event_name . '.';
+		}
+		$meta = [
+			'title'       => $name . ' - ' . $event_name,
+			'description' => $description,
+			'url'         => home_url( cfp_dev_url( '/speaker/' . generate_slug( $speaker->firstName . '-' . $speaker->lastName ) ) ),
+			'image'       => (string) ( $speaker->imageUrl ?? '' ),
+			'og_type'     => 'profile',
+		];
+		return $meta;
+	}
+
+	$description = '';
 	if ( is_page( 'speakers' ) ) {
-		echo '<meta name="description" content="Browse our lineup of expert speakers at ' . esc_attr( $event_name ) . '.">';
+		$description = 'Browse our lineup of expert speakers at ' . $event_name . '.';
 	} elseif ( is_page( 'schedule' ) ) {
-		echo '<meta name="description" content="View the full schedule for ' . esc_attr( $event_name ) . '.">';
+		$description = 'View the full conference schedule for ' . $event_name . ' — sessions, times, rooms and speakers.';
 	} elseif ( is_page( 'talks-by-tracks' ) ) {
-		echo '<meta name="description" content="Browse talks by track at ' . esc_attr( $event_name ) . '.">';
+		$description = cfp_dev_tracks_meta_description( $event_name );
 	} elseif ( is_page( 'talks-by-sessions' ) ) {
-		echo '<meta name="description" content="Browse talks by session type at ' . esc_attr( $event_name ) . '.">';
+		$description = cfp_dev_sessions_meta_description( $event_name );
 	} elseif ( is_page( 'search-results' ) ) {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only GET param for meta description tag
-		$query_val = isset( $_GET['query'] ) ? sanitize_text_field( wp_unslash( $_GET['query'] ) ) : '';
-		echo '<meta name="description" content="Search results for ' . esc_attr( $query_val ) . ' at ' . esc_attr( $event_name ) . '.">';
+		$query_val   = isset( $_GET['query'] ) ? sanitize_text_field( wp_unslash( $_GET['query'] ) ) : '';
+		$description = '' !== $query_val
+			? 'Search results for “' . $query_val . '” at ' . $event_name . '.'
+			: 'Search talks and speakers at ' . $event_name . '.';
+	}
+
+	$meta = [
+		'title'       => '', // Empty: keep the WordPress-generated page title.
+		'description' => $description,
+		'url'         => (string) get_permalink(),
+		'image'       => '',
+		'og_type'     => 'website',
+	];
+	return $meta;
+}
+
+/**
+ * Server-side document title for talk/speaker detail pages.
+ *
+ * @param string $title  Pre-computed title (empty by default).
+ * @return string
+ */
+function cfp_dev_document_title( $title ) {
+	$meta = cfp_dev_page_meta();
+	if ( $meta && ! empty( $meta['title'] ) ) {
+		return $meta['title'];
+	}
+	return $title;
+}
+add_filter( 'pre_get_document_title', 'cfp_dev_document_title', 20 );
+
+/**
+ * Slug-aware canonical URL — without this every talk/speaker canonicalizes
+ * to the bare /talk/ or /speaker/ page.
+ *
+ * @param string  $canonical_url  Default canonical URL.
+ * @param WP_Post $post           Queried post.
+ * @return string
+ */
+function cfp_dev_canonical_url( $canonical_url, $post ) {
+	unset( $post );
+	$meta = cfp_dev_page_meta();
+	if ( $meta && ! empty( $meta['url'] ) ) {
+		return $meta['url'];
+	}
+	return $canonical_url;
+}
+add_filter( 'get_canonical_url', 'cfp_dev_canonical_url', 10, 2 );
+
+/**
+ * Emits description/Open Graph/Twitter tags in <head> for plugin pages.
+ * Skipped entirely when the active theme declares
+ * add_theme_support( 'cfp-dev-head-meta' ) and renders the tags itself.
+ */
+function cfp_dev_output_head_meta() {
+	$meta = cfp_dev_page_meta();
+	if ( empty( $meta ) || current_theme_supports( 'cfp-dev-head-meta' ) ) {
+		return;
+	}
+
+	$title = ! empty( $meta['title'] ) ? $meta['title'] : wp_get_document_title();
+
+	echo "\n";
+	if ( ! empty( $meta['description'] ) ) {
+		echo '<meta name="description" content="' . esc_attr( $meta['description'] ) . '">' . "\n";
+		echo '<meta property="og:description" content="' . esc_attr( $meta['description'] ) . '">' . "\n";
+		echo '<meta name="twitter:description" content="' . esc_attr( $meta['description'] ) . '">' . "\n";
+	}
+	echo '<meta property="og:title" content="' . esc_attr( $title ) . '">' . "\n";
+	echo '<meta name="twitter:title" content="' . esc_attr( $title ) . '">' . "\n";
+	echo '<meta property="og:type" content="' . esc_attr( $meta['og_type'] ) . '">' . "\n";
+	if ( ! empty( $meta['url'] ) ) {
+		echo '<meta property="og:url" content="' . esc_url( $meta['url'] ) . '">' . "\n";
+	}
+	if ( ! empty( $meta['image'] ) ) {
+		echo '<meta property="og:image" content="' . esc_url( $meta['image'] ) . '">' . "\n";
+		echo '<meta name="twitter:image" content="' . esc_url( $meta['image'] ) . '">' . "\n";
+		echo '<meta name="twitter:card" content="summary_large_image">' . "\n";
+	} else {
+		echo '<meta name="twitter:card" content="summary">' . "\n";
 	}
 }
-add_action( 'wp_head', 'add_meta_description' );
+add_action( 'wp_head', 'cfp_dev_output_head_meta', 2 );
+
+/**
+ * JSON-LD structured data for talk (Event) and speaker (Person) pages.
+ * Emitted regardless of theme support — themes only render generic meta.
+ */
+function cfp_dev_output_jsonld() {
+	if ( ! is_page( [ 'talk', 'speaker' ] ) ) {
+		return;
+	}
+
+	$entity = cfp_dev_current_entity();
+	if ( empty( $entity ) ) {
+		return;
+	}
+	$meta = cfp_dev_page_meta();
+
+	if ( 'speaker' === $entity['type'] ) {
+		$speaker = $entity['data'];
+		$schema  = [
+			'@context' => 'https://schema.org',
+			'@type'    => 'Person',
+			'name'     => trim( $speaker->firstName . ' ' . $speaker->lastName ),
+			'url'      => $meta['url'],
+		];
+		if ( ! empty( $speaker->company ) ) {
+			$schema['worksFor'] = [
+				'@type' => 'Organization',
+				'name'  => wp_strip_all_tags( $speaker->company ),
+			];
+		}
+		if ( ! empty( $speaker->imageUrl ) ) {
+			$schema['image'] = esc_url_raw( $speaker->imageUrl );
+		}
+	} else {
+		$talk   = $entity['data'];
+		$schema = [
+			'@context'            => 'https://schema.org',
+			'@type'               => 'Event',
+			'name'                => wp_strip_all_tags( $talk->title ),
+			'url'                 => $meta['url'],
+			'eventAttendanceMode' => 'https://schema.org/OfflineEventAttendanceMode',
+			'superEvent'          => [
+				'@type' => 'Event',
+				'name'  => cfp_dev_get_event_name(),
+			],
+		];
+		if ( ! empty( $talk->speakers ) && is_array( $talk->speakers ) ) {
+			$performers = [];
+			foreach ( $talk->speakers as $speaker ) {
+				$performers[] = [
+					'@type' => 'Person',
+					'name'  => trim( ( $speaker->firstName ?? '' ) . ' ' . ( $speaker->lastName ?? '' ) ),
+				];
+			}
+			$schema['performer'] = $performers;
+		}
+		if ( ! empty( $talk->timeSlots ) && is_array( $talk->timeSlots ) ) {
+			$slot = end( $talk->timeSlots );
+			if ( ! empty( $slot->fromDate ) ) {
+				$schema['startDate'] = $slot->fromDate;
+			}
+			if ( ! empty( $slot->toDate ) ) {
+				$schema['endDate'] = $slot->toDate;
+			}
+			if ( ! empty( $slot->roomName ) ) {
+				$schema['location'] = [
+					'@type' => 'Place',
+					'name'  => wp_strip_all_tags( $slot->roomName ),
+				];
+			}
+		}
+	}
+
+	if ( ! empty( $meta['description'] ) ) {
+		$schema['description'] = $meta['description'];
+	}
+
+	echo '<script type="application/ld+json">'
+		. wp_json_encode( $schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE )
+		. '</script>' . "\n";
+}
+add_action( 'wp_head', 'cfp_dev_output_jsonld', 3 );
+
+/**
+ * Rejects image URLs that are unusable for social cards — cfp.dev track
+ * images are often tiny Google-cache thumbnails (~90px), which produce
+ * blurry share previews. Returning '' lets pages fall back to the site's
+ * default social image.
+ *
+ * @param string $url  Candidate image URL.
+ * @return string
+ */
+function cfp_dev_usable_image( $url ) {
+	$url = (string) $url;
+	if ( '' === $url || str_contains( $url, 'gstatic.com/images' ) ) {
+		return '';
+	}
+	return $url;
+}
+
+/**
+ * Internal search result pages should not be indexed (Google guideline) —
+ * they generate unbounded thin/duplicate content.
+ *
+ * @param array $robots  Directives for wp_robots().
+ * @return array
+ */
+function cfp_dev_robots( $robots ) {
+	if ( is_page( 'search-results' ) ) {
+		unset( $robots['index'] );
+		$robots['noindex'] = true;
+		$robots['follow']  = true;
+	}
+	return $robots;
+}
+add_filter( 'wp_robots', 'cfp_dev_robots' );
+
+/*
+ * ── XML sitemap ───────────────────────────────────────────────────
+ * WordPress only lists its own pages — the talk and speaker URLs are
+ * rendered from API data and invisible to wp-sitemap.xml. The provider
+ * (shortcode/include/class-cfp-dev-sitemaps-provider.php) adds them
+ * (slug mode only), using the same cached, offline-aware fetches as
+ * the shortcodes.
+ */
+
+/**
+ * All talk + speaker URLs for the sitemap, transient-cached.
+ *
+ * @return array[]
+ */
+function cfp_dev_sitemap_urls() {
+	static $urls = null;
+	if ( null !== $urls ) {
+		return $urls;
+	}
+
+	$ttl = cfp_dev_get_cache_ttl();
+	$key = cfp_dev_group_cache_key( 'cfp_sitemap_urls' );
+
+	if ( $ttl > 0 ) {
+		$cached = get_transient( $key );
+		if ( false !== $cached ) {
+			$urls = $cached;
+			return $urls;
+		}
+	}
+
+	$entries = [];
+
+	$talks = getJSON( 'public/talks' );
+	if ( is_array( $talks ) ) {
+		foreach ( $talks as $talk ) {
+			if ( ! empty( $talk->title ) ) {
+				$entries[ '/talk/' . generate_slug( $talk->title ) ] = true;
+			}
+		}
+	}
+
+	$speakers = getJSON( 'public/speakers?size=' . CFP_DEV_SPEAKERS_FETCH_SIZE );
+	if ( is_array( $speakers ) ) {
+		foreach ( $speakers as $speaker ) {
+			if ( ! empty( $speaker->firstName ) ) {
+				$entries[ '/speaker/' . generate_slug( $speaker->firstName . '-' . $speaker->lastName ) ] = true;
+			}
+		}
+	}
+
+	$urls = [];
+	foreach ( array_keys( $entries ) as $path ) {
+		$urls[] = [ 'loc' => home_url( cfp_dev_url( $path ) ) ];
+	}
+
+	if ( $ttl > 0 && ! empty( $urls ) ) {
+		set_transient( $key, $urls, $ttl );
+	}
+
+	return $urls;
+}
+
+/**
+ * Registers the sitemap provider (slug-mode sites on WP 5.5+ only).
+ *
+ * @param WP_Sitemaps $sitemaps  Core sitemaps server.
+ */
+function cfp_dev_register_sitemap_provider( $sitemaps ) {
+	if ( 'no' !== get_option( 'cfp_dev_content_by_id', 'yes' ) ) {
+		return;
+	}
+	if ( ! class_exists( 'CFP_Dev_Sitemaps_Provider' ) ) {
+		return;
+	}
+	$sitemaps->registry->add_provider( 'cfp', new CFP_Dev_Sitemaps_Provider() );
+}
+add_action( 'wp_sitemaps_init', 'cfp_dev_register_sitemap_provider' );
 
 function getSocialLinks( $speaker ) {
 	$content = '';

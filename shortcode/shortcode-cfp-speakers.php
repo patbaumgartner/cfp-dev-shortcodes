@@ -66,7 +66,7 @@ if ( ! function_exists( 'cfp_speakers_shortcode' ) ) {
 		}
 
 		$content  = cfp_dev_root_class_script( 'speaker' );
-		$content .= '<main class="cfp-main">';
+		$content .= '<div class="cfp-main">';
 		$content .= '<section class="cfp-speaker">';
 		$content .= '    <div class="cfp-subject">';
 
@@ -101,7 +101,7 @@ if ( ! function_exists( 'cfp_speakers_shortcode' ) ) {
 
 		$content .= '</div>';
 		$content .= '</section>';
-		$content .= '</main>';
+		$content .= '</div>';
 
 		$content .= getFooter();
 

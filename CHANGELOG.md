@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.4.0] — 2026-07-08
+
+### Added
+- Server-side SEO head metadata for all plugin pages: real `<title>` (via `pre_get_document_title`), meta description, Open Graph and Twitter tags for talk/speaker detail pages built from the actual talk/speaker data — replaces the generic page meta and the JS `document.title` hack
+- Slug-aware `rel="canonical"` for talk/speaker detail pages (previously every talk canonicalized to the bare `/talk/` page)
+- JSON-LD structured data: `Event` (with performer, start/end date, room) on talk pages and `Person` (with worksFor, image) on speaker pages
+- Enriched meta descriptions for `talks-by-tracks` and `talks-by-sessions`: name the selected track/session type (`?id=N`) or list all track/session-type names (deduplicated — events can define several types with the same display name)
+- `cfp_dev_page_meta()` public helper + `add_theme_support( 'cfp-dev-head-meta' )` opt-in: themes can render the tags themselves from plugin data to avoid duplicate meta tags
+- XML sitemap provider: talk and speaker detail URLs now appear in `wp-sitemap.xml` (`wp-sitemap-cfp-1.xml`, slug mode + WP 5.5+ only) — previously they were invisible to crawlers
+- `noindex,follow` on the search-results page via the `wp_robots` filter (internal search pages should not be indexed)
+- Talk `og:image` skips tiny Google-cache thumbnails (`gstatic.com`) so pages fall back to the site's proper default social image
+- All lookups go through the existing cached, offline-aware `getJSON()` helpers, so metadata keeps working from a local snapshot in offline mode; entity data is transient-cached so head meta adds no extra API round-trip
+- Agentic browsing (WebMCP): the search form carries declarative WebMCP tool metadata — `toolname="search_conference_programme"` and `tooldescription` on the `<form>`, `toolparamdescription` on the query input — so agentic browsers and AI agents can discover and invoke the programme search as a structured tool without scraping
+
+### Changed
+- The plugin's page wrapper is now `<div class="cfp-main">` instead of `<main class="cfp-main">`: themes render their own `<main>` landmark around the content, so plugin pages ended up with nested duplicate `main` landmarks — invalid HTML and ambiguous for assistive technology, crawlers, and AI agents. All CSS selectors accept both via `:is(main, div).cfp-main`, so existing markup keeps styling correctly
+
+### Removed
+- In-body social meta tags (`embedSocialSpeakerCard`/`embedSocialTalkCard`) — meta tags now live in `<head>` where crawlers expect them
+- `add_speaker_title_script()` JS title hack (title is now server-rendered)
+
+---
+
 ## [4.3.4] — 2026-07-08
 
 ### Fixed

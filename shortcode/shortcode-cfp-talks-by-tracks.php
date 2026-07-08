@@ -65,7 +65,7 @@ if ( ! function_exists( 'cfp_talks_by_tracks_shortcode' ) ) {
 		$tracks = getJSON( 'public/tracks' );
 
 		if ( empty( $tracks ) || ! is_array( $tracks ) ) {
-			return modifyCfpClasses() . '<main class="cfp-main"><section class="cfp-list">' . displayNoTracksMessage() . '</section></main>';
+			return modifyCfpClasses() . '<div class="cfp-main"><section class="cfp-list">' . displayNoTracksMessage() . '</section></div>';
 		}
 
 		$trackDescr = '';
@@ -96,7 +96,7 @@ if ( ! function_exists( 'cfp_talks_by_tracks_shortcode' ) ) {
 		}
 
 		$content  = modifyCfpClasses();
-		$content .= '<main class="cfp-main">';
+		$content .= '<div class="cfp-main">';
 		$content .= '<section class="cfp-list">';
 
 		if ( ! empty( $tracks ) ) {

@@ -37,7 +37,7 @@ if ( ! function_exists( 'cfp_search_results_shortcode' ) ) {
 			$semanticResult    = searchJSON( $query );
 
 			$content  = cfp_dev_root_class_script( 'search' );
-			$content .= '<main class="cfp-main">';
+			$content .= '<div class="cfp-main">';
 
 			$content .= '<!-- search -->';
 			$content .= '<section class="cfp-search">';
@@ -150,7 +150,7 @@ if ( ! function_exists( 'cfp_search_results_shortcode' ) ) {
 		$content .= '</div>';   // cfp-content
 
 		$content .= '</section>';
-		$content .= '</main>';
+		$content .= '</div>';
 
 		$content .= getFooter();
 		return $content;

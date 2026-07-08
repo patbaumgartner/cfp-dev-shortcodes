@@ -4,7 +4,7 @@
 [![PHP Version](https://img.shields.io/badge/PHP-%3E%3D8.0-8892BF?logo=php)](https://php.net)
 [![WordPress](https://img.shields.io/badge/WordPress-6.0%2B-21759B?logo=wordpress)](https://wordpress.org)
 [![License: GPL v2+](https://img.shields.io/badge/License-GPL%20v2%2B-blue.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
-[![Stable Tag](https://img.shields.io/badge/stable-4.3.1-brightgreen)](https://github.com/patbaumgartner/cfp-dev-shortcodes/releases)
+[![Stable Tag](https://img.shields.io/badge/stable-4.4.0-brightgreen)](https://github.com/patbaumgartner/cfp-dev-shortcodes/releases)
 
 > WordPress shortcodes plugin for [CFP.DEV](https://cfp.dev) — display speakers, talks, schedules, and search results from your CFP.DEV instance directly on your WordPress site (Devoxx, VoxxedDays, and more).
 
@@ -19,6 +19,8 @@
 - **Talks by track / by session type** — filterable tables with navigation tabs
 - **Search results** — exact keyword matches + semantic similarity results via [search.cfp.dev](https://search.cfp.dev)
 - **Offline mode** — crawls all API endpoints and CDN images into a local snapshot; serves everything locally with zero external requests
+- **SEO head metadata** — server-rendered `<title>`, meta description, Open Graph / Twitter tags, slug-aware canonicals, JSON-LD (`Event` / `Person`), and an XML sitemap for talk/speaker URLs
+- **Agentic browsing (WebMCP)** — the search form exposes declarative WebMCP tool metadata so AI agents can invoke the programme search as a structured tool
 - **Caching** — WordPress transient-based cache with configurable TTL (none, 1 h, 1 day, 1 week, 1 month)
 - **Theming** — light / dark theme with optional user toggle
 - **Admin UI** — API key, event settings, per-item cache management, offline crawl progress
@@ -188,6 +190,34 @@ superseded entries simply expire.
 > **Note:** with `random=yes` on `[cfp_speakers]`, the order is shuffled once
 > per cache period, not on every page view. Set **Cache Duration** to
 > *No Cache* for a fresh shuffle on each request.
+
+---
+
+## SEO & Head Metadata
+
+Every plugin page gets server-rendered head metadata built from the actual CFP.DEV data:
+
+- Real `<title>` and meta description per page — talk/speaker detail pages use the talk title / speaker name and abstract/bio
+- Open Graph and Twitter Card tags for rich link previews
+- Slug-aware `rel="canonical"` on talk/speaker detail pages
+- JSON-LD structured data: `Event` on talk pages, `Person` on speaker pages
+- Talk and speaker detail URLs are listed in `wp-sitemap.xml` (slug mode, WP 5.5+)
+- Search-results pages are marked `noindex,follow`
+
+All lookups use the cached, offline-aware API helpers, so metadata keeps working in offline mode without extra API round-trips.
+
+**Theme opt-in:** if your theme renders its own meta tags, call `add_theme_support( 'cfp-dev-head-meta' )` and use the `cfp_dev_page_meta()` helper to fetch the plugin's page metadata and render the tags yourself — this avoids duplicate meta tags.
+
+---
+
+## Agentic Browsing (WebMCP)
+
+The search form ships declarative [WebMCP](https://github.com/webmachinelearning/webmcp) tool metadata, so agentic browsers and AI agents can discover and call the conference search as a structured tool instead of scraping the page:
+
+- `toolname="search_conference_programme"` and a `tooldescription` on the search `<form>`
+- `toolparamdescription` on the query input describing the expected keyword
+
+No configuration is needed — the metadata is plain HTML attributes and is ignored by regular browsers.
 
 ---
 

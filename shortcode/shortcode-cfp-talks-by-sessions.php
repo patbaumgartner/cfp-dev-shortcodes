@@ -88,7 +88,7 @@ if ( ! function_exists( 'cfp_talks_by_sessions_shortcode' ) ) {
 
 		$content = cfp_dev_root_class_script( 'session' );
 
-		$content .= '<main class="cfp-main">';
+		$content .= '<div class="cfp-main">';
 
 		$content .= '<section class="cfp-list">';
 

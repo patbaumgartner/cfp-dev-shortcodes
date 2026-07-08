@@ -131,7 +131,7 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 
 		$content = cfp_dev_root_class_script( 'schedule' );
 
-		$content .= '<main class="cfp-main">';
+		$content .= '<div class="cfp-main">';
 
 		if ( ! empty( $rooms ) ) {
 
@@ -291,7 +291,7 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 
 		}
 
-		$content .= '</main>';
+		$content .= '</div>';
 		return $content;
 	}
 }

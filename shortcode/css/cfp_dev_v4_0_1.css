@@ -849,10 +849,10 @@ body.cfp-body {
 /* ------------------------------------------------------------------- LAYOUT --- */
 /* The plugin is designed for a --cfp-layout-x wide canvas, but WordPress themes
    render shortcode output inside their own content container, which may be much
-   narrower (e.g. 747px in the voxxed-conference theme). Break main.cfp-main out
+   narrower (e.g. 747px in the voxxed-conference theme). Break :is(main, div).cfp-main out
    of the container: cap at the design width or the viewport, and centre it
    relative to the page regardless of the container's width. */
-main.cfp-main {
+:is(main, div).cfp-main {
   --cfp-main-x: min(var(--cfp-layout-x), calc(100vw - (var(--cfp-gutter) * 2)));
   width: var(--cfp-main-x);
   margin-left: calc(50% - (var(--cfp-main-x) / 2));
@@ -860,7 +860,7 @@ main.cfp-main {
 }
 
 header.cfp-header,
-main.cfp-main,
+:is(main, div).cfp-main,
 footer.cfp-footer {
   /*width: var(--cfp-layout-x);*/
 }
@@ -1036,7 +1036,7 @@ header.cfp-header nav.cfp-nav a.cfp-a.cfp-active::after {
 /* ///////////////////////////////////////////////////////////////////// MAIN /// */
 /* ////////////////////////////////////////////////////////////////////////////// */
 /* --------------------------------------------------------------------- MAIN --- */
-main.cfp-main {
+:is(main, div).cfp-main {
   position: relative;
   z-index: 1;
   flex: 1 1 0;
@@ -4355,7 +4355,7 @@ html.cfp-html.cfp-page\:index header.cfp-header form.cfp-search {
 }
 
 /* --------------------------------------------------------------------- MAIN --- */
-html.cfp-html.cfp-page\:index main.cfp-main {
+html.cfp-html.cfp-page\:index :is(main, div).cfp-main {
   padding: var(--cfp-gutter) 2%;
 }
 
@@ -4436,7 +4436,7 @@ html.cfp-html.cfp-page\:schedule header.cfp-header form.cfp-search {
 }
 
 /* --------------------------------------------------------------------- MAIN --- */
-html.cfp-html.cfp-page\:schedule main.cfp-main {
+html.cfp-html.cfp-page\:schedule :is(main, div).cfp-main {
   padding: var(--cfp-gutter) 2%;
 }
 
@@ -4477,7 +4477,7 @@ html.cfp-html.cfp-page\:search header.cfp-header form.cfp-search {
 }
 
 /* --------------------------------------------------------------------- MAIN --- */
-html.cfp-html.cfp-page\:search main.cfp-main {
+html.cfp-html.cfp-page\:search :is(main, div).cfp-main {
   padding: var(--cfp-gutter) 0 calc(var(--cfp-gutter) * 3);
 }
 
@@ -4486,7 +4486,7 @@ html.cfp-html.cfp-page\:search main.cfp-main {
 /* ////////////////////////////////////////////////////////////////////////////// */
 /* ------------------------------------------------------------------------ H --- */
 /* --------------------------------------------------------------------- MAIN --- */
-html.cfp-html.cfp-page\:session.cfp-view\:detail main.cfp-main {
+html.cfp-html.cfp-page\:session.cfp-view\:detail :is(main, div).cfp-main {
   padding: calc(var(--cfp-gutter) * 3) 0;
 }
 
@@ -4684,7 +4684,7 @@ html.cfp-html.cfp-page\:session:not(.cfp-view\:detail) header.cfp-header form.cf
 }
 
 /* --------------------------------------------------------------------- MAIN --- */
-html.cfp-html.cfp-page\:session:not(.cfp-view\:detail) main.cfp-main {
+html.cfp-html.cfp-page\:session:not(.cfp-view\:detail) :is(main, div).cfp-main {
   padding: var(--cfp-gutter) 0 calc(var(--cfp-gutter) * 3);
 }
 
@@ -4700,14 +4700,14 @@ html.cfp-html.cfp-page\:session:not(.cfp-view\:detail) section.cfp-list:not(:fir
 /* ////////////////////////////////////////////////////////////////////////////// */
 /* ------------------------------------------------------------------------ H --- */
 /* --------------------------------------------------------------------- MAIN --- */
-html.cfp-html.cfp-page\:speaker.cfp-view\:detail main.cfp-main {
+html.cfp-html.cfp-page\:speaker.cfp-view\:detail :is(main, div).cfp-main {
   padding: calc(var(--cfp-gutter) * 2) 0;
 }
 
 /* Divider between sections (profile → talks → gallery) — :first-of-type, not
    :first-child, so stray non-section siblings (scripts, meta tags) can never
    push a divider above the first section. */
-html.cfp-html.cfp-page\:speaker.cfp-view\:detail main.cfp-main section:not(:first-of-type) {
+html.cfp-html.cfp-page\:speaker.cfp-view\:detail :is(main, div).cfp-main section:not(:first-of-type) {
   padding-top: calc(var(--cfp-gutter) * 3);
   margin-top: calc(var(--cfp-gutter) * 3);
   border-top: 1px solid var(--cfp-border-primary);
@@ -4888,7 +4888,7 @@ html.cfp-html.cfp-page\:speaker:not(.cfp-view\:detail) header.cfp-header form.cf
 }
 
 /* --------------------------------------------------------------------- MAIN --- */
-html.cfp-html.cfp-page\:speaker:not(.cfp-view\:detail) main.cfp-main {
+html.cfp-html.cfp-page\:speaker:not(.cfp-view\:detail) :is(main, div).cfp-main {
   padding: var(--cfp-gutter) 0;
 }
 
