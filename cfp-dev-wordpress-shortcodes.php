@@ -3,7 +3,7 @@
  * Plugin Name:       CFP.DEV shortcodes
  * Plugin URI:        https://github.com/patbaumgartner/cfp-dev-shortcodes
  * Description:       Display CFP.DEV conference content on your WordPress site: speakers, talks, schedule, and search — with light/dark theming, caching, and offline mode.
- * Version:           4.3.3
+ * Version:           4.3.4
  * Author:            Stephan Janssen, Patrick Baumgartner
  * Author URI:        https://x.com/stephan007
  * License:           GPL-2.0+
@@ -26,7 +26,7 @@ if ( ! defined( 'CFP_DEV_APPLICATION_JSON' ) ) {
 
 // Plugin version.
 if ( ! defined( 'CFP_DEV_VERSION' ) ) {
-	define( 'CFP_DEV_VERSION', '4.3.3' );
+	define( 'CFP_DEV_VERSION', '4.3.4' );
 }
 
 if ( ! defined( 'CFP_DEV_NAME' ) ) {
@@ -753,10 +753,14 @@ function embedSocialTalkCard( $talk ) {
 	$title       = wp_strip_all_tags( $talk->title ) . ' at ' . cfp_dev_get_event_name();
 	$description = mb_substr( wp_strip_all_tags( (string) ( $talk->description ?? '' ) ), 0, 260 );
 
+	$talk_path = ( 'no' === get_option( 'cfp_dev_content_by_id', 'yes' ) )
+		? '/talk/' . generate_slug( $talk->title )
+		: '/talk?id=' . absint( $talk->id );
+
 	$content  = '<meta name="twitter:card" content="summary">';
 	$content .= '<meta name="twitter:image" content="' . esc_url( $talk->trackImageURL ) . '">';
 	$content .= '<meta property="og:title" content="' . esc_attr( $title ) . '">';
-	$content .= '<meta property="og:url" content="' . esc_url( home_url( cfp_dev_url( '/talk?id=' . absint( $talk->id ) ) ) ) . '">';
+	$content .= '<meta property="og:url" content="' . esc_url( home_url( cfp_dev_url( $talk_path ) ) ) . '">';
 	$content .= '<meta name="twitter:title" content="' . esc_attr( $title ) . '">';
 	$content .= '<meta name="twitter:description" content="' . esc_attr( $description ) . '">';
 
@@ -1076,11 +1080,17 @@ function get_talk_id_from_slug( $slug ) {
 /**
  * Normalises arbitrary text into a URL slug (lowercase, dash-separated).
  *
+ * Accented characters are transliterated (Š→s, ü→u) so the result survives
+ * WordPress' sanitize_title() on the lookup side — turning them into dashes
+ * produced double-dash slugs that sanitize_title() collapses, so speakers
+ * with non-ASCII names could never be resolved.
+ *
  * @param string $input  Text to slugify, e.g. a speaker name or talk title.
  * @return string
  */
 function generate_slug( $input ) {
-	return strtolower( trim( preg_replace( '/[^A-Za-z0-9-]+/', '-', $input ) ) );
+	$slug = strtolower( trim( preg_replace( '/[^A-Za-z0-9-]+/', '-', remove_accents( (string) $input ) ), '-' ) );
+	return preg_replace( '/-{2,}/', '-', $slug );
 }
 
 /**

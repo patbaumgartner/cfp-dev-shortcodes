@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.3.4] — 2026-07-08
+
+### Fixed
+- `generate_slug()` turned non-ASCII characters into dashes (`Georg Šumailov` → `georg--umailov`), and WordPress' `sanitize_title()` on the lookup side collapses double dashes — speakers/talks with accented names could never be resolved in slug mode. Accents are now transliterated with `remove_accents()` (→ `georg-sumailov`) and duplicate dashes collapsed; ASCII slugs are unchanged
+- Talk-page `og:url` now respects slug mode (`/talk/<slug>` instead of `/talk?id=…` when "Content by ID" is off)
+
+---
+
 ## [4.3.3] — 2026-07-08
 
 ### Fixed
