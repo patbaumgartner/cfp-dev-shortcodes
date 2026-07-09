@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.4.1] — 2026-07-09
+
+### Fixed
+- Text was unselectable on the ENTIRE site: `html.cfp-html` (the class every page carries on its root element) set `user-select: none`, disabling selection globally — only the handful of elements with an explicit `user-select: text` opt-in (speaker names, bios) could be copied. The root-level rule is removed; buttons/tabs keep their scoped opt-outs
+
+---
+
 ## [4.4.0] — 2026-07-08
 
 ### Added

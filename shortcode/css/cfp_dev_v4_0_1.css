@@ -818,9 +818,9 @@ nav.cfp-tab {
 html.cfp-html {
   height: 100%;
   background-color: var(--cfp-background-primary);
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  user-select: none;
+  /* No user-select here: the cfp-html class sits on the page ROOT, so
+     disabling selection at this level made the entire site unselectable.
+     Buttons/tabs opt out individually in the PELLET blocks. */
 }
 
 /* The WordPress theme paints <body> with its own (usually white) background,
