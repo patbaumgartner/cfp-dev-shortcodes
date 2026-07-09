@@ -1,10 +1,10 @@
 <?php
 /**
- * CFP.DEV Offline Mode — Crawler & Snapshot Manager.
+ * CFP.DEV shortcodes
  *
- * Provides functions for:
- * - Building local snapshots of all API JSON and CDN images.
- * - Serving JSON responses from those snapshots when offline mode is active.
+ * Offline mode — crawler & snapshot manager. Builds local snapshots of all
+ * API JSON and CDN images, and serves JSON responses from those snapshots
+ * when offline mode is active.
  *
  * Snapshot structure:
  *   wp-content/uploads/cfp-dev-offline/
@@ -26,6 +26,9 @@
  *       images/
  *         {md5(url)}.{ext}   (all CDN images keyed by URL hash)
  *       manifest.json        (fetch log, error count, metadata)
+ *
+ * @package  CFP.DEV
+ * @since    4.1.0
  */
 
 if ( ! defined( 'WPINC' ) ) {
@@ -131,7 +134,7 @@ function cfp_dev_get_json_offline( string $queryPath ) {
 	$file_path = $snapshot . '/api/' . $file_rel . '.json';
 
 	if ( ! file_exists( $file_path ) ) {
-		cfp_dev_log( 'offline: snapshot file not found: ' . $file_rel . '.json' );
+			cfp_dev_log( 'offline: snapshot file not found — ' . $file_rel . '.json' );
 		return null;
 	}
 
@@ -140,7 +143,7 @@ function cfp_dev_get_json_offline( string $queryPath ) {
 	$real_base = realpath( $snapshot . '/api' );
 	$real_file = realpath( $file_path );
 	if ( false === $real_base || false === $real_file || ! str_starts_with( $real_file, $real_base . DIRECTORY_SEPARATOR ) ) {
-		cfp_dev_log( 'offline: rejected path outside snapshot: ' . $queryPath );
+			cfp_dev_log( 'offline: rejected path outside snapshot — ' . $queryPath );
 		return null;
 	}
 
@@ -149,7 +152,7 @@ function cfp_dev_get_json_offline( string $queryPath ) {
 	$decoded = json_decode( $body );
 
 	if ( json_last_error() !== JSON_ERROR_NONE ) {
-		cfp_dev_log( 'offline: JSON decode error for ' . $file_rel . ': ' . json_last_error_msg() );
+			cfp_dev_log( 'offline: JSON decode error for ' . $file_rel . ' — ' . json_last_error_msg() );
 		return null;
 	}
 
@@ -272,7 +275,7 @@ function cfp_dev_fetch_and_save( string $query_path, string $snapshot_dir, array
 			'status' => 'error',
 			'msg'    => $response->get_error_message(),
 		];
-		cfp_dev_log( 'crawl fetch_error: ' . $query_path . ' — ' . $response->get_error_message() );
+		cfp_dev_log( 'crawl: fetch error for ' . $query_path . ' — ' . $response->get_error_message() );
 		return null;
 	}
 
@@ -289,7 +292,7 @@ function cfp_dev_fetch_and_save( string $query_path, string $snapshot_dir, array
 	if ( 204 === $code ) {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- local snapshot file
 		file_put_contents( $file_path, '[]' );
-		cfp_dev_log( 'crawl HTTP 204 (empty): ' . $query_path );
+			cfp_dev_log( 'crawl: HTTP 204 (empty) for ' . $query_path );
 		return [];
 	}
 
@@ -297,7 +300,7 @@ function cfp_dev_fetch_and_save( string $query_path, string $snapshot_dir, array
 		if ( ! $optional ) {
 			++$error_count;
 		}
-		cfp_dev_log( 'crawl HTTP ' . $code . ': ' . $query_path );
+			cfp_dev_log( 'crawl: HTTP ' . $code . ' for ' . $query_path );
 		return null;
 	}
 
@@ -357,7 +360,7 @@ function cfp_dev_download_image( string $url, string $dest_path, array &$fetch_l
 			'status' => 'error',
 			'msg'    => $response->get_error_message(),
 		];
-		cfp_dev_log( 'crawl image_error: ' . $url . ' — ' . $response->get_error_message() );
+			cfp_dev_log( 'crawl: image error for ' . $url . ' — ' . $response->get_error_message() );
 		return false;
 	}
 
@@ -368,7 +371,7 @@ function cfp_dev_download_image( string $url, string $dest_path, array &$fetch_l
 			'url'    => $url,
 			'status' => $code,
 		];
-		cfp_dev_log( 'crawl image HTTP ' . $code . ': ' . $url );
+			cfp_dev_log( 'crawl: image HTTP ' . $code . ' for ' . $url );
 		return false;
 	}
 

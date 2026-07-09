@@ -1,5 +1,23 @@
 @charset "UTF-8";
 
+/*
+ * CFP.DEV Shortcodes — Stylesheet
+ *
+ * Compiled from the cfp.dev design system (SCSS — the VAR/METHOD/MIXIN/
+ * FUNCTION banner comments below mark the original source sections).
+ *
+ * Conventions:
+ *   - All selectors are namespaced with the cfp- prefix.
+ *   - Page/view scoping via root classes set by cfp_dev_root_class_script():
+ *     html.cfp-html.cfp-page:<page> with <page> one of speaker, session,
+ *     schedule, search (cfp-page:index rules are legacy — the plugin does
+ *     not emit that class), plus .cfp-view:detail on detail pages.
+ *   - Theming via .cfp-theme:light / .cfp-theme:dark on the root element.
+ *   - The page wrapper is matched as :is(main, div).cfp-main — the plugin
+ *     emits <div class="cfp-main"> (themes own the <main> landmark), while
+ *     main.cfp-main keeps older cached markup styled.
+ */
+
 /* ////////////////////////////////////////////////////////////////////////////// */
 /* /////////////////////////////////////////////////////////////////// GLOBAL /// */
 /* ////////////////////////////////////////////////////////////////////////////// */
@@ -715,7 +733,6 @@ nav.cfp-tab {
 
 .cfp-video::before {
   display: block;
-  /*padding-top: 56.25%;*/
   content: '';
 }
 
@@ -859,12 +876,6 @@ body.cfp-body {
   margin-right: calc(50% - (var(--cfp-main-x) / 2));
 }
 
-header.cfp-header,
-:is(main, div).cfp-main,
-footer.cfp-footer {
-  /*width: var(--cfp-layout-x);*/
-}
-
 /* ////////////////////////////////////////////////////////////////////////////// */
 /* /////////////////////////////////////////////////////////////////// FOOTER /// */
 /* ////////////////////////////////////////////////////////////////////////////// */
@@ -878,7 +889,6 @@ footer.cfp-footer {
   padding: var(--cfp-gutter) 0;
   margin-bottom: 1px;
   flex-direction: row;
-  /*background-color: var(--cfp-background-primary);*/
 }
 
 @media (min-width: 801px) {
@@ -1650,7 +1660,6 @@ section.cfp-schedule article.cfp-article.cfp-session .cfp-meta {
   align-items: flex-start;
   justify-content: flex-end;
   flex-direction: row;
-  /*gap: 0 calc(var(--cfp-gutter) * 0.5);*/
 }
 
 section.cfp-schedule article.cfp-article.cfp-session .cfp-favourite {
@@ -4095,7 +4104,6 @@ section.cfp-search .cfp-block {
 /* ------------------------------------------------------------------- BUTTON --- */
 @media (min-width: 1025px) {
   section.cfp-search a.cfp-button {
-	/*width: calc(((1 / 12) * (var(--cfp-layout-x) + var(--cfp-gutter))) - var(--cfp-gutter));*/
 	flex: 0 0 auto;
 	color: var(--cfp-text-secondary);
   }
@@ -4771,7 +4779,6 @@ html.cfp-html.cfp-page\:speaker.cfp-view\:detail section.cfp-profile .cfp-conten
 
 html.cfp-html.cfp-page\:speaker.cfp-view\:detail section.cfp-profile .cfp-name {
   margin-right: 1rem;
-  /*width: calc(((4 / 12) * (var(--cfp-layout-x) + var(--cfp-gutter))) - var(--cfp-gutter));*/
   color: var(--cfp-text-primary);
   font-size: clamp(24px, calc(((100vw - 460px) / 884) * (40 - 24) + (24 * 1px)), 40px);
   font-weight: 600;

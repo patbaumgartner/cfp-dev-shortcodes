@@ -19,6 +19,15 @@ if ( ! function_exists( 'cfp_talk_details_shortcode' ) ) {
 		}
 	);
 
+	/**
+	 * Shortcode handler for [cfp_talk_details].
+	 *
+	 * Reads talk_slug or id from the URL, resolves the talk, and returns the
+	 * (transient-cached) rendered detail page.
+	 *
+	 * @return string
+	 * @since  1.0.0
+	 */
 	function cfp_talk_details_shortcode() {
 		$talk_slug = get_query_var( 'talk_slug' );
 		$talk_id   = absint( get_query_var( 'id' ) );
@@ -52,6 +61,13 @@ if ( ! function_exists( 'cfp_talk_details_shortcode' ) ) {
 		return $content;
 	}
 
+	/**
+	 * Renders the full talk detail page: track, title, schedule, tags, related
+	 * talks, video, description, podcast, and speaker cards.
+	 *
+	 * @param int $_talkId  Talk id.
+	 * @return string
+	 */
 	function generate_talk_details_content( $_talkId ) {
 
 		$talk = get_talk_by_id( $_talkId );

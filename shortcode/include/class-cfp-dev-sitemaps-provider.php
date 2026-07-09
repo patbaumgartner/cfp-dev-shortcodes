@@ -24,6 +24,7 @@ if ( class_exists( 'WP_Sitemaps_Provider' ) && ! class_exists( 'CFP_Dev_Sitemaps
 	 */
 	class CFP_Dev_Sitemaps_Provider extends WP_Sitemaps_Provider {
 
+		/** Sets the provider name and object type used in sitemap URLs. */
 		public function __construct() {
 			$this->name        = 'cfp';
 			$this->object_type = 'cfp';

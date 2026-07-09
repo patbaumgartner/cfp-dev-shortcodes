@@ -20,6 +20,13 @@ if ( ! function_exists( 'cfp_speakers_shortcode' ) ) {
 		}
 	);
 
+	/**
+	 * Shortcode handler for [cfp_speakers].
+	 *
+	 * @param array $atts  Shortcode attributes: size, random, title, subtitle, hide_title, hide_search.
+	 * @return string
+	 * @since  1.0.0
+	 */
 	function cfp_speakers_shortcode( $atts ) {
 		$_atts = shortcode_atts( cfp_dev_speakers_default_atts(), $atts );
 
@@ -48,6 +55,13 @@ if ( ! function_exists( 'cfp_speakers_shortcode' ) ) {
 		return $content;
 	}
 
+	/**
+	 * Renders the speaker grid (sorted or shuffled, capped at size).
+	 *
+	 * @param array|null $data   Speaker list from the API.
+	 * @param array      $_atts  Normalised shortcode attributes.
+	 * @return string
+	 */
 	function generate_speakers_content( $data, $_atts ) {
 		if ( empty( $data ) || ! is_array( $data ) ) {
 			return '<p>No speakers found.</p>';
@@ -107,4 +121,4 @@ if ( ! function_exists( 'cfp_speakers_shortcode' ) ) {
 
 		return $content;
 	}
-} // End if().
+}

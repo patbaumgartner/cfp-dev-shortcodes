@@ -1,11 +1,12 @@
 <?php
 /**
- * CFP.DEV shortcodes — uninstall cleanup.
+ * CFP.DEV shortcodes
  *
- * Removes all plugin options, transients, and offline snapshot files when the
- * plugin is deleted through the WordPress admin.
+ * Uninstall cleanup: removes all plugin options, transients, and offline
+ * snapshot files when the plugin is deleted through the WordPress admin.
  *
- * @package CFP.DEV
+ * @package  CFP.DEV
+ * @since    4.2.0
  */
 
 // Exit if not called by WordPress during plugin deletion.

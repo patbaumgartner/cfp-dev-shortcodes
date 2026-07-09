@@ -1,3 +1,12 @@
+/* global cfp_dev_ajax */
+
+/**
+ * CFP.DEV Cache Management — Admin UI
+ *
+ * Submits the per-item "Delete Cache" forms on the settings page via AJAX
+ * (action: cfp_dev_delete_cache) and removes the table row on success,
+ * so the page does not reload for every deletion.
+ */
 jQuery(document).ready(function ($) {
 	$('.delete-cache-form').on('submit', function (e) {
 		e.preventDefault();

@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.4.2] — 2026-07-09
+
+### Changed
+- Stylesheet renamed `cfp_dev_v4_0_1.css` → `cfp_dev_v4_4.css`: the file is now versioned by minor release (major.minor, no patch), matching the current 4.4 line
+- Documentation cleanup, no functional changes:
+  - Consistent file headers across all PHP modules (`CFP.DEV shortcodes` + purpose + `@package`/`@since`), including the previously header-less speaker-details module and the offline crawler/uninstall files
+  - PHPDoc blocks for every previously undocumented function (settings accessors, cache-key helpers, `getJSON()`/`searchJSON()`, AJAX handlers, slug/rewrite helpers, render functions)
+  - File-purpose headers for the admin/front-end JS files; conventions header for the stylesheet (namespacing, page/view root classes, theming, `:is(main, div).cfp-main` rationale)
+  - Log messages aligned to one `context: message` format (`getJSON:`, `searchJSON:`, `crawl:`, `offline:`, per-page prefixes) — details are appended after an em dash
+  - README: settings reference table for all admin options (URL Path Prefix, Permalinks with Id, Show Rooms, …)
+  - Comment cleanup: removed all commented-out CSS declarations (including one left-over empty rule), the `<!-- profile/session/search -->` markers emitted into page HTML, and restatement/end-marker comments (`// Get the rooms.`, `// End of cfp-group`, `} // End if().`, …) across PHP and JS — rationale ("why") comments are kept
+
+### Fixed
+- Typo in the admin settings UI: "worpdress" → "WordPress"
+- README no longer advertises features that do not exist: "star ratings" on talk details and the schedule "current-time indicator" (the `.cfp-now` style is never applied by any code)
+
+---
+
 ## [4.4.1] — 2026-07-09
 
 ### Fixed

@@ -4,7 +4,7 @@
 [![PHP Version](https://img.shields.io/badge/PHP-%3E%3D8.0-8892BF?logo=php)](https://php.net)
 [![WordPress](https://img.shields.io/badge/WordPress-6.0%2B-21759B?logo=wordpress)](https://wordpress.org)
 [![License: GPL v2+](https://img.shields.io/badge/License-GPL%20v2%2B-blue.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
-[![Stable Tag](https://img.shields.io/badge/stable-4.4.0-brightgreen)](https://github.com/patbaumgartner/cfp-dev-shortcodes/releases)
+[![Stable Tag](https://img.shields.io/badge/stable-4.4.2-brightgreen)](https://github.com/patbaumgartner/cfp-dev-shortcodes/releases)
 
 > WordPress shortcodes plugin for [CFP.DEV](https://cfp.dev) — display speakers, talks, schedules, and search results from your CFP.DEV instance directly on your WordPress site (Devoxx, VoxxedDays, and more).
 
@@ -14,8 +14,8 @@
 
 - **Speakers list** — grid view with photos, sorted by last name or random; includes live search
 - **Speaker details** — full profile with bio, social links (Twitter, LinkedIn, Bluesky, Mastodon), and async Flickr photo gallery
-- **Talk details** — description, speakers, track, schedule info, YouTube embed, Spotify embed, related talks (semantic search), and star ratings
-- **Schedule** — time-grid per day with room columns, current-time indicator, and favorite counts
+- **Talk details** — description, speakers, track, schedule info, YouTube embed, Spotify embed, and related talks (semantic search)
+- **Schedule** — time-grid per day with room columns and favorite counts
 - **Talks by track / by session type** — filterable tables with navigation tabs
 - **Search results** — exact keyword matches + semantic similarity results via [search.cfp.dev](https://search.cfp.dev)
 - **Offline mode** — crawls all API endpoints and CDN images into a local snapshot; serves everything locally with zero external requests
@@ -60,6 +60,20 @@ Activate the plugin in **Plugins → Installed Plugins**.
 3. Enter the **Event Name** used in page titles and meta tags.
 4. Set the desired **Cache Duration** and **Default Theme**.
 5. Save. The plugin automatically creates all required WordPress pages on first activation.
+
+### Settings reference
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| **CFP.DEV Key** | — | Subdomain of your CFP.DEV instance (letters, digits, dashes) |
+| **Event name** | — | Display name used in page titles, meta tags, and JSON-LD |
+| **URL Path Prefix** | *(empty)* | Path segment for sites served from a subdirectory, e.g. `trieste` for `voxxeddays.com/trieste` |
+| **Permalinks with Id** | `Yes` | `Yes` → links like `/speaker?id=123` (required for multisite); `No` → pretty slug URLs like `/speaker/jane-doe` |
+| **Show Rooms** | `Yes` | Show or hide room names on all pages |
+| **Cache Duration** | — | Transient TTL: none, 1 h, 1 day, 1 week, or 1 month |
+| **Default Theme** | `dark` | Initial light/dark theme |
+| **Enable Theme Switching** | off | Adds a light/dark toggle in the page footer |
+| **Offline Mode** | off | Crawl a local snapshot and serve everything from it (see below) |
 
 ---
 

@@ -3,7 +3,7 @@
  * Plugin Name:       CFP.DEV shortcodes
  * Plugin URI:        https://github.com/patbaumgartner/cfp-dev-shortcodes
  * Description:       Display CFP.DEV conference content on your WordPress site: speakers, talks, schedule, and search — with light/dark theming, caching, and offline mode.
- * Version:           4.4.1
+ * Version:           4.4.2
  * Author:            Stephan Janssen, Patrick Baumgartner
  * Author URI:        https://x.com/stephan007
  * License:           GPL-2.0+
@@ -26,7 +26,7 @@ if ( ! defined( 'CFP_DEV_APPLICATION_JSON' ) ) {
 
 // Plugin version.
 if ( ! defined( 'CFP_DEV_VERSION' ) ) {
-	define( 'CFP_DEV_VERSION', '4.4.1' );
+	define( 'CFP_DEV_VERSION', '4.4.2' );
 }
 
 if ( ! defined( 'CFP_DEV_NAME' ) ) {
@@ -62,7 +62,8 @@ if ( ! defined( 'CFP_DEV_SEARCH_DOMAIN' ) ) {
 }
 
 if ( ! defined( 'CFP_DEV_CSS' ) ) {
-	define( 'CFP_DEV_CSS', 'css/cfp_dev_v4_0_1.css' );
+	// Stylesheet is versioned by minor release — rename on breaking style changes.
+	define( 'CFP_DEV_CSS', 'css/cfp_dev_v4_4.css' );
 }
 
 // Single fetch size for full speaker-list lookups (was 300/400/500 in different places).
@@ -75,7 +76,7 @@ if ( ! defined( 'CFP_DEV_SPEAKERS_FETCH_SIZE' ) ) {
  * Only writes to the error log when WP_DEBUG_LOG is enabled,
  * so no diagnostic data leaks on production sites.
  *
- * @param string $message
+ * @param string $message  Message to log (prefixed with "[CFP.DEV]").
  */
 function cfp_dev_log( string $message ): void {
 	if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
@@ -90,6 +91,8 @@ function cfp_dev_log( string $message ): void {
  * them in transients — which object caches may evict at any time — so the
  * accessors transparently migrate values from the legacy transient location.
  */
+
+/** Returns the CFP.DEV instance key (the *.cfp.dev subdomain). */
 function cfp_dev_get_key(): string {
 	$key = get_option( 'cfp_dev_key', false );
 	if ( false === $key ) {
@@ -101,6 +104,7 @@ function cfp_dev_get_key(): string {
 	return is_string( $key ) ? $key : '';
 }
 
+/** Returns the event display name used in titles and meta tags. */
 function cfp_dev_get_event_name(): string {
 	$name = get_option( 'cfp_dev_event_name', false );
 	if ( false === $name ) {
@@ -112,6 +116,7 @@ function cfp_dev_get_event_name(): string {
 	return is_string( $name ) ? $name : '';
 }
 
+/** Returns the cache TTL in seconds (0 = caching disabled). */
 function cfp_dev_get_cache_ttl(): int {
 	$ttl = get_option( 'cfp_dev_cache_duration', false );
 	if ( false === $ttl ) {
@@ -123,10 +128,12 @@ function cfp_dev_get_cache_ttl(): int {
 	return max( 0, (int) $ttl );
 }
 
+/** Base URL of the CFP.DEV REST API for the configured instance. */
 function cfp_dev_api_base(): string {
 	return 'https://' . rawurlencode( cfp_dev_get_key() ) . '.cfp.dev/api/';
 }
 
+/** Base URL of the semantic search service (the query term is appended by callers). */
 function cfp_dev_search_base(): string {
 	return 'https://search.cfp.dev?cfp=' . rawurlencode( cfp_dev_get_key() ) . '&accepted=true&total=5&query=';
 }
@@ -138,10 +145,17 @@ function cfp_dev_search_base(): string {
  * cache flush is a single O(1) option increment — no API calls, no key
  * enumeration. Superseded transients simply expire via their TTL.
  */
+
+/** Version suffix appended to every transient key (see clearCache()). */
 function cfp_dev_cache_salt(): string {
 	return '_v' . (int) get_option( 'cfp_dev_cache_version', 1 );
 }
 
+/**
+ * Versioned transient key for a named cache group.
+ *
+ * @param string $name  Base key name, e.g. 'cfp_schedule_Tuesday'.
+ */
 function cfp_dev_group_cache_key( string $name ): string {
 	return $name . cfp_dev_cache_salt();
 }
@@ -375,10 +389,7 @@ function cfp_dev_plugin_options() {
 				if ( isset( $_POST['cache_id'] ) ) {
 					$cache_id = sanitize_text_field( wp_unslash( $_POST['cache_id'] ) );
 
-					// Delete speaker or talk cache.
 					delete_transient( generate_cfp_cache_key( $cache_type, $cache_id ) );
-
-					// Delete photo speaker cache.
 					delete_transient( generate_cfp_cache_key( 'photo', $cache_id ) );
 
 					$cache_notice = 'Cache deleted for ' . $cache_type . ' with ID: ' . $cache_id . ' (including any photo cache).';
@@ -423,7 +434,7 @@ function cfp_dev_plugin_options() {
 					<option value="no" ' . selected( get_option( 'cfp_dev_content_by_id' ), 'no', false ) . '>No</option>
 			  </select>
 			  <br>
-			  <strong>Must be "Yes" for multisite worpdress installs.</strong>
+			  <strong>Must be "Yes" for multisite WordPress installs.</strong>
 			  <small>When "Yes" the content links look as follows https://voxxeddays.com/trieste/speaker?id=123</small>
 			</td>
 		  </tr>';
@@ -591,7 +602,7 @@ function cfp_dev_plugin_options() {
 		echo '<p>No talk detail caches available.</p>';
 	}
 
-	echo '</div>'; // Close the wrap div
+	echo '</div>';
 
 	// ─────────────────────────────────────────────────────────────────────────
 	// Offline Mode Section
@@ -664,9 +675,16 @@ function cfp_dev_plugin_options() {
 	echo '</div>';
 	echo '<p><button type="button" id="cfp-recrawl-btn" class="button">Re-crawl Now</button></p>';
 
-	echo '</div>'; // Close offline section wrap
+	echo '</div>';
 }
 
+/**
+ * Versioned transient key for a speaker/talk/photo detail cache.
+ *
+ * @param string     $type  Entity type: 'speaker', 'talk', or 'photo'.
+ * @param string|int $id    Entity id (hashed into the key).
+ * @return string
+ */
 function generate_cfp_cache_key( $type, $id ) {
 	switch ( $type ) {
 		case 'speaker':
@@ -685,6 +703,11 @@ function generate_cfp_cache_key( $type, $id ) {
 	return $key . cfp_dev_cache_salt();
 }
 
+/**
+ * Persists the CFP.DEV instance key, sanitised to safe hostname characters.
+ *
+ * @param string $key  Raw key from the settings form.
+ */
 function storeCfpDevKey( $key ) {
 	// The key is a cfp.dev subdomain — restrict to safe hostname characters so it
 	// cannot alter the API URL (e.g. via dots or slashes).
@@ -693,11 +716,21 @@ function storeCfpDevKey( $key ) {
 	delete_transient( 'CFP_DEV_KEY' ); // Legacy storage location.
 }
 
+/**
+ * Persists the cache TTL.
+ *
+ * @param int|string $ttl  TTL in seconds (0 disables caching).
+ */
 function storeCfpDevCache( $ttl ) {
 	update_option( 'cfp_dev_cache_duration', max( 0, (int) $ttl ) );
 	delete_transient( 'CFP_DEV_CACHE' ); // Legacy storage location.
 }
 
+/**
+ * Persists the event display name.
+ *
+ * @param string $cfpDevEventName  Event name from the settings form.
+ */
 function storeCfpDevEventName( $cfpDevEventName ) {
 	update_option( 'cfp_dev_event_name', sanitize_text_field( (string) $cfpDevEventName ) );
 	delete_transient( 'CFP_DEV_EVENT_NAME' ); // Legacy storage location.
@@ -731,19 +764,33 @@ function getFooter() {
 	return '';
 }
 
+/**
+ * usort() comparator: orders speakers by last name, accent-insensitively
+ * (transliterated to ASCII so e.g. Šumailov sorts under S).
+ */
 function compareLastName( $x, $y ) {
 	return iconv( 'utf-8', 'ascii//TRANSLIT', $x->lastName ) <=> iconv( 'utf-8', 'ascii//TRANSLIT', $y->lastName );
 }
 
+/**
+ * usort() comparator: orders objects by their name property, accent-insensitively.
+ */
 function compareName( $x, $y ) {
 	return iconv( 'utf-8', 'ascii//TRANSLIT', $x->name ) <=> iconv( 'utf-8', 'ascii//TRANSLIT', $y->name );
 }
 
+/**
+ * Fetches and decodes JSON from the CFP.DEV API — or from the local snapshot
+ * when offline mode is active. Rejects path traversal in the query path.
+ *
+ * @param string $queryPath  Relative API path, e.g. 'public/speakers?size=500'.
+ * @return mixed  Decoded JSON (object|array) or null on failure.
+ */
 function getJSON( $queryPath ) {
 	// Reject path traversal — query paths are relative API routes and several
 	// callers interpolate user-supplied ids (also guards offline file lookups).
 	if ( str_contains( $queryPath, '..' ) || str_starts_with( $queryPath, '/' ) ) {
-		cfp_dev_log( 'getJSON: rejected suspicious query path: ' . $queryPath );
+		cfp_dev_log( 'getJSON: rejected suspicious query path — ' . $queryPath );
 		return null;
 	}
 
@@ -776,13 +823,13 @@ function getJSON( $queryPath ) {
 	);
 
 	if ( is_wp_error( $response ) ) {
-		cfp_dev_log( 'getJSON error for ' . $queryPath . ': ' . $response->get_error_message() );
+		cfp_dev_log( 'getJSON: error for ' . $queryPath . ' — ' . $response->get_error_message() );
 		return null;
 	}
 
 	$status_code = wp_remote_retrieve_response_code( $response );
 	if ( 200 !== $status_code ) {
-		cfp_dev_log( 'getJSON returned HTTP ' . $status_code . ' for: ' . $queryPath );
+		cfp_dev_log( 'getJSON: HTTP ' . $status_code . ' for ' . $queryPath );
 		return null;
 	}
 
@@ -790,14 +837,21 @@ function getJSON( $queryPath ) {
 	$decoded = json_decode( $body );
 
 	if ( json_last_error() !== JSON_ERROR_NONE ) {
-		cfp_dev_log( 'getJSON JSON decode error for ' . $queryPath . ': ' . json_last_error_msg() );
+		cfp_dev_log( 'getJSON: JSON decode error for ' . $queryPath . ' — ' . json_last_error_msg() );
 		return null;
 	}
 
-	cfp_dev_log( 'getJSON OK: ' . $queryPath );
+	cfp_dev_log( 'getJSON: OK ' . $queryPath );
 	return $decoded;
 }
 
+/**
+ * Queries the semantic search service (search.cfp.dev). Returns an empty
+ * array in offline mode — live search needs the external API.
+ *
+ * @param string $query  Free-text search term.
+ * @return array  Result objects sorted by the service, or [] on failure.
+ */
 function searchJSON( $query ) {
 	// Offline mode: live search is not available without the API.
 	if ( get_option( 'cfp_dev_offline_mode', 0 ) ) {
@@ -807,23 +861,39 @@ function searchJSON( $query ) {
 	$safe_query = rawurlencode( sanitize_text_field( $query ) );
 	$response   = wp_remote_get( cfp_dev_search_base() . $safe_query, [ 'timeout' => 30 ] );
 	if ( is_wp_error( $response ) ) {
-		cfp_dev_log( 'searchJSON error: ' . $response->get_error_message() );
+		cfp_dev_log( 'searchJSON: error — ' . $response->get_error_message() );
 		return [];
 	}
 	if ( 200 !== wp_remote_retrieve_response_code( $response ) ) {
-		cfp_dev_log( 'searchJSON returned HTTP ' . wp_remote_retrieve_response_code( $response ) );
+		cfp_dev_log( 'searchJSON: HTTP ' . wp_remote_retrieve_response_code( $response ) );
 		return [];
 	}
 	$decoded = json_decode( wp_remote_retrieve_body( $response ) );
 	return is_array( $decoded ) ? $decoded : [];
 }
 
+/**
+ * Formats a UTC time string in the given timezone.
+ *
+ * @param string       $time      UTC date/time string.
+ * @param DateTimeZone $timezone  Target timezone.
+ * @param string       $format    date() format string.
+ * @return string
+ */
 function getTime( $time, $timezone, $format ) {
 	$dt = new DateTime( $time, new DateTimeZone( 'UTC' ) );
 	$dt->setTimezone( $timezone );
 	return $dt->format( $format );
 }
 
+/**
+ * Renders the programme search form.
+ *
+ * The form carries declarative WebMCP tool metadata (toolname,
+ * tooldescription, toolparamdescription) so agentic browsers and AI agents
+ * can invoke the search as a structured tool. Regular browsers ignore the
+ * extra attributes.
+ */
 function getSearchForm() {
 	// Absolute action URL — a relative one resolves against the current path
 	// (e.g. /talks-by-tracks/search-results) and 404s.
@@ -836,6 +906,12 @@ function getSearchForm() {
 	return $content;
 }
 
+/**
+ * Enqueues the admin scripts (cache management, offline crawler) on the
+ * plugin settings page only.
+ *
+ * @param string $hook  Current admin page hook.
+ */
 function cfp_dev_enqueue_admin_scripts( $hook ) {
 	if ( 'settings_page_cfp-dev-settings' !== $hook ) {
 		return;
@@ -864,9 +940,12 @@ function cfp_dev_enqueue_admin_scripts( $hook ) {
 }
 add_action( 'admin_enqueue_scripts', 'cfp_dev_enqueue_admin_scripts' );
 
+/**
+ * AJAX: delete a single speaker/talk detail cache (admin cache table).
+ * Requires the manage_options capability and a valid nonce.
+ */
 function cfp_dev_delete_cache_handler() {
 
-	// Check for nonce for security
 	if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'cfp_dev_delete_cache' ) ) {
 		wp_send_json_error( [ 'message' => 'Security check failed.' ] );
 		return;
@@ -935,25 +1014,26 @@ function cfp_dev_start_crawl_ajax_handler() {
 }
 add_action( 'wp_ajax_cfp_dev_start_crawl_ajax', 'cfp_dev_start_crawl_ajax_handler' );
 
+/**
+ * Registers the rewrite rules for the pretty /speaker/<slug> and /talk/<slug>
+ * URLs, honouring the configured URL path prefix.
+ */
 function cfp_dev_add_rewrite_rules() {
 	$prefix = get_option( 'cfp_dev_path_prefix', '' );
 	$prefix = $prefix ? $prefix . '/' : '';
 
-	// Handle speaker URL with slug
 	add_rewrite_rule(
 		'^' . $prefix . 'speaker/([^/]+)/?$',
 		'index.php?pagename=speaker&speaker_slug=$matches[1]',
 		'top'
 	);
 
-	// Handle talk URL with slug
 	add_rewrite_rule(
 		'^' . $prefix . 'talk/([^/]+)/?$',
 		'index.php?pagename=talk&talk_slug=$matches[1]',
 		'top'
 	);
 
-	// Handle schedule URL
 	add_rewrite_rule(
 		'^' . $prefix . 'schedule/?$',
 		'index.php?pagename=schedule',
@@ -971,12 +1051,24 @@ function cfp_dev_add_rewrite_rules() {
 }
 add_action( 'init', 'cfp_dev_add_rewrite_rules' );
 
+/**
+ * Prepends the configured URL path prefix (e.g. '/trieste') to a plugin path.
+ *
+ * @param string $path  Site-relative path, e.g. '/talk/my-talk'.
+ * @return string
+ */
 function cfp_dev_url( $path ) {
 	$prefix = get_option( 'cfp_dev_path_prefix', '' );
 	$prefix = $prefix ? '/' . $prefix : '';
 	return $prefix . $path;
 }
 
+/**
+ * Registers the query vars used by the plugin pages.
+ *
+ * @param array $vars  Public query vars.
+ * @return array
+ */
 function cfp_dev_add_query_vars( $vars ) {
 	$vars[] = 'speaker_slug';
 	$vars[] = 'talk_slug';
@@ -986,20 +1078,40 @@ function cfp_dev_add_query_vars( $vars ) {
 }
 add_filter( 'query_vars', 'cfp_dev_add_query_vars' );
 
+/** Activation hook: registers rewrite rules and flushes them once. */
 function cfp_dev_flush_rewrite_rules() {
 	cfp_dev_add_rewrite_rules();
 	flush_rewrite_rules();
 }
 register_activation_hook( __FILE__, 'cfp_dev_flush_rewrite_rules' );
 
+/**
+ * Fetches one speaker by id from the API (offline-aware).
+ *
+ * @param int|string $id  Speaker id.
+ * @return object|null
+ */
 function get_speaker_by_id( $id ) {
 	return getJSON( 'public/speakers/' . $id );
 }
 
+/**
+ * Fetches one talk by id from the API (offline-aware).
+ *
+ * @param int|string $id  Talk id.
+ * @return object|null
+ */
 function get_talk_by_id( $id ) {
 	return getJSON( 'public/talks/' . $id );
 }
 
+/**
+ * Resolves a speaker slug to its id by scanning the full speaker list.
+ * Hits and misses are transient-cached (misses with a short TTL).
+ *
+ * @param string $slug  Speaker slug, e.g. 'jane-doe'.
+ * @return int|null  Speaker id, or null when the slug is unknown.
+ */
 function get_speaker_id_from_slug( $slug ) {
 	$cache_key  = cfp_dev_group_cache_key( 'cfp_speaker_slug_' . md5( $slug ) );
 	$speaker_id = get_transient( $cache_key );
@@ -1023,6 +1135,13 @@ function get_speaker_id_from_slug( $slug ) {
 	return $speaker_id ? $speaker_id : null;
 }
 
+/**
+ * Resolves a talk slug to its id by scanning the full talk list.
+ * Hits and misses are transient-cached (misses with a short TTL).
+ *
+ * @param string $slug  Talk slug, e.g. 'my-great-talk'.
+ * @return int|null  Talk id, or null when the slug is unknown.
+ */
 function get_talk_id_from_slug( $slug ) {
 	$cache_key = cfp_dev_group_cache_key( 'cfp_talk_slug_' . md5( $slug ) );
 	$talk_id   = get_transient( $cache_key );
@@ -1111,7 +1230,6 @@ function cfp_create_required_pages() {
 		}
 	}
 
-	// Flush rewrite rules after creating new pages
 	flush_rewrite_rules();
 }
 register_activation_hook( __FILE__, 'cfp_create_required_pages' );
@@ -1684,6 +1802,13 @@ function cfp_dev_register_sitemap_provider( $sitemaps ) {
 }
 add_action( 'wp_sitemaps_init', 'cfp_dev_register_sitemap_provider' );
 
+/**
+ * Renders the social-link icons (LinkedIn, Bluesky, Mastodon, X/Twitter) for
+ * a speaker. Returns an empty string when no handle is set.
+ *
+ * @param object $speaker  Speaker object from the API.
+ * @return string
+ */
 function getSocialLinks( $speaker ) {
 	$content = '';
 	if ( ! empty( $speaker->twitterHandle ) ||

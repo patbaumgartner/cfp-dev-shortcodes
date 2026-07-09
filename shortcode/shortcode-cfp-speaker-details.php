@@ -1,4 +1,12 @@
 <?php
+/**
+ * CFP.DEV shortcodes
+ *
+ * [cfp_speaker_details]  Speaker detail page: profile, bio, social links, talks, photo gallery.
+ *
+ * @package  CFP.DEV
+ * @since    1.0.0
+ */
 
 if ( ! function_exists( 'cfp_speaker_details_shortcode' ) ) {
 	add_action(
@@ -10,6 +18,15 @@ if ( ! function_exists( 'cfp_speaker_details_shortcode' ) ) {
 		}
 	);
 
+	/**
+	 * Shortcode handler for [cfp_speaker_details].
+	 *
+	 * Reads speaker_slug or id from the URL, resolves the speaker, and returns
+	 * the (transient-cached) rendered profile page.
+	 *
+	 * @return string
+	 * @since  1.0.0
+	 */
 	function cfp_speaker_details_shortcode() {
 		$speaker_slug = get_query_var( 'speaker_slug' );
 		$speaker_id   = absint( get_query_var( 'id' ) );
@@ -37,7 +54,6 @@ if ( ! function_exists( 'cfp_speaker_details_shortcode' ) ) {
 
 		$speakerCacheKey = generate_cfp_cache_key( 'speaker', $speaker_id );
 
-		// Is speaker available in cache?
 		$cache = get_transient( $speakerCacheKey );
 		if ( false !== $cache ) {
 			cfp_dev_log( 'speaker-details: cache hit for id=' . $speaker_id );
@@ -57,6 +73,13 @@ if ( ! function_exists( 'cfp_speaker_details_shortcode' ) ) {
 		return $content;
 	}
 
+	/**
+	 * Renders the full speaker page: profile, talks, and the async photo
+	 * gallery placeholder (populated by an AJAX fetch on the client).
+	 *
+	 * @param object $speaker  Speaker detail object from the API.
+	 * @return string
+	 */
 	function generateSpeakerPage( $speaker ) {
 		$content = cfp_dev_root_class_script( 'speaker', 'detail' );
 
@@ -64,7 +87,7 @@ if ( ! function_exists( 'cfp_speaker_details_shortcode' ) ) {
 
 		$content .= generateSpeakerContent( $speaker );
 
-		// Placeholder for photo album with loading message
+		// Photo album placeholder — filled asynchronously by the fetch below.
 		$spinner_file = CFP_DEV_DIR . '/images/loading-spinner.svg';
 		$content     .= '<div id="speaker-photo-album">';
 		$content     .= '    <div id="loading-container">';
@@ -88,7 +111,6 @@ if ( ! function_exists( 'cfp_speaker_details_shortcode' ) ) {
 			admin_url( 'admin-ajax.php' )
 		);
 
-		// JavaScript to load photo album asynchronously
 		$content .= '<script>
 					 document.addEventListener("DOMContentLoaded", function() {
 						 const photoAlbum = document.getElementById("speaker-photo-album");
@@ -122,9 +144,15 @@ if ( ! function_exists( 'cfp_speaker_details_shortcode' ) ) {
 		return $content;
 	}
 
+	/**
+	 * Renders the profile section (photo, name, socials, company, bio) followed
+	 * by one talk card per proposal.
+	 *
+	 * @param object $speaker  Speaker detail object from the API.
+	 * @return string
+	 */
 	function generateSpeakerContent( $speaker ) {
-		$content  = '<!-- profile -->';
-		$content .= '<section class="cfp-profile">';
+		$content  = '<section class="cfp-profile">';
 		$content .= '    <div class="cfp-picture" style="background-image: url(' . esc_url( $speaker->imageUrl ) . ')"></div>';
 		$content .= '    <div class="cfp-content">';
 		$content .= '        <div class="cfp-detail">';
@@ -162,8 +190,7 @@ if ( ! function_exists( 'cfp_speaker_details_shortcode' ) ) {
 			? cfp_dev_url( '/talk/' . generate_slug( $talk->title ) )
 			: cfp_dev_url( '/talk?id=' . absint( $talk->id ) );
 
-		$content  = '<!-- session -->';
-		$content .= '<section class="cfp-session">';
+		$content  = '<section class="cfp-session">';
 		$content .= '    <div class="cfp-foreword">';
 		$content .= '        <a class="cfp-a" href="' . esc_url( cfp_dev_url( '/talks-by-tracks/?id=' . absint( $talk->track->id ) ) ) . '">';
 		$content .= '            <div class="cfp-track" title="' . esc_attr( $talk->track->name ) . '" style="background-image: url(' . esc_url( $talk->track->imageURL ) . ')"></div>';
@@ -237,6 +264,12 @@ if ( ! function_exists( 'cfp_speaker_details_shortcode' ) ) {
 		return $content;
 	}
 
+	/**
+	 * Renders the keyword pills linking to search results.
+	 *
+	 * @param object $talk  Talk object with an optional keywords list.
+	 * @return string
+	 */
 	function getTalkKeywords( $talk ) {
 		$content = '        <div class="cfp-category">';
 		if ( empty( $talk->keywords ) ) {
@@ -252,12 +285,25 @@ if ( ! function_exists( 'cfp_speaker_details_shortcode' ) ) {
 		return $content;
 	}
 
+	/**
+	 * Strips empty Quill-editor paragraphs and span wrappers from API-supplied
+	 * rich-text descriptions.
+	 *
+	 * @param string $description  Raw HTML description.
+	 * @return string
+	 */
 	function cleanupDescription( $description ) {
 		$pattern     = '/<p(?: class="ql-align-justify")?><br><\/p>/';
 		$description = preg_replace( $pattern, '', $description );
 		return preg_replace( '~<span[^>]*>|</span>~', '', $description );
 	}
 
+	/**
+	 * Renders the YouTube video embed for a talk card, when available.
+	 *
+	 * @param object $talk  Talk object with an optional videoURL.
+	 * @return string
+	 */
 	function generateTalkVideo( $talk ) {
 		$content = '';
 		if ( ! empty( $talk->videoURL ) ) {
@@ -271,6 +317,10 @@ if ( ! function_exists( 'cfp_speaker_details_shortcode' ) ) {
 		return $content;
 	}
 
+	/**
+	 * AJAX (public): returns the rendered photo gallery HTML for a speaker.
+	 * Read-only endpoint — results are transient-cached per speaker.
+	 */
 	function get_speaker_photos() {
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- public read-only AJAX endpoint, no state change
 		$speakerId = isset( $_GET['speaker_id'] ) ? intval( $_GET['speaker_id'] ) : 0;
@@ -286,14 +336,11 @@ if ( ! function_exists( 'cfp_speaker_details_shortcode' ) ) {
 			return;
 		}
 
-		// Cache key for this speaker's photos
 		$cache_key = generate_cfp_cache_key( 'photo', $speakerId );
 
-		// Try to get cached content
 		$cached_content = get_transient( $cache_key );
 
 		if ( false !== $cached_content ) {
-			// If cache exists, return it
 			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- plugin-generated HTML, escaped at build time
 			echo $cached_content;
 			wp_die();
@@ -318,6 +365,13 @@ if ( ! function_exists( 'cfp_speaker_details_shortcode' ) ) {
 		wp_die();
 	}
 
+	/**
+	 * getJSON() with a bounded retry — the album endpoint is occasionally flaky.
+	 *
+	 * @param string $queryPath    Relative API path.
+	 * @param int    $maxAttempts  Maximum number of attempts (brief pause between).
+	 * @return mixed  Decoded JSON or null when all attempts fail.
+	 */
 	function getJSONWithRetry( $queryPath, $maxAttempts = 2 ) {
 		for ( $attempt = 1; $attempt <= $maxAttempts; $attempt++ ) {
 			$result = getJSON( $queryPath );

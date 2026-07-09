@@ -14,14 +14,13 @@ if ( ! function_exists( 'cfp_talks_by_tracks_shortcode' ) ) {
 		function () {
 
 			if ( ! shortcode_exists( 'cfp_talks_by_tracks' ) ) {
-				// Add the shortcode.
 				add_shortcode( 'cfp_talks_by_tracks', 'cfp_talks_by_tracks_shortcode' );
 			}
 		}
 	);
 
 	/**
-	 * Shortcode CFP talks by tracks
+	 * Shortcode handler for [cfp_talks_by_tracks].
 	 *
 	 * @param array $atts  Shortcode attributes: all, title, hide_title, hide_search.
 	 * @return string
@@ -60,8 +59,15 @@ if ( ! function_exists( 'cfp_talks_by_tracks_shortcode' ) ) {
 		return $content;
 	}
 
+	/**
+	 * Renders the talks-by-track page: filter navigation, track description,
+	 * and one table row per talk.
+	 *
+	 * @param int   $trackId  Selected track id (0 → first track, -1 → all tracks).
+	 * @param array $_atts    Normalised shortcode attributes (all, title, hide_title, hide_search).
+	 * @return string
+	 */
 	function cfp_get_talks_by_tracks( $trackId, $_atts ) {
-		// Get the Tracks
 		$tracks = getJSON( 'public/tracks' );
 
 		if ( empty( $tracks ) || ! is_array( $tracks ) ) {
@@ -70,17 +76,15 @@ if ( ! function_exists( 'cfp_talks_by_tracks_shortcode' ) ) {
 
 		$trackDescr = '';
 
-		// Track id was not given
 		if ( empty( $trackId ) ) {
 			if ( ! empty( $_atts['all'] ) ) {
 				$trackId = -1;
 			} else {
-				// Take the first one from the list
+				// Default to the first track.
 				$trackId    = $tracks[0]->id;
 				$trackDescr = $tracks[0]->description ?? '';
 			}
 		} else {
-			// Filter on track
 			foreach ( $tracks as $track ) {
 				if ( (int) $track->id === (int) $trackId ) {
 					$trackDescr = $track->description ?? '';
@@ -116,9 +120,9 @@ if ( ! function_exists( 'cfp_talks_by_tracks_shortcode' ) ) {
 		$content .= generateTableHeading();
 		$content .= generateTalkArticles( $talks );
 
-		$content .= '</div>';   // End of cfp-group
+		$content .= '</div>';
 		$content .= '</section>';
-		$content .= '</div>';    // End main
+		$content .= '</div>';
 
 		$content .= getFooter();
 		return $content;
@@ -230,4 +234,4 @@ if ( ! function_exists( 'cfp_talks_by_tracks_shortcode' ) ) {
 		$content .= '</div>';
 		return $content;
 	}
-} // End if().
+}

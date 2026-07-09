@@ -14,14 +14,13 @@ if ( ! function_exists( 'cfp_talks_by_sessions_shortcode' ) ) {
 		function () {
 
 			if ( ! shortcode_exists( 'cfp_talks_by_sessions' ) ) {
-				// Add the shortcode.
 				add_shortcode( 'cfp_talks_by_sessions', 'cfp_talks_by_sessions_shortcode' );
 			}
 		}
 	);
 
 	/**
-	 * Shortcode CFP talks by session types
+	 * Shortcode handler for [cfp_talks_by_sessions].
 	 *
 	 * @param array $atts  Shortcode attributes: title, hide_title, hide_search.
 	 * @return string
@@ -58,8 +57,15 @@ if ( ! function_exists( 'cfp_talks_by_sessions_shortcode' ) ) {
 		return $content;
 	}
 
+	/**
+	 * Renders the talks-by-session-type page: filter navigation, session
+	 * description, and one table row per talk.
+	 *
+	 * @param int   $sessionId  Selected session-type id (0 → first non-pause type).
+	 * @param array $_atts      Normalised shortcode attributes (title, hide_title, hide_search).
+	 * @return string
+	 */
 	function get_talks_by_sessions( $sessionId, $_atts = [] ) {
-		// The Session Types
 		$sessions = getJSON( 'public/session-types' );
 
 		$sessionDescr = '';
@@ -162,10 +168,10 @@ if ( ! function_exists( 'cfp_talks_by_sessions_shortcode' ) ) {
 			}
 		}
 
-		$content .= '</div>';   // End of cfp-group
+		$content .= '</div>';
 
 		$content .= '</section>';
-		$content .= '</div>';    // End main
+		$content .= '</div>';
 
 		$content .= getFooter();
 

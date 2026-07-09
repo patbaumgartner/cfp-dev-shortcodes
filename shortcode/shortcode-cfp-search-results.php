@@ -14,14 +14,16 @@ if ( ! function_exists( 'cfp_search_results_shortcode' ) ) {
 		function () {
 
 			if ( ! shortcode_exists( 'cfp_search_results' ) ) {
-				// Add the shortcode.
 				add_shortcode( 'cfp_search_results', 'cfp_search_results_shortcode' );
 			}
 		}
 	);
 
 	/**
-	 * Shortcode CFP search results
+	 * Shortcode handler for [cfp_search_results].
+	 *
+	 * Reads the query parameter from the URL and renders exact and semantic
+	 * search results.
 	 *
 	 * @return string
 	 * @since  1.0.0
@@ -39,7 +41,6 @@ if ( ! function_exists( 'cfp_search_results_shortcode' ) ) {
 			$content  = cfp_dev_root_class_script( 'search' );
 			$content .= '<div class="cfp-main">';
 
-			$content .= '<!-- search -->';
 			$content .= '<section class="cfp-search">';
 			$content .= '	<div class="cfp-subject">';
 			$content .= '		<div class="cfp-primary">';
@@ -147,7 +148,7 @@ if ( ! function_exists( 'cfp_search_results_shortcode' ) ) {
 		} else {
 			$content = '<p>No search query provided.</p>';
 		}
-		$content .= '</div>';   // cfp-content
+		$content .= '</div>';
 
 		$content .= '</section>';
 		$content .= '</div>';
@@ -155,4 +156,4 @@ if ( ! function_exists( 'cfp_search_results_shortcode' ) ) {
 		$content .= getFooter();
 		return $content;
 	}
-} // End if().
+}

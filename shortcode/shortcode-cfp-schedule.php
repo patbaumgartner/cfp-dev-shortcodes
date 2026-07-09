@@ -21,7 +21,7 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 	);
 
 	/**
-	 * Shortcode CFP Schedule
+	 * Shortcode handler for [cfp_schedule].
 	 *
 	 * @param array $atts  Shortcode attributes: title, hide_title, hide_search.
 	 * @return string
@@ -47,7 +47,7 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 			$dayName = '';
 		}
 
-		// Get the current event.
+		// Get the current event — its timezone and date range drive everything below.
 		$currentEvent = getJSON( 'public/event' );
 
 		if ( is_null( $currentEvent ) ) {
@@ -62,7 +62,7 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 				$timeZone = new DateTimeZone( $currentEvent->timezone );
 				cfp_dev_log( 'schedule: timezone=' . $timeZone->getName() );
 			} catch ( Exception $e ) {
-				cfp_dev_log( 'schedule: error creating DateTimeZone: ' . $e->getMessage() );
+				cfp_dev_log( 'schedule: error creating DateTimeZone — ' . $e->getMessage() );
 				return 'Invalid event timezone.';
 			}
 		} else {
@@ -70,7 +70,6 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 			return 'Event timezone is not set.';
 		}
 
-		// Get the rooms.
 		$rooms = getJSON( 'public/rooms' );
 
 		if ( is_null( $rooms ) ) {
@@ -86,7 +85,6 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 			$dayName = $fromDate->format( 'l' );
 		}
 
-		// Get the schedule items for the day.
 		$day_schedule = getJSON( 'public/schedules/' . $dayName );
 
 		if ( empty( $day_schedule ) || ! is_array( $day_schedule ) ) {
@@ -135,7 +133,6 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 
 		if ( ! empty( $rooms ) ) {
 
-			// Title.
 			$content .= '<section id="cfp-schedule" class="cfp-schedule cfp-general">';
 			$content .= '    <div class="cfp-subject">';
 
@@ -158,7 +155,7 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 			$content .= '		<a class="cfp-button" style="color:white" href="' . esc_url( 'https://mobile.devoxx.com/events/' . cfp_dev_get_key() . '/schedule' ) . '">Mobile Schedule</a>';
 			$content .= '	</div>';
 
-			$content .= '</div>'; // End of cfp-subject
+			$content .= '</div>';
 
 			// Grid start/end hours from the first and last time slot of the day.
 			$count = count( $day_schedule );
@@ -281,7 +278,7 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 						}
 					}
 
-					$content .= '</div>';    // end of column
+					$content .= '</div>';
 				}
 			}
 
