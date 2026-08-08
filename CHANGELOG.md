@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.4.3] — 2026-08-08
+
+### Fixed
+- Slug URLs built by `cfp_dev_url()` (canonicals, `og:url`, sitemap entries, and every rendered `/talk/<slug>` / `/speaker/<slug>` link) lacked the trailing slash while WordPress' `redirect_canonical` 301s the un-slashed form to the slashed one. The canonical therefore pointed at a redirect back to the page itself — Search Console reported all talk/speaker detail pages as "Alternate page with proper canonical tag" and kept them out of the index, and every internal click paid a needless 301 hop. `cfp_dev_url()` now applies `user_trailingslashit()` (query/fragment URLs excluded), so URLs follow the site's permalink style
+
+---
+
 ## [4.4.2] — 2026-07-09
 
 ### Changed
