@@ -1729,6 +1729,23 @@ function cfp_dev_robots( $robots ) {
 }
 add_filter( 'wp_robots', 'cfp_dev_robots' );
 
+/**
+ * Serves a real 404 when a talk/speaker detail request cannot be resolved
+ * (removed entities, legacy pre-4.3.4 accent slugs, bare /talk/ or /speaker/
+ * without parameters). These rendered "not found" text with HTTP 200, which
+ * Search Console flags as soft 404s.
+ */
+function cfp_dev_404_unresolved_detail() {
+	if ( ! is_page( [ 'talk', 'speaker' ] ) || null !== cfp_dev_current_entity() ) {
+		return;
+	}
+	global $wp_query;
+	$wp_query->set_404();
+	status_header( 404 );
+	nocache_headers();
+}
+add_action( 'template_redirect', 'cfp_dev_404_unresolved_detail' );
+
 /*
  * ── XML sitemap ───────────────────────────────────────────────────
  * WordPress only lists its own pages — the talk and speaker URLs are
