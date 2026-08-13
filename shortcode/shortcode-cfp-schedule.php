@@ -162,9 +162,15 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 
 			$hour_start  = getTime( $day_schedule[0]->fromDate, $timeZone, 'H' );
 			$hour_finish = getTime( $day_schedule[ $count - 1 ]->toDate, $timeZone, 'H' );
-			$content    .= '<div class="cfp-area" style="--hour-start:' . $hour_start . '; --hour-finish:' . $hour_finish . ';">';
 
-			$content .= '<div class="cfp-scroll">';
+			// The three grid wrappers are opened and closed as a pair so they
+			// cannot drift apart again (they used to be left unclosed).
+			$grid_open  = '<div class="cfp-area" style="--hour-start:' . $hour_start . '; --hour-finish:' . $hour_finish . ';">'
+				. '<div class="cfp-scroll">'
+				. '<div class="cfp-scope">';
+			$grid_close = '</div></div></div>';
+
+			$content .= $grid_open;
 
 			// Second-of-day offsets used for the time column.
 			$time_now    = time();
@@ -172,8 +178,6 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 			$time_unit   = ( 60 * 60 );
 			$time_start  = ( $hour_start * $time_unit );
 			$time_finish = ( $hour_finish * $time_unit );
-
-			$content .= '	<div class="cfp-scope">';
 
 			// Time labels in the left column (10-minute steps).
 			$content .= '		<div class="cfp-column cfp-datetime">';
@@ -282,13 +286,12 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 				}
 			}
 
+			$content .= $grid_close;
 			$content .= '</section>';
-
-			$content .= getFooter();
-
 		}
 
 		$content .= '</div>';
+		$content .= getFooter();
 		return $content;
 	}
 }
