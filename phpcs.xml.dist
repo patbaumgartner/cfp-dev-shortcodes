@@ -6,6 +6,7 @@
     <file>cfp-dev-wordpress-shortcodes.php</file>
     <file>uninstall.php</file>
     <file>shortcode/</file>
+    <file>tests/</file>
 
     <!-- Ignore generated/third-party assets -->
     <exclude-pattern>shortcode/font/</exclude-pattern>
@@ -89,5 +90,38 @@
     <!-- Commented-out code is intentional (placeholder / future work notes) -->
     <rule ref="Squiz.PHP.CommentedOutCode">
         <severity>0</severity>
+    </rule>
+
+    <!--
+        Test-suite exemptions. The suite deliberately re-declares WordPress
+        functions (tests/stubs/wordpress.php), uses PSR-4 class filenames,
+        PHPUnit's camelCase helper naming and PHPDoc conventions, and touches
+        the filesystem directly — none of which apply to plugin code shipped
+        to users.
+
+        Only sniffs already enabled by WordPress-Core/WordPress-Extra are
+        listed: referencing a sniff that is not enabled would *add* it to the
+        ruleset for every file.
+    -->
+    <rule ref="WordPress.Files.FileName">
+        <exclude-pattern>tests/</exclude-pattern>
+    </rule>
+    <rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+        <exclude-pattern>tests/</exclude-pattern>
+    </rule>
+    <rule ref="WordPress.NamingConventions.ValidFunctionName">
+        <exclude-pattern>tests/</exclude-pattern>
+    </rule>
+    <rule ref="WordPress.Security.EscapeOutput">
+        <exclude-pattern>tests/</exclude-pattern>
+    </rule>
+    <rule ref="WordPress.WP.AlternativeFunctions">
+        <exclude-pattern>tests/</exclude-pattern>
+    </rule>
+    <rule ref="WordPress.WP.GlobalVariablesOverride">
+        <exclude-pattern>tests/</exclude-pattern>
+    </rule>
+    <rule ref="Universal.Files.SeparateFunctionsFromOO">
+        <exclude-pattern>tests/</exclude-pattern>
     </rule>
 </ruleset>
