@@ -124,8 +124,11 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 	 * @return string
 	 */
 	function generate_schedule_content( $day_schedule, $rooms, $timeZone, $fromDate, $currentEvent, $dayName, $_atts = [] ) {
-		$toDate = new DateTime( $currentEvent->toDate, $timeZone );
-		$toDate->setTimezone( $timeZone );
+		// Tabs are per calendar day, so both ends are normalised to midnight in
+		// the event timezone: comparing the raw timestamps dropped the closing
+		// day whenever the event ended earlier in the day than it started.
+		$day_cursor = DateTimeImmutable::createFromInterface( $fromDate )->setTimezone( $timeZone )->setTime( 0, 0 );
+		$last_day   = ( new DateTimeImmutable( $currentEvent->toDate ) )->setTimezone( $timeZone )->setTime( 0, 0 );
 
 		$content = cfp_dev_root_class_script( 'schedule' );
 
@@ -144,12 +147,12 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 			// Day-tab navigation bar.
 			$content .= '	<div class="cfp-secondary">';
 			$content .= '		<nav class="cfp-tab">';
-			while ( $fromDate < $toDate ) {
-				$isActive = ( $fromDate->format( 'l' ) === $dayName ) ? 'cfp-active' : '';
-				$content .= '		<a class="cfp-a ' . $isActive . '" href="' . esc_url( '?id=' . $fromDate->format( 'l' ) ) . '">' .
-					esc_html( $fromDate->format( 'l' ) . ' ' . $fromDate->format( 'j' ) ) . '<sup>' .
-					esc_html( $fromDate->format( 'S' ) ) . '</sup> ' . esc_html( $fromDate->format( 'M' ) ) . '</a>';
-				$fromDate->modify( '+1 day' );
+			while ( $day_cursor <= $last_day ) {
+				$isActive   = ( $day_cursor->format( 'l' ) === $dayName ) ? 'cfp-active' : '';
+				$content   .= '		<a class="cfp-a ' . $isActive . '" href="' . esc_url( '?id=' . $day_cursor->format( 'l' ) ) . '">' .
+					esc_html( $day_cursor->format( 'l' ) . ' ' . $day_cursor->format( 'j' ) ) . '<sup>' .
+					esc_html( $day_cursor->format( 'S' ) ) . '</sup> ' . esc_html( $day_cursor->format( 'M' ) ) . '</a>';
+				$day_cursor = $day_cursor->modify( '+1 day' );
 			}
 			$content .= '		</nav>';
 			$content .= '		<a class="cfp-button" style="color:white" href="' . esc_url( 'https://mobile.devoxx.com/events/' . cfp_dev_get_key() . '/schedule' ) . '">Mobile Schedule</a>';
@@ -172,19 +175,20 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 
 			$content .= $grid_open;
 
-			// Second-of-day offsets used for the time column.
-			$time_now    = time();
-			$time_day    = strtotime( gmdate( 'Y-m-d 00:00:00', $time_now ) );
-			$time_unit   = ( 60 * 60 );
-			$time_start  = ( $hour_start * $time_unit );
-			$time_finish = ( $hour_finish * $time_unit );
+			// The ruler labels the event's own clock, so they are built from
+			// midnight of the day being viewed *in the event timezone* — not
+			// from "today" in the site timezone, which shifted every label by
+			// the site's UTC offset and dated them to the wrong day.
+			$day_start = ( new DateTimeImmutable( $day_schedule[0]->fromDate ) )
+				->setTimezone( $timeZone )
+				->setTime( 0, 0 );
 
 			// Time labels in the left column (10-minute steps).
 			$content .= '		<div class="cfp-column cfp-datetime">';
 
-			for ( $a = $time_start; $a <= $time_finish; $a += ( $time_unit / 6 ) ) {
-				$time     = ( $time_day + $a );
-				$content .= '<time class="cfp-time" datetime="' . esc_attr( wp_date( 'c', $time ) ) . '">' . esc_html( wp_date( 'H:i', $time ) ) . '</time>';
+			for ( $minutes = (int) $hour_start * 60; $minutes <= (int) $hour_finish * 60; $minutes += 10 ) {
+				$label    = $day_start->setTime( intdiv( $minutes, 60 ), $minutes % 60 );
+				$content .= '<time class="cfp-time" datetime="' . esc_attr( $label->format( 'c' ) ) . '">' . esc_html( $label->format( 'H:i' ) ) . '</time>';
 			}
 
 			$content .= '		</div>';
