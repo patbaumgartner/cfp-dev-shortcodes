@@ -139,6 +139,45 @@ function cfp_dev_search_base(): string {
 }
 
 /**
+ * Request-scoped memoisation.
+ *
+ * Several helpers are called repeatedly while rendering a single page — head
+ * meta, JSON-LD, the canonical URL and the shortcode itself all resolve the
+ * same entity. They share one in-memory store instead of each keeping its own
+ * pair of static variables, which also gives long-running processes (WP-CLI,
+ * the offline crawler) a way to drop stale request state.
+ *
+ * @return array<string,mixed>
+ */
+function &cfp_dev_request_cache(): array {
+	static $cache = [];
+	return $cache;
+}
+
+/**
+ * Returns the memoised value for $key, computing it on first access. A
+ * resolver returning null is memoised too — "resolved to nothing" is an answer
+ * worth remembering.
+ *
+ * @param string   $key       Cache key.
+ * @param callable $resolver  Computes the value on a miss.
+ * @return mixed
+ */
+function cfp_dev_request_cache_get( string $key, callable $resolver ) {
+	$cache = &cfp_dev_request_cache();
+	if ( ! array_key_exists( $key, $cache ) ) {
+		$cache[ $key ] = $resolver();
+	}
+	return $cache[ $key ];
+}
+
+/** Empties the request-scoped memo store. */
+function cfp_dev_flush_request_cache(): void {
+	$cache = &cfp_dev_request_cache();
+	$cache = [];
+}
+
+/**
  * Cache versioning.
  *
  * Every transient key is suffixed with the current cache version, so a full
@@ -1308,14 +1347,15 @@ function cfp_dev_get_entity_cached( $type, $id ) {
  * @return array{type:string,data:object}|null
  */
 function cfp_dev_current_entity() {
-	static $entity   = null;
-	static $resolved = false;
+	return cfp_dev_request_cache_get( 'current_entity', 'cfp_dev_resolve_current_entity' );
+}
 
-	if ( $resolved ) {
-		return $entity;
-	}
-	$resolved = true;
-
+/**
+ * Computes the value memoised by cfp_dev_current_entity().
+ *
+ * @return array{type:string,data:object}|null
+ */
+function cfp_dev_resolve_current_entity() {
 	if ( is_page( 'talk' ) ) {
 		$slug = get_query_var( 'talk_slug' );
 		$id   = absint( get_query_var( 'id' ) );
@@ -1325,7 +1365,7 @@ function cfp_dev_current_entity() {
 		if ( $id ) {
 			$talk = cfp_dev_get_entity_cached( 'talk', $id );
 			if ( ! empty( $talk->title ) ) {
-				$entity = [
+				return [
 					'type' => 'talk',
 					'data' => $talk,
 				];
@@ -1340,7 +1380,7 @@ function cfp_dev_current_entity() {
 		if ( $id ) {
 			$speaker = cfp_dev_get_entity_cached( 'speaker', $id );
 			if ( ! empty( $speaker->firstName ) ) {
-				$entity = [
+				return [
 					'type' => 'speaker',
 					'data' => $speaker,
 				];
@@ -1348,7 +1388,7 @@ function cfp_dev_current_entity() {
 		}
 	}
 
-	return $entity;
+	return null;
 }
 
 /**
@@ -1467,14 +1507,15 @@ function cfp_dev_sessions_meta_description( $event_name ) {
  * @return array{title:string,description:string,url:string,image:string,og_type:string}|null
  */
 function cfp_dev_page_meta() {
-	static $meta     = null;
-	static $resolved = false;
+	return cfp_dev_request_cache_get( 'page_meta', 'cfp_dev_resolve_page_meta' );
+}
 
-	if ( $resolved ) {
-		return $meta;
-	}
-	$resolved = true;
-
+/**
+ * Computes the value memoised by cfp_dev_page_meta().
+ *
+ * @return array{title:string,description:string,url:string,image:string,og_type:string}|null
+ */
+function cfp_dev_resolve_page_meta() {
 	if ( ! is_page( [ 'talk', 'speaker', 'speakers', 'schedule', 'talks-by-tracks', 'talks-by-sessions', 'search-results' ] ) ) {
 		return null;
 	}
@@ -1489,14 +1530,13 @@ function cfp_dev_page_meta() {
 		if ( '' === $description ) {
 			$description = $title . ' — a ' . wp_strip_all_tags( $talk->sessionTypeName ?? 'session' ) . ' at ' . $event_name . '.';
 		}
-		$meta = [
+		return [
 			'title'       => $title . ' - ' . $event_name,
 			'description' => $description,
 			'url'         => home_url( cfp_dev_url( '/talk/' . generate_slug( $talk->title ) ) ),
 			'image'       => cfp_dev_usable_image( $talk->trackImageURL ?? '' ),
 			'og_type'     => 'article',
 		];
-		return $meta;
 	}
 
 	if ( $entity && 'speaker' === $entity['type'] ) {
@@ -1508,14 +1548,13 @@ function cfp_dev_page_meta() {
 				. ( ! empty( $speaker->company ) ? ' (' . wp_strip_all_tags( $speaker->company ) . ')' : '' )
 				. ' speaks at ' . $event_name . '.';
 		}
-		$meta = [
+		return [
 			'title'       => $name . ' - ' . $event_name,
 			'description' => $description,
 			'url'         => home_url( cfp_dev_url( '/speaker/' . generate_slug( $speaker->firstName . '-' . $speaker->lastName ) ) ),
 			'image'       => (string) ( $speaker->imageUrl ?? '' ),
 			'og_type'     => 'profile',
 		];
-		return $meta;
 	}
 
 	$description = '';
@@ -1528,21 +1567,21 @@ function cfp_dev_page_meta() {
 	} elseif ( is_page( 'talks-by-sessions' ) ) {
 		$description = cfp_dev_sessions_meta_description( $event_name );
 	} elseif ( is_page( 'search-results' ) ) {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only GET param for meta description tag
-		$query_val   = isset( $_GET['query'] ) ? sanitize_text_field( wp_unslash( $_GET['query'] ) ) : '';
+		// The query var is registered by cfp_dev_add_query_vars(), so this is
+		// the same value the shortcode renders — no need to touch $_GET.
+		$query_val   = sanitize_text_field( (string) get_query_var( 'query' ) );
 		$description = '' !== $query_val
 			? 'Search results for “' . $query_val . '” at ' . $event_name . '.'
 			: 'Search talks and speakers at ' . $event_name . '.';
 	}
 
-	$meta = [
+	return [
 		'title'       => '', // Empty: keep the WordPress-generated page title.
 		'description' => $description,
 		'url'         => (string) get_permalink(),
 		'image'       => '',
 		'og_type'     => 'website',
 	];
-	return $meta;
 }
 
 /**
@@ -1761,19 +1800,23 @@ add_action( 'template_redirect', 'cfp_dev_404_unresolved_detail' );
  * @return array[]
  */
 function cfp_dev_sitemap_urls() {
-	static $urls = null;
-	if ( null !== $urls ) {
-		return $urls;
-	}
+	return cfp_dev_request_cache_get( 'sitemap_urls', 'cfp_dev_resolve_sitemap_urls' );
+}
 
+/**
+ * Computes the value memoised by cfp_dev_sitemap_urls(), with a transient
+ * cache in front of the two API list calls.
+ *
+ * @return array[]
+ */
+function cfp_dev_resolve_sitemap_urls() {
 	$ttl = cfp_dev_get_cache_ttl();
 	$key = cfp_dev_group_cache_key( 'cfp_sitemap_urls' );
 
 	if ( $ttl > 0 ) {
 		$cached = get_transient( $key );
 		if ( false !== $cached ) {
-			$urls = $cached;
-			return $urls;
+			return $cached;
 		}
 	}
 
