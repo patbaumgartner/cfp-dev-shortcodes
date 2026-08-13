@@ -216,6 +216,53 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		$this->assertStringNotContainsString( 'onerror', $html );
 	}
 
+	public function test_search_results_without_a_query_still_offers_the_search_form(): void {
+		$html = cfp_search_results_shortcode();
+
+		$this->assertHtmlBalanced( $html, '[cfp_search_results] without a query' );
+		$this->assertStringContainsString( '<form', $html, 'visitors need a way to start a search' );
+		$this->assertSame( [], $this->httpLog(), 'an empty query must not hit the search API' );
+	}
+
+	public function test_schedule_renders_day_tabs_rooms_and_sessions(): void {
+		$this->registerScheduleApi();
+
+		$html = cfp_schedule_shortcode( [] );
+
+		$this->assertHtmlBalanced( $html, '[cfp_schedule]' );
+		$this->assertStringContainsString( 'Modern Java in Practice', $html );
+		$this->assertStringContainsString( 'Room 4', $html );
+		$this->assertStringContainsString( 'Jane Doe', $html );
+		$this->assertStringContainsString( '?id=Monday', $html );
+		$this->assertStringContainsString( '?id=Wednesday', $html );
+	}
+
+	public function test_schedule_rejects_a_day_that_is_not_a_weekday_name(): void {
+		$this->registerScheduleApi();
+		$this->queryVar( 'id', '../../etc/passwd' );
+
+		$html = cfp_schedule_shortcode( [] );
+
+		// Falls back to the event's first day rather than building an API path
+		// (and a transient key) out of arbitrary input.
+		$this->assertStringContainsString( 'cfp-active', $html );
+		$this->assertSame( 0, $this->apiCallCount( 'public/schedules/../../etc/passwd' ) );
+	}
+
+	public function test_schedule_reports_a_failing_event_endpoint(): void {
+		$this->api( 'public/event', null, 500 );
+
+		$this->assertSame( 'Failed to retrieve current event', cfp_schedule_shortcode( [] ) );
+	}
+
+	public function test_schedule_reports_a_missing_event_timezone(): void {
+		$event = Fixtures::event();
+		unset( $event['timezone'] );
+		$this->api( 'public/event', $event );
+
+		$this->assertSame( 'Event timezone is not set.', cfp_schedule_shortcode( [] ) );
+	}
+
 	public function test_shortcodes_are_registered_on_plugins_loaded(): void {
 		foreach (
 			[
@@ -229,6 +276,18 @@ final class ShortcodeRenderTest extends PluginTestCase {
 			] as $tag
 		) {
 			$this->assertTrue( shortcode_exists( $tag ), $tag . ' is not registered' );
+		}
+	}
+
+	/** Registers the event, rooms and per-day/per-room schedule endpoints. */
+	private function registerScheduleApi(): void {
+		$this->api( 'public/event', Fixtures::event() );
+		$this->api( 'public/rooms', Fixtures::rooms() );
+
+		foreach ( [ 'Monday', 'Tuesday', 'Wednesday' ] as $day ) {
+			$this->api( 'public/schedules/' . $day, Fixtures::daySchedule() );
+			$this->api( 'public/schedules/' . $day . '/1', Fixtures::roomSchedule() );
+			$this->api( 'public/schedules/' . $day . '/2', [] );
 		}
 	}
 }
