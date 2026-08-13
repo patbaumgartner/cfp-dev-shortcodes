@@ -237,6 +237,36 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		$this->assertStringContainsString( '?id=Wednesday', $html );
 	}
 
+	public function test_schedule_time_ruler_uses_the_event_timezone_and_the_viewed_day(): void {
+		$this->registerScheduleApi();
+		// A site in another timezone must not shift the schedule's own clock.
+		$this->siteTimezone( 'America/New_York' );
+
+		$html = cfp_schedule_shortcode( [] );
+
+		// Sessions run 07:00–09:20 UTC → 09:00–11:20 in Europe/Brussels.
+		preg_match_all( '#<time class="cfp-time" datetime="([^"]+)">([^<]+)</time>#', $html, $matches, PREG_SET_ORDER );
+		$labels = array_column( $matches, 2 );
+
+		$this->assertSame( '09:00', $labels[0] );
+		$this->assertSame( '09:10', $labels[1] );
+		$this->assertSame( '11:00', $labels[12] );
+
+		// The machine-readable timestamp must point at the day being viewed.
+		$this->assertSame( '2025-10-06T09:00:00+02:00', $matches[0][1] );
+	}
+
+	public function test_schedule_shows_a_tab_for_the_closing_day_even_when_it_ends_early(): void {
+		$event           = Fixtures::event();
+		$event['toDate'] = '2025-10-08T06:00:00Z'; // Ends before the daily start time.
+		$this->registerScheduleApi();
+		$this->api( 'public/event', $event );
+
+		$html = cfp_schedule_shortcode( [] );
+
+		$this->assertStringContainsString( '?id=Wednesday', $html, 'the closing day must still be listed' );
+	}
+
 	public function test_schedule_rejects_a_day_that_is_not_a_weekday_name(): void {
 		$this->registerScheduleApi();
 		$this->queryVar( 'id', '../../etc/passwd' );

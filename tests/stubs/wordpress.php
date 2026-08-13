@@ -612,8 +612,14 @@ function wp_get_document_title() {
 
 function wp_date( $format, $timestamp = null, $timezone = null ) {
 	$timestamp = $timestamp ?? time();
-	$tz        = $timezone instanceof DateTimeZone ? $timezone : new DateTimeZone( 'UTC' );
+	$tz        = $timezone instanceof DateTimeZone
+		? $timezone
+		: new DateTimeZone( WP_Test_State::$env['timezone'] ?? 'UTC' );
 	return ( new DateTimeImmutable( '@' . $timestamp ) )->setTimezone( $tz )->format( $format );
+}
+
+function wp_timezone() {
+	return new DateTimeZone( WP_Test_State::$env['timezone'] ?? 'UTC' );
 }
 
 // ─────────────────────────────────────────────────────────────────────────

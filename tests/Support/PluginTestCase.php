@@ -71,6 +71,11 @@ abstract class PluginTestCase extends TestCase {
 		WP_Test_State::$current_page = $slugs;
 	}
 
+	/** Sets the WordPress site timezone used by wp_date(). */
+	protected function siteTimezone( string $timezone ): void {
+		WP_Test_State::$env['timezone'] = $timezone;
+	}
+
 	/**
 	 * Registers a canned JSON response for a relative CFP.DEV API path.
 	 *
