@@ -104,9 +104,8 @@ if ( ! function_exists( 'cfp_speaker_details_shortcode' ) ) {
 		// speaker name containing quotes or </script> can never break the script.
 		$photos_url = add_query_arg(
 			[
-				'action'       => 'get_speaker_photos',
-				'speaker_id'   => absint( $speaker->id ),
-				'speaker_name' => rawurlencode( $speaker->firstName . ' ' . $speaker->lastName ),
+				'action'     => 'get_speaker_photos',
+				'speaker_id' => absint( $speaker->id ),
 			],
 			admin_url( 'admin-ajax.php' )
 		);
@@ -322,22 +321,14 @@ if ( ! function_exists( 'cfp_speaker_details_shortcode' ) ) {
 	 * Read-only endpoint — results are transient-cached per speaker.
 	 */
 	function get_speaker_photos() {
-		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- public read-only AJAX endpoint, no state change
-		$speakerId = isset( $_GET['speaker_id'] ) ? intval( $_GET['speaker_id'] ) : 0;
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only AJAX endpoint, no state change
+		$speakerId = isset( $_GET['speaker_id'] ) ? absint( wp_unslash( $_GET['speaker_id'] ) ) : 0;
 		if ( 0 === $speakerId ) {
 			wp_send_json_error( 'Invalid speaker ID' );
 			return;
 		}
 
-		$speakerName = sanitize_text_field( wp_unslash( $_GET['speaker_name'] ?? '' ) );
-		// phpcs:enable
-		if ( '' === $speakerName ) {
-			wp_send_json_error( 'Invalid speaker name' );
-			return;
-		}
-
-		$cache_key = generate_cfp_cache_key( 'photo', $speakerId );
-
+		$cache_key      = generate_cfp_cache_key( 'photo', $speakerId );
 		$cached_content = get_transient( $cache_key );
 
 		if ( false !== $cached_content ) {
@@ -346,20 +337,31 @@ if ( ! function_exists( 'cfp_speaker_details_shortcode' ) ) {
 			wp_die();
 		}
 
-		$photos = getJSONWithRetry( 'public/album/' . $speakerId );
+		// The speaker name is resolved from the API rather than taken from the
+		// request: it is baked into the gallery markup, and that markup is
+		// cached under the speaker id alone — so a caller-supplied name would
+		// be served to every later visitor of this speaker's page.
+		$speaker     = get_speaker_by_id( $speakerId );
+		$speakerName = ! empty( $speaker->firstName )
+			? trim( $speaker->firstName . ' ' . ( $speaker->lastName ?? '' ) )
+			: '';
 
-		$content = '';
-		if ( empty( $photos ) ) {
-			$content = '<p>No photos found</p>';
-		} else {
-			$content = displaySpeakerPhotos( $content, $photos, $speakerName );
-		}
+		$photos  = '' !== $speakerName ? getJSONWithRetry( 'public/album/' . $speakerId ) : null;
+		$content = empty( $photos )
+			? '<p>No photos found</p>'
+			: displaySpeakerPhotos( $photos, $speakerName );
 
-		// set_transient() with 0 would cache forever — skip caching when disabled.
 		$ttl = cfp_dev_get_cache_ttl();
-		if ( $ttl > 0 ) {
+		if ( empty( $photos ) ) {
+			// This endpoint is unauthenticated, so an uncached "no photos"
+			// answer turns every page refresh into two upstream requests.
+			// Misses are cached even when caching is switched off.
+			set_transient( $cache_key, $content, max( $ttl, 5 * MINUTE_IN_SECONDS ) );
+		} elseif ( $ttl > 0 ) {
+			// set_transient() with 0 would cache forever — skip caching when disabled.
 			set_transient( $cache_key, $content, $ttl );
 		}
+
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- plugin-generated HTML, escaped at build time
 		echo $content;
 		wp_die();
@@ -390,22 +392,21 @@ if ( ! function_exists( 'cfp_speaker_details_shortcode' ) ) {
 	/**
 	 * Renders the Flickr photo gallery for a speaker.
 	 *
-	 * @param string $content      Accumulated HTML to append to.
 	 * @param array  $photos       Album photos from the API.
-	 * @param string $speakerName  Display name (user input — escaped on output).
+	 * @param string $speakerName  Display name, resolved from the API.
 	 * @return string
 	 */
-	function displaySpeakerPhotos( $content, $photos, $speakerName ) {
-		$content .= '<section class="cfp-gallery">';
+	function displaySpeakerPhotos( $photos, $speakerName ) {
+		$speakerImageAlt = $speakerName . ' speaking at ' . cfp_dev_get_event_name();
+
+		$content  = '<section class="cfp-gallery">';
 		$content .= '    <div class="cfp-frame">';
 		foreach ( $photos as $photo ) {
 			if ( empty( $photo->thumbnailUrl ) ) {
 				continue;
 			}
-			$content        .= '<a href="' . esc_url( 'https://www.flickr.com/photos/bejug/' . $photo->photoId . '/in/album-' . $photo->albumId . '/' ) . '" target="_blank" rel="noopener noreferrer">';
-			$speakerImageAlt = $speakerName . ' speaking at ' . cfp_dev_get_event_name();
-			// esc_attr is critical: $speakerName arrives from a public GET parameter.
-			$content .= '<img class="cfp-picture" src="' . esc_url( $photo->thumbnailUrl ) . '" alt="' . esc_attr( $speakerImageAlt ) . '">';
+			$content .= '<a href="' . esc_url( 'https://www.flickr.com/photos/bejug/' . $photo->photoId . '/in/album-' . $photo->albumId . '/' ) . '" target="_blank" rel="noopener noreferrer">';
+			$content .= '<img class="cfp-picture" src="' . esc_url( $photo->thumbnailUrl ) . '" alt="' . esc_attr( $speakerImageAlt ) . '" loading="lazy">';
 			$content .= '</a>';
 		}
 		$content .= '    </div>';
