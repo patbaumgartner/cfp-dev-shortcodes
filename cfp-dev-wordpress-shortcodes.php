@@ -275,7 +275,8 @@ function cfp_dev_page_header( string $title, string $subtitle = '', bool $show_s
  * @param string $view  Optional view key, e.g. 'detail'.
  */
 function cfp_dev_root_class_script( string $page, string $view = '' ): string {
-	$classes = [ 'cfp-html', 'cfp-page:' . $page, 'cfp-theme:' . get_option( 'cfp_dev_default_theme', 'dark' ) ];
+	$theme   = cfp_dev_option_choice( get_option( 'cfp_dev_default_theme', 'dark' ), [ 'light', 'dark' ], 'dark' );
+	$classes = [ 'cfp-html', 'cfp-page:' . $page, 'cfp-theme:' . $theme ];
 	if ( '' !== $view ) {
 		$classes[] = 'cfp-view:' . $view;
 	}
@@ -325,6 +326,158 @@ function cfp_dev_plugin_menu() {
 
 add_action( 'admin_menu', 'cfp_dev_plugin_menu' );
 
+/**
+ * Returns $value when it is one of $allowed, otherwise $fallback.
+ *
+ * Settings that feed URLs, CSS classes or API paths must never store an
+ * arbitrary string just because an administrator submitted one.
+ *
+ * @param mixed    $value     Submitted value.
+ * @param string[] $allowed   Accepted values (lowercase).
+ * @param string   $fallback  Value to use when the input is not accepted.
+ */
+function cfp_dev_option_choice( $value, array $allowed, string $fallback ): string {
+	$value = strtolower( trim( (string) $value ) );
+	return in_array( $value, $allowed, true ) ? $value : $fallback;
+}
+
+/**
+ * Normalises the URL path prefix to slash-separated slugs.
+ *
+ * The prefix is interpolated into rewrite-rule *regular expressions*, so
+ * characters like `.` or `(` would silently change which URLs match.
+ *
+ * @param mixed $value  Submitted prefix, e.g. ' /Trieste/ '.
+ */
+function cfp_dev_sanitize_path_prefix( $value ): string {
+	$segments = array_filter( array_map( 'sanitize_title', explode( '/', (string) $value ) ) );
+	return implode( '/', $segments );
+}
+
+/**
+ * Whether the light/dark footer toggle is enabled.
+ *
+ * Migrates the pre-4.5.0 unprefixed `enable_theme_switch` option, which
+ * squatted on a name any other plugin could have been using.
+ */
+function cfp_dev_theme_switch_enabled(): bool {
+	$enabled = get_option( 'cfp_dev_enable_theme_switch', false );
+
+	if ( false === $enabled ) {
+		$legacy = get_option( 'enable_theme_switch', false );
+		if ( false !== $legacy ) {
+			$enabled = $legacy;
+			update_option( 'cfp_dev_enable_theme_switch', (int) (bool) $legacy );
+			delete_option( 'enable_theme_switch' );
+		}
+	}
+
+	return (bool) $enabled;
+}
+
+/**
+ * Applies a settings-page submission.
+ *
+ * @param array $post  Unslashed POST payload (nonce and capability already verified).
+ * @return string  Admin notice to display, or '' when there is nothing to report.
+ */
+function cfp_dev_handle_settings_post( array $post ): string {
+	if ( isset( $post['delete_cache'] ) ) {
+		return cfp_dev_handle_cache_deletion( $post );
+	}
+
+	if ( isset( $post['cfp_dev_offline_mode_save'] ) ) {
+		cfp_dev_handle_offline_mode( isset( $post['cfp_dev_offline_mode'] ) );
+		return '';
+	}
+
+	if ( ! isset( $post['cfp_dev_key'] ) ) {
+		return '';
+	}
+
+	storeCfpDevKey( sanitize_text_field( $post['cfp_dev_key'] ) );
+	storeCfpDevEventName( sanitize_text_field( $post['cfp_dev_event_name'] ?? '' ) );
+	storeCfpDevCache( sanitize_text_field( $post['cfp_dev_cache'] ?? '0' ) );
+
+	update_option( 'cfp_dev_default_theme', cfp_dev_option_choice( $post['cfp_dev_default_theme'] ?? '', [ 'light', 'dark' ], 'dark' ) );
+	update_option( 'cfp_dev_content_by_id', cfp_dev_option_choice( $post['cfp_dev_content_by_id'] ?? '', [ 'yes', 'no' ], 'yes' ) );
+	update_option( 'cfp_dev_show_rooms', cfp_dev_option_choice( $post['cfp_dev_show_rooms'] ?? '', [ 'yes', 'no' ], 'yes' ) );
+
+	// An unchecked checkbox is absent from the payload, so it is read off the
+	// form as a whole rather than tested for its own presence.
+	update_option( 'cfp_dev_enable_theme_switch', isset( $post['enable_theme_switch'] ) ? 1 : 0 );
+	delete_option( 'enable_theme_switch' );
+
+	$new_prefix = cfp_dev_sanitize_path_prefix( $post['cfp_dev_path_prefix'] ?? '' );
+	if ( get_option( 'cfp_dev_path_prefix', '' ) !== $new_prefix ) {
+		update_option( 'cfp_dev_path_prefix', $new_prefix );
+		// Rewrite rules embed the prefix — rebuild them right away.
+		cfp_dev_add_rewrite_rules();
+		flush_rewrite_rules();
+	}
+
+	clearCache();
+	return 'Settings saved.';
+}
+
+/**
+ * Deletes the cache entry addressed by a "Delete Cache" form.
+ *
+ * @param array $post  Unslashed POST payload.
+ * @return string  Admin notice.
+ */
+function cfp_dev_handle_cache_deletion( array $post ): string {
+	$cache_type = sanitize_key( $post['delete_cache'] );
+
+	if ( 'speakers' === $cache_type ) {
+		delete_transient( cfp_dev_speakers_cache_key( cfp_dev_speakers_default_atts() ) );
+		return 'Speakers cache deleted.';
+	}
+
+	if ( 'schedule' === $cache_type ) {
+		$day = sanitize_key( $post['cache_day'] ?? '' );
+		if ( ! in_array( $day, [ 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday' ], true ) ) {
+			return '';
+		}
+		delete_transient( cfp_dev_group_cache_key( 'cfp_schedule_' . ucfirst( $day ) ) );
+		return 'Schedule cache for ' . ucfirst( $day ) . ' deleted.';
+	}
+
+	if ( in_array( $cache_type, [ 'speaker', 'talk' ], true ) && isset( $post['cache_id'] ) ) {
+		$cache_id = sanitize_text_field( $post['cache_id'] );
+		delete_transient( generate_cfp_cache_key( $cache_type, $cache_id ) );
+		delete_transient( generate_cfp_cache_key( 'photo', $cache_id ) );
+		return 'Cache deleted for ' . $cache_type . ' with ID: ' . $cache_id . ' (including any photo cache).';
+	}
+
+	return '';
+}
+
+/**
+ * Applies the offline-mode checkbox. Enabling starts a crawl; offline mode
+ * itself is switched on when that crawl completes.
+ *
+ * @param bool $enable  Whether the checkbox was submitted as checked.
+ */
+function cfp_dev_handle_offline_mode( bool $enable ): void {
+	$was_enabled  = 1 === (int) get_option( 'cfp_dev_offline_mode', 0 );
+	$crawl_status = get_option( 'cfp_dev_crawl_state', [] )['status'] ?? 'idle';
+	$crawling     = in_array( $crawl_status, [ 'running', 'pending' ], true );
+
+	if ( ! $enable ) {
+		update_option( 'cfp_dev_offline_mode', 0 );
+		if ( $was_enabled ) {
+			// Rendered HTML still points at snapshot URLs — re-render from live API.
+			clearCache();
+		}
+		return;
+	}
+
+	if ( ! $was_enabled && ! $crawling ) {
+		cfp_dev_start_crawl();
+	}
+}
+
 /** Renders the CFP.DEV settings page. */
 function cfp_dev_plugin_options() {
 	if ( ! current_user_can( 'manage_options' ) ) {
@@ -336,106 +489,10 @@ function cfp_dev_plugin_options() {
 		wp_die( esc_html__( 'Security check failed.', 'cfp-dev-shortcodes' ) );
 	}
 
-	$hidden_field_name = 'cfp_dev_clear_cache';
-
-	if ( isset( $_POST[ $hidden_field_name ] ) && 'Y' === $_POST[ $hidden_field_name ] ) {
-		clearCache();
-	}
-
-	if ( isset( $_POST['cfp_dev_key'] ) ) {
-		storeCfpDevKey( sanitize_text_field( wp_unslash( $_POST['cfp_dev_key'] ) ) );
-		clearCache();
-	}
-
-	if ( isset( $_POST['cfp_dev_event_name'] ) ) {
-		storeCfpDevEventName( sanitize_text_field( wp_unslash( $_POST['cfp_dev_event_name'] ) ) );
-		clearCache();
-	}
-
-	if ( isset( $_POST['cfp_dev_cache'] ) ) {
-		storeCfpDevCache( sanitize_text_field( wp_unslash( $_POST['cfp_dev_cache'] ) ) );
-		clearCache();
-	}
-
-	if ( isset( $_POST['cfp_dev_default_theme'] ) ) {
-		update_option( 'cfp_dev_default_theme', sanitize_text_field( wp_unslash( $_POST['cfp_dev_default_theme'] ) ) );
-	}
-
-	// Checkbox: only present in POST when checked — key off the main form marker so unchecking persists too.
-	if ( isset( $_POST['cfp_dev_key'] ) ) {
-		update_option( 'enable_theme_switch', isset( $_POST['enable_theme_switch'] ) ? 1 : 0 );
-	}
-
-	if ( isset( $_POST['cfp_dev_path_prefix'] ) ) {
-		$new_prefix = sanitize_text_field( wp_unslash( $_POST['cfp_dev_path_prefix'] ) );
-		if ( get_option( 'cfp_dev_path_prefix', '' ) !== $new_prefix ) {
-			update_option( 'cfp_dev_path_prefix', $new_prefix );
-			// Rewrite rules embed the prefix — rebuild them right away.
-			cfp_dev_add_rewrite_rules();
-			flush_rewrite_rules();
-		}
-	}
-
-	if ( isset( $_POST['cfp_dev_content_by_id'] ) ) {
-		update_option( 'cfp_dev_content_by_id', sanitize_text_field( wp_unslash( $_POST['cfp_dev_content_by_id'] ) ) );
-	}
-
-	if ( isset( $_POST['cfp_dev_show_rooms'] ) ) {
-		update_option( 'cfp_dev_show_rooms', sanitize_text_field( wp_unslash( $_POST['cfp_dev_show_rooms'] ) ) );
-	}
-
-	// Handle offline mode form submission.
-	if ( isset( $_POST['cfp_dev_offline_mode_save'] ) ) {
-		$new_offline  = isset( $_POST['cfp_dev_offline_mode'] ) ? 1 : 0;
-		$old_offline  = get_option( 'cfp_dev_offline_mode', 0 );
-		$crawl_status = ( get_option( 'cfp_dev_crawl_state', [] )['status'] ) ?? 'idle';
-
-		if ( 0 === $new_offline ) {
-			// Unchecked → disable offline mode (keep snapshot data).
-			update_option( 'cfp_dev_offline_mode', 0 );
-			// Rendered HTML still points at snapshot URLs — re-render from live API.
-			if ( 1 === (int) $old_offline ) {
-				clearCache();
-			}
-		} elseif ( 1 === $new_offline && 0 === (int) $old_offline && ! in_array( $crawl_status, [ 'running', 'pending' ], true ) ) {
-			// Newly checked and no crawl already running → start a fresh crawl.
-			// Offline mode is activated automatically when the crawl completes.
-			cfp_dev_start_crawl();
-		}
-	}
-
-	// Process cache deletion BEFORE rendering the tables so the page reflects the new state.
-	$cache_notice = '';
-	if ( isset( $_POST['delete_cache'] ) ) {
-		$cache_type = sanitize_key( wp_unslash( $_POST['delete_cache'] ) );
-
-		switch ( $cache_type ) {
-			case 'speakers':
-				delete_transient( cfp_dev_speakers_cache_key( cfp_dev_speakers_default_atts() ) );
-				$cache_notice = 'Speakers cache deleted.';
-				break;
-			case 'schedule':
-				if ( isset( $_POST['cache_day'] ) ) {
-					$day = sanitize_key( wp_unslash( $_POST['cache_day'] ) );
-					if ( in_array( $day, [ 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday' ], true ) ) {
-						delete_transient( cfp_dev_group_cache_key( 'cfp_schedule_' . ucfirst( $day ) ) );
-						$cache_notice = 'Schedule cache for ' . ucfirst( $day ) . ' deleted.';
-					}
-				}
-				break;
-			case 'speaker':
-			case 'talk':
-				if ( isset( $_POST['cache_id'] ) ) {
-					$cache_id = sanitize_text_field( wp_unslash( $_POST['cache_id'] ) );
-
-					delete_transient( generate_cfp_cache_key( $cache_type, $cache_id ) );
-					delete_transient( generate_cfp_cache_key( 'photo', $cache_id ) );
-
-					$cache_notice = 'Cache deleted for ' . $cache_type . ' with ID: ' . $cache_id . ' (including any photo cache).';
-				}
-				break;
-		}
-	}
+	// Nonce and capability are verified above; every field is sanitised inside
+	// the handler, which takes the payload as an argument so it stays testable.
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+	$cache_notice = empty( $_POST ) ? '' : cfp_dev_handle_settings_post( wp_unslash( $_POST ) );
 
 	echo '<div class="wrap">';
 	echo '<h1>CFP.DEV Settings</h1>';
@@ -511,7 +568,7 @@ function cfp_dev_plugin_options() {
 		  </tr>';
 	echo '<tr>
 			<th scope="row"><label>Enable Theme Switching</label></th>
-			<td><input type="checkbox" name="enable_theme_switch" value="1" ' . checked( 1, get_option( 'enable_theme_switch' ), false ) . ' /></td>
+			<td><input type="checkbox" name="enable_theme_switch" value="1" ' . checked( true, cfp_dev_theme_switch_enabled(), false ) . ' /></td>
 		  </tr>';
 	echo '</table>';
 	echo '<p class="submit"><input type="submit" name="Submit" class="button-primary" value="Save Changes" /></p>';
@@ -791,7 +848,7 @@ function clearCache() {
  * Theme-switch footer (empty string when switching is disabled).
  */
 function getFooter() {
-	if ( get_option( 'enable_theme_switch', false ) ) {
+	if ( cfp_dev_theme_switch_enabled() ) {
 		$content  = '<footer class="cfp-footer">';
 		$content .= '	<div class="cfp-theme">';
 		$content .= '    	<a id="lightTheme" class="cfp-a cfp-light" data-theme-key="light">Light</a>';
