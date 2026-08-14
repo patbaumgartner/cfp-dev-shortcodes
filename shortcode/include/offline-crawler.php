@@ -810,19 +810,28 @@ function cfp_dev_do_crawl(): void {
 	$done              = 0;
 
 	foreach ( $image_url_map as $ext_url => $local_filename ) {
-		$dest      = $snapshot . '/images/' . $local_filename;
-		$local_url = cfp_dev_offline_url() . '/' . $snapshot_name . '/images/' . $local_filename;
+		$dest = $snapshot . '/images/' . $local_filename;
 
-		if ( ! file_exists( $dest ) ) {
-			cfp_dev_download_image( $ext_url, $dest, $fetch_log, $error_count );
-		} else {
+		if ( file_exists( $dest ) ) {
 			$fetch_log[] = [
 				'url'    => $ext_url,
 				'status' => 'cached',
 			];
+			$available   = true;
+		} else {
+			$available = cfp_dev_download_image( $ext_url, $dest, $fetch_log, $error_count );
 		}
 
-		$image_url_rewrite[ $ext_url ] = $local_url;
+		/*
+		 * Only rewrite once the bytes are actually on disk. Rewriting
+		 * unconditionally pointed the snapshot at files the crawl had failed to
+		 * write, turning a working CDN image into a permanent 404 — and the
+		 * external URL it replaced was gone, so nothing could fall back to it.
+		 */
+		if ( $available ) {
+			$image_url_rewrite[ $ext_url ] = cfp_dev_offline_url() . '/' . $snapshot_name . '/images/' . $local_filename;
+		}
+
 		++$done;
 		if ( 0 === $done % 5 ) {
 			cfp_dev_update_crawl_state(
