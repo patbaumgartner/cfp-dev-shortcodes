@@ -2,10 +2,10 @@
 
 [![PHP Lint](https://github.com/patbaumgartner/cfp-dev-shortcodes/actions/workflows/lint.yml/badge.svg)](https://github.com/patbaumgartner/cfp-dev-shortcodes/actions/workflows/lint.yml)
 [![Tests](https://github.com/patbaumgartner/cfp-dev-shortcodes/actions/workflows/tests.yml/badge.svg)](https://github.com/patbaumgartner/cfp-dev-shortcodes/actions/workflows/tests.yml)
-[![PHP Version](https://img.shields.io/badge/PHP-%3E%3D8.0-8892BF?logo=php)](https://php.net)
+[![PHP Version](https://img.shields.io/badge/PHP-%3E%3D8.1-8892BF?logo=php)](https://php.net)
 [![WordPress](https://img.shields.io/badge/WordPress-6.0%2B-21759B?logo=wordpress)](https://wordpress.org)
 [![License: GPL v2+](https://img.shields.io/badge/License-GPL%20v2%2B-blue.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
-[![Stable Tag](https://img.shields.io/badge/stable-4.5.0-brightgreen)](https://github.com/patbaumgartner/cfp-dev-shortcodes/releases)
+[![Stable Tag](https://img.shields.io/badge/stable-4.6.0-brightgreen)](https://github.com/patbaumgartner/cfp-dev-shortcodes/releases)
 
 > WordPress shortcodes plugin for [CFP.DEV](https://cfp.dev) — display speakers, talks, schedules, and search results from your CFP.DEV instance directly on your WordPress site (Devoxx, VoxxedDays, and more).
 
@@ -26,6 +26,8 @@
 - **Theming** — light / dark theme with optional user toggle, applied before first paint
 - **Lightweight** — no jQuery, and the stylesheet and script load only on pages that actually use a shortcode
 - **Admin UI** — API key, event settings, per-item cache management, offline crawl progress
+- **Translatable** — every user-facing string is localisable; a `.pot` template ships in `languages/`
+- **Accessible** — labelled search, keyboard-operable theme toggle, named social links
 
 ---
 
@@ -33,7 +35,7 @@
 
 | Requirement | Version |
 |-------------|---------|
-| PHP | ≥ 8.0 |
+| PHP | ≥ 8.1 |
 | WordPress | ≥ 6.0 |
 | CFP.DEV instance | any |
 
@@ -283,7 +285,9 @@ No configuration is needed — the metadata is plain HTML attributes and is igno
 ## Uninstall
 
 Deleting the plugin through the WordPress admin removes all of its data:
-settings, cached transients, and offline snapshot files.
+settings, cached transients, any scheduled crawl, and offline snapshot files.
+On a multisite network every site is cleaned, not only the one the deletion
+was triggered from.
 
 ---
 
@@ -291,7 +295,7 @@ settings, cached transients, and offline snapshot files.
 
 ### Prerequisites
 
-- PHP ≥ 8.0
+- PHP ≥ 8.1
 - [Composer](https://getcomposer.org)
 
 ### Setup
@@ -328,7 +332,8 @@ tests/
   bootstrap.php            boots the stand-in, then the plugin
   stubs/wordpress.php      the WordPress functions the plugin uses
   Support/                 base test case, fixtures shaped like real API responses
-  Unit/                    helpers, API client, settings, SEO, offline mode, structure
+  Unit/                    helpers, API client, settings, SEO, offline mode,
+                           uninstall, structure
   Integration/             end-to-end rendering of every shortcode
 ```
 
@@ -342,9 +347,22 @@ GitHub Actions runs on every push and pull request to `main`:
 
 | Workflow | What it does |
 |----------|--------------|
-| `lint.yml` | `php -l` on PHP 8.0 (the declared minimum) and 8.4, plus PHPCS |
+| `lint.yml` | `php -l` on PHP 8.1 (the declared minimum) and 8.4, plus PHPCS |
 | `tests.yml` | PHPUnit on PHP 8.1, 8.2, 8.3 and 8.4 |
-| `release.yml` | On a `v*` tag: verifies the plugin header, `CFP_DEV_VERSION` and the CHANGELOG all match the tag, builds the ZIP, and fails if dev files leak into it |
+| `release.yml` | On a `v*` tag: runs `composer check`, verifies the tag is on `main` and that the plugin header, `CFP_DEV_VERSION` and the CHANGELOG all match it, builds the ZIP with `git archive`, fails if dev files leak in or runtime files are missing, and publishes it with a SHA-256 checksum and build provenance |
+
+---
+
+## Translations
+
+All user-facing strings are translatable under the `cfp-dev-shortcodes` text
+domain. The template lives at `languages/cfp-dev-shortcodes.pot`.
+
+To add a language, place a compiled `.mo` file next to it:
+
+```
+languages/cfp-dev-shortcodes-nl_NL.mo
+```
 
 ---
 
