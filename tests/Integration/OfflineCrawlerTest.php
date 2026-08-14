@@ -127,6 +127,23 @@ final class OfflineCrawlerTest extends PluginTestCase {
 		$this->assertSame( 1, $errors );
 	}
 
+	/**
+	 * The snapshot is served from the site's own origin, so an SVG published
+	 * there is same-origin script waiting for a visit — which is why
+	 * WordPress core refuses SVG uploads. The URL comes from a service the
+	 * plugin does not control, so the served type is not a reason to trust it.
+	 */
+	public function test_an_svg_response_is_not_published_under_the_site_origin(): void {
+		$snapshot = $this->makeSnapshotDir();
+		$log      = [];
+		$errors   = 0;
+		$this->image( 'https://cdn.test/logo.svg', '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>', 'image/svg+xml' );
+
+		$this->assertFalse( cfp_dev_download_image( 'https://cdn.test/logo.svg', $snapshot . '/images/l.svg', $log, $errors ) );
+		$this->assertFileDoesNotExist( $snapshot . '/images/l.svg' );
+		$this->assertSame( 1, $errors );
+	}
+
 	public function test_an_image_on_a_private_address_is_not_fetched(): void {
 		$snapshot = $this->makeSnapshotDir();
 		$log      = [];
