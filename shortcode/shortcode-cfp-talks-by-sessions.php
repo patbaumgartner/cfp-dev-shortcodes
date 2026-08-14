@@ -41,20 +41,13 @@ if ( ! function_exists( 'cfp_dev_talks_by_sessions_shortcode' ) ) {
 		// absint: the id is user input and becomes part of API paths and cache keys.
 		$session_id = absint( get_query_var( 'id' ) );
 
-		$ttl = cfp_dev_get_cache_ttl();
-		if ( 0 === $ttl ) {
-			return cfp_dev_render_talks_by_sessions( $session_id, $_atts );
-		}
-
-		$_cache_group = cfp_dev_group_cache_key( 'talks_by_sessions_cache_group_' . $session_id . cfp_dev_atts_cache_suffix( $_atts, $defaults ) );
-		$cache        = get_transient( $_cache_group );
-		if ( false === $cache ) {
-			$content = cfp_dev_render_talks_by_sessions( $session_id, $_atts );
-			set_transient( $_cache_group, $content, $ttl );
-		} else {
-			$content = $cache;
-		}
-		return $content;
+		return cfp_dev_cached_markup(
+			cfp_dev_group_cache_key( 'talks_by_sessions_cache_group_' . $session_id . cfp_dev_atts_cache_suffix( $_atts, $defaults ) ),
+			static function () use ( $session_id, $_atts ) {
+				return cfp_dev_render_talks_by_sessions( $session_id, $_atts );
+			},
+			cfp_dev_root_class_script( 'session' ) . '<div class="cfp-main"><section class="cfp-list">' . cfp_dev_render_no_session_types() . '</section></div>'
+		);
 	}
 
 	/**
@@ -63,84 +56,82 @@ if ( ! function_exists( 'cfp_dev_talks_by_sessions_shortcode' ) ) {
 	 *
 	 * @param int   $session_id  Selected session-type id (0 → first non-pause type).
 	 * @param array $_atts      Normalised shortcode attributes (title, hide_title, hide_search).
-	 * @return string
+	 * @return string|null  Null when the session-type list could not be fetched.
 	 */
 	function cfp_dev_render_talks_by_sessions( $session_id, $_atts = [] ) {
 		$sessions = cfp_dev_get_json( 'public/session-types' );
 
-		$session_descr = '';
+		if ( empty( $sessions ) || ! is_array( $sessions ) ) {
+			return null;
+		}
 
-		if ( ! empty( $sessions ) && is_array( $sessions ) ) {
-			if ( empty( $session_id ) ) {
-				foreach ( $sessions as $session ) {
-					if ( ! $session->pause ) {
-						$session_id    = $session->id;
-						$session_descr = $session->description ?? '';
-						break;
-					}
-				}
-			} else {
-				foreach ( $sessions as $session ) {
-					if ( absint( $session->id ) === $session_id ) {
-						$session_descr = $session->description ?? '';
-						break;
-					}
-				}
+		// Without a selection, the first type that is not a break is shown.
+		// `pause` is optional in the response, so its absence means "not a break"
+		// rather than an undefined-property notice.
+		$session_descr = '';
+		foreach ( $sessions as $session ) {
+			$is_candidate = empty( $session_id )
+				? empty( $session->pause )
+				: absint( $session->id ?? 0 ) === absint( $session_id );
+
+			if ( $is_candidate ) {
+				$session_id    = absint( $session->id ?? 0 );
+				$session_descr = (string) ( $session->description ?? '' );
+				break;
 			}
 		}
 
-		// Get talks by session type.
-		$talks = ! empty( $session_id ) ? cfp_dev_get_json( 'public/talks/session-type/' . absint( $session_id ) ) : null;
+		$talks = $session_id ? cfp_dev_get_json( 'public/talks/session-type/' . absint( $session_id ) ) : null;
+		$title = empty( $_atts['hide_title'] ) ? (string) ( $_atts['title'] ?? __( 'Talks grouped by Session Types', 'cfp-dev-shortcodes' ) ) : '';
 
-		$content = cfp_dev_root_class_script( 'session' );
-
+		$content  = cfp_dev_root_class_script( 'session' );
 		$content .= '<div class="cfp-main">';
-
 		$content .= '<section class="cfp-list">';
 
-		if ( ! empty( $sessions ) ) {
-
-			$title = empty( $_atts['hide_title'] ) ? (string) ( $_atts['title'] ?? __( 'Talks grouped by Session Types', 'cfp-dev-shortcodes' ) ) : '';
-
-			$content .= '<div class="cfp-subject">';
-			$content .= cfp_dev_page_header( $title, '', empty( $_atts['hide_search'] ) );
-			$content .= '    <nav class="cfp-filter">';
-			foreach ( $sessions as $session ) {
-
-				if ( $session->pause ) {
-					continue;
-				}
-
-				$is_active = ( absint( $session->id ) === absint( $session_id ) ) ? 'cfp-active' : '';
-
-				$content .= '<a class="cfp-a ' . $is_active . '" href="' . esc_url( '?id=' . absint( $session->id ) ) . '">';
-				$content .= esc_html( $session->name ) . '</a>';
+		$content .= '<div class="cfp-subject">';
+		$content .= cfp_dev_page_header( $title, '', empty( $_atts['hide_search'] ) );
+		$content .= '    <nav class="cfp-filter">';
+		foreach ( $sessions as $session ) {
+			if ( ! empty( $session->pause ) ) {
+				continue;
 			}
-			$content .= '    </nav>';
+			$is_active = ( absint( $session->id ?? 0 ) === absint( $session_id ) ) ? 'cfp-active' : '';
 
-		} else {
-			$content .= '<div class="dev-cfp-row">';
-			$content .= '    <div class="dev-cfp-column">';
-			$content .= '        <p>' . esc_html__( 'No session types found', 'cfp-dev-shortcodes' ) . '</p>';
-			$content .= '    </div>';
+			$content .= '<a class="cfp-a ' . $is_active . '" href="' . esc_url( '?id=' . absint( $session->id ?? 0 ) ) . '">';
+			$content .= esc_html( (string) ( $session->name ?? '' ) ) . '</a>';
 		}
+		$content .= '    </nav>';
 		$content .= '</div>';
 
 		$content .= '<div class="cfp-group">';
-		$content .= '    <div class="cfp-foreword">';
-		$content .= '       <div class="cfp-text">' . wp_kses_post( (string) $session_descr ) . '</div>';
-		$content .= '    </div>';
+		if ( '' !== $session_descr ) {
+			$content .= '    <div class="cfp-foreword">';
+			$content .= '       <div class="cfp-text">' . wp_kses_post( $session_descr ) . '</div>';
+			$content .= '    </div>';
+		}
 
 		$content .= cfp_dev_talk_table_heading();
 		$content .= cfp_dev_talk_table_rows( $talks );
 
 		$content .= '</div>';
-
 		$content .= '</section>';
 		$content .= '</div>';
-
 		$content .= cfp_dev_footer();
 
+		return $content;
+	}
+
+	/**
+	 * Renders the "no session types found" placeholder.
+	 *
+	 * @return string
+	 */
+	function cfp_dev_render_no_session_types() {
+		$content  = '<div class="dev-cfp-row">';
+		$content .= '    <div class="dev-cfp-column">';
+		$content .= '        <p>' . esc_html__( 'No session types found', 'cfp-dev-shortcodes' ) . '</p>';
+		$content .= '    </div>';
+		$content .= '</div>';
 		return $content;
 	}
 }

@@ -516,6 +516,62 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		);
 	}
 
+	/**
+	 * A failure and an absence look the same to a reader but must not be
+	 * cached the same. Storing the failure page meant one minute of API
+	 * downtime replaced a real talk with "Talk not found" for the whole cache
+	 * period — up to a month on the longest TTL, with nothing a visitor could
+	 * do to clear it.
+	 *
+	 * @dataProvider outageProvider
+	 */
+	public function test_an_api_outage_is_not_cached_as_a_missing_page(
+		string $shortcode,
+		string $failing_path,
+		array $payload,
+		string $failure_text,
+		string $recovered_text
+	): void {
+		$this->registerDefaultApi();
+		$this->option( 'cfp_dev_cache_duration', WEEK_IN_SECONDS );
+		$this->queryVar( 'id', 200 );
+
+		$this->api( $failing_path, null, 503 );
+		$this->assertStringContainsString( $failure_text, $shortcode( [] ) );
+
+		// The API comes back.
+		$this->api( $failing_path, $payload );
+		cfp_dev_flush_request_cache();
+
+		$this->assertStringContainsString(
+			$recovered_text,
+			$shortcode( [] ),
+			'the outage was cached and outlived itself'
+		);
+	}
+
+	public static function outageProvider(): array {
+		return [
+			'talk detail'    => [ 'cfp_dev_talk_details_shortcode', 'public/talks/200', Fixtures::talkDetail( 200 ), 'Talk not found.', 'Modern Java in Practice' ],
+			'speaker grid'   => [ 'cfp_dev_speakers_shortcode', 'public/speakers?size=300', Fixtures::speakers(), 'No speakers found.', 'Jane Doe' ],
+			'talks by track' => [ 'cfp_dev_talks_by_tracks_shortcode', 'public/tracks', Fixtures::tracks(), 'No tracks found', 'Java' ],
+		];
+	}
+
+	/** An event with genuinely no speakers is an answer, and answers cache. */
+	public function test_an_empty_speaker_list_is_cached_like_any_other_answer(): void {
+		$this->option( 'cfp_dev_cache_duration', HOUR_IN_SECONDS );
+		$this->api( 'public/speakers?size=300', [] );
+
+		$this->assertStringContainsString( 'No speakers found.', cfp_dev_speakers_shortcode( [] ) );
+
+		\WP_Test_State::$http_log = [];
+		cfp_dev_flush_request_cache();
+
+		cfp_dev_speakers_shortcode( [] );
+		$this->assertSame( [], $this->httpLog(), 'an empty list is a real answer and should be served from cache' );
+	}
+
 	public function test_shortcodes_are_registered_on_plugins_loaded(): void {
 		foreach (
 			[

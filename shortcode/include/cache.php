@@ -51,6 +51,42 @@ function cfp_dev_flush_request_cache(): void {
 	$cache = [];
 }
 
+/**
+ * Returns the cached markup for $key, rendering it on a miss.
+ *
+ * $render returns null to mean "this is a failure, not an absence". The
+ * fallback is shown, but nothing is stored — otherwise a minute of API
+ * downtime pins "not found" on a real talk for the whole cache period, which
+ * on the longest TTL is a month, and no visitor can clear it.
+ *
+ * @param string   $key       Versioned transient key.
+ * @param callable $render    Produces the markup, or null when the data could
+ *                            not be fetched.
+ * @param string   $fallback  Markup to show when $render reports a failure.
+ */
+function cfp_dev_cached_markup( string $key, callable $render, string $fallback ): string {
+	$ttl = cfp_dev_get_cache_ttl();
+
+	if ( $ttl > 0 ) {
+		$cached = get_transient( $key );
+		if ( is_string( $cached ) ) {
+			return $cached;
+		}
+	}
+
+	$content = $render();
+
+	if ( null === $content ) {
+		return $fallback;
+	}
+
+	if ( $ttl > 0 ) {
+		set_transient( $key, $content, $ttl );
+	}
+
+	return $content;
+}
+
 /** Version suffix appended to every transient key (see cfp_dev_clear_cache()). */
 function cfp_dev_cache_salt(): string {
 	return '_v' . (int) get_option( 'cfp_dev_cache_version', 1 );
