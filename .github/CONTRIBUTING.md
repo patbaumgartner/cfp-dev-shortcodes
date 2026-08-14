@@ -12,6 +12,8 @@ Please be respectful and constructive in all interactions. We follow the [Contri
 
 ## Getting Started
 
+This project requires PHP 8.1 or later.
+
 ```bash
 git clone https://github.com/patbaumgartner/cfp-dev-shortcodes.git
 cd cfp-dev-shortcodes
@@ -25,7 +27,7 @@ composer install
 All PHP must pass [PHP_CodeSniffer](https://github.com/squizlabs/PHP_CodeSniffer) with the [WordPress Coding Standards](https://developer.wordpress.org/coding-standards/wordpress-coding-standards/):
 
 ```bash
-composer lint        # check
+composer check       # lint and test
 composer lint-fix    # auto-fix
 ```
 
@@ -47,8 +49,8 @@ Key rules:
    git checkout -b feature/my-improvement
    ```
 2. Make your changes and commit with a clear message.
-3. Run `composer lint` — fix any issues.
-4. Update `ChangeLog.md` under the appropriate version heading.
+3. Run `composer check` — fix any issues.
+4. Update `CHANGELOG.md` under the appropriate version heading.
 5. Update `README.md` if you changed or added shortcodes / settings.
 6. Open a pull request against `main` using the PR template.
 

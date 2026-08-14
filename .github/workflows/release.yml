@@ -5,12 +5,49 @@ on:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  build:
-    name: Build & publish release
+  verify:
+    name: Verify release candidate
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # needed to create the GitHub Release
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Verify the tagged commit is on main
+        run: |
+          git fetch origin main --tags --force
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: '8.3'
+          tools: composer
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Run quality checks
+        run: composer check
+
+  build:
+    name: Build & publish release
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
 
     steps:
       - name: Checkout
@@ -50,41 +87,45 @@ jobs:
           fi
           exit "$fail"
 
-      - name: Build ZIP (production files only, no vendor/ or dev artifacts)
+      - name: Build and verify release ZIP
         run: |
           SLUG="${{ steps.meta.outputs.slug }}"
           ZIP="${{ steps.meta.outputs.zip }}"
 
-          # Assemble the production tree under a directory named after the slug
-          # so WordPress extracts to wp-content/plugins/cfp-dev-shortcodes/
-          mkdir -p "dist/${SLUG}"
-          rsync -a \
-            --exclude='.git' \
-            --exclude='.github' \
-            --exclude='dist' \
-            --exclude='tests' \
-            --exclude='vendor' \
-            --exclude='composer.json' \
-            --exclude='composer.lock' \
-            --exclude='phpcs.xml.dist' \
-            --exclude='phpunit.xml.dist' \
-            --exclude='.phpunit.cache' \
-            --exclude='*.md' \
-            ./ "dist/${SLUG}/"
+          git archive --format=zip --prefix="${SLUG}/" --output="$ZIP" HEAD
 
-          # A stray test or dev artifact in a released ZIP is shipped code.
-          for unwanted in tests vendor composer.json phpunit.xml.dist; do
-            if [ -e "dist/${SLUG}/${unwanted}" ]; then
-              echo "ERROR: ${unwanted} leaked into the release ZIP"
+          entries="$(unzip -Z1 "$ZIP")"
+          if printf '%s\n' "$entries" | grep -Evq "^${SLUG}/"; then
+            echo "ERROR: release ZIP contains an entry outside ${SLUG}/"
+            exit 1
+          fi
+
+          if printf '%s\n' "$entries" | grep -Eq "^${SLUG}/(\.gitattributes|\.gitignore|\.github/|tests/|vendor/|composer\.json|composer\.lock|phpcs\.xml\.dist|phpunit\.xml\.dist)(/|$)"; then
+            echo "ERROR: release ZIP contains development or repository files"
+            exit 1
+          fi
+
+          for required in \
+            "${SLUG}/cfp-dev-wordpress-shortcodes.php" \
+            "${SLUG}/uninstall.php" \
+            "${SLUG}/LICENSE.txt" \
+            "${SLUG}/shortcode/" \
+            "${SLUG}/js/" \
+            "${SLUG}/images/"; do
+            if ! printf '%s\n' "$entries" | grep -Fq "$required"; then
+              echo "ERROR: release ZIP is missing required runtime path: $required"
               exit 1
             fi
           done
 
-          cd dist
-          zip -r "../${ZIP}" "${SLUG}/"
-          cd ..
+          sha256sum "$ZIP" > "${ZIP}.sha256"
           echo "Built: ${ZIP}"
-          unzip -l "${ZIP}" | head -30
+          cat "${ZIP}.sha256"
+
+      - name: Attest release artifact
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: "${{ steps.meta.outputs.zip }}"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
@@ -92,4 +133,6 @@ jobs:
           name: "v${{ steps.meta.outputs.version }}"
           tag_name: "${{ steps.meta.outputs.tag }}"
           generate_release_notes: true
-          files: "${{ steps.meta.outputs.zip }}"
+          files: |
+            ${{ steps.meta.outputs.zip }}
+            ${{ steps.meta.outputs.zip }}.sha256
