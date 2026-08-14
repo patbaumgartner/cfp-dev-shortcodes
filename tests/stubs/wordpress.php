@@ -30,7 +30,13 @@
 // ─────────────────────────────────────────────────────────────────────────
 
 define( 'WPINC', 'wp-includes' );
-define( 'ABSPATH', sys_get_temp_dir() . '/cfp-dev-tests/wordpress/' );
+/*
+ * The sandbox is keyed by the checkout it belongs to. A path shared by every
+ * checkout on the machine is not a sandbox: a second working tree would inherit
+ * the first one's plugin symlink and offline snapshots, and silently exercise
+ * the wrong code.
+ */
+define( 'ABSPATH', sys_get_temp_dir() . '/cfp-dev-tests-' . substr( md5( dirname( __DIR__, 2 ) ), 0, 12 ) . '/wordpress/' );
 define( 'WP_CONTENT_DIR', rtrim( ABSPATH, '/' ) . '/wp-content' );
 define( 'WP_PLUGIN_DIR', WP_CONTENT_DIR . '/plugins' );
 define( 'WP_PLUGIN_URL', 'https://example.test/wp-content/plugins' );
