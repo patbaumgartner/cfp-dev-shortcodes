@@ -21,6 +21,21 @@
 /* ////////////////////////////////////////////////////////////////////////////// */
 /* /////////////////////////////////////////////////////////////////// GLOBAL /// */
 /* ////////////////////////////////////////////////////////////////////////////// */
+/* --------------------------------------------------------------------- A11Y --- */
+/* Not display:none — that would drop the element from the accessibility tree. */
+.cfp-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 /* ---------------------------------------------------------------------- VAR --- */
 /* ////////////////////////////////////////////////////////////////////////////// */
 /* ////////////////////////////////////////////////////////////////////// VAR /// */
@@ -626,39 +641,51 @@ nav.cfp-tab {
 }
 
 /* ------------------------------------------------------------------- BUTTON --- */
-.cfp-theme a.cfp-a {
+/* Toggles are <button>s, so UA button chrome is reset before .cfp-a applies. */
+.cfp-theme .cfp-a {
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: row;
   gap: 0 0.5em;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
   color: #a7a7a7;
+  font-family: inherit;
   font-size: clamp(8px, calc(((100vw - 460px) / 884) * (10 - 8) + (8 * 1px)), 10px);
   font-weight: 400;
   text-transform: uppercase;
   opacity: 1;
+  cursor: pointer;
   pointer-events: auto;
 }
 
+.cfp-theme .cfp-a:focus-visible {
+  outline: 2px solid var(--cfp-accept-primary);
+  outline-offset: 2px;
+}
+
 @media (pointer: fine) {
-  .cfp-theme a.cfp-a {
+  .cfp-theme .cfp-a {
 	transition: opacity 200ms 100ms;
 	will-change: opacity;
   }
 }
 
 @media (pointer: fine) {
-  .cfp-theme:hover a.cfp-a:not(:hover) {
+  .cfp-theme:hover .cfp-a:not(:hover) {
 	transition: opacity 200ms;
 	opacity: 0.375;
   }
 }
 
-.cfp-theme a.cfp-a.cfp-active {
+.cfp-theme .cfp-a[aria-pressed='true'] {
   color: var(--cfp-text-primary);
 }
 
-.cfp-theme a.cfp-a::before {
+.cfp-theme .cfp-a::before {
   display: block;
   height: 1.25em;
   content: '';
@@ -671,17 +698,17 @@ nav.cfp-tab {
   mask-repeat: no-repeat;
 }
 
-.cfp-theme a.cfp-a.cfp-active::before {
+.cfp-theme .cfp-a[aria-pressed='true']::before {
   background-color: var(--cfp-accept-primary);
 }
 
-.cfp-theme a.cfp-a.cfp-light::before {
+.cfp-theme .cfp-a.cfp-light::before {
   width: 1.25em;
   -webkit-mask-image: url('../gfx/theme/light.svg');
   mask-image: url('../gfx/theme/light.svg');
 }
 
-.cfp-theme a.cfp-a.cfp-dark::before {
+.cfp-theme .cfp-a.cfp-dark::before {
   width: 1em;
   -webkit-mask-image: url('../gfx/theme/dark.svg');
   mask-image: url('../gfx/theme/dark.svg');
