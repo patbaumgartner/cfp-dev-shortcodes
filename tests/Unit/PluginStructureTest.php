@@ -302,6 +302,22 @@ final class PluginStructureTest extends PluginTestCase {
 		return (string) file_get_contents( CFP_DEV_DIR . '/shortcode/' . CFP_DEV_CSS );
 	}
 
+	/**
+	 * Without font-display the browser hides the text it is about to draw for
+	 * up to three seconds while the webfont arrives — on a plugin page that is
+	 * the talk titles, the speaker names, the whole programme. `swap` shows
+	 * the fallback immediately and switches when the font is ready.
+	 */
+	public function test_every_webfont_shows_text_while_it_loads(): void {
+		$stylesheet = $this->stylesheet();
+
+		$this->assertSame(
+			substr_count( $stylesheet, '@font-face' ),
+			substr_count( $stylesheet, 'font-display: swap' ),
+			'a webface without font-display blanks the text it is about to draw'
+		);
+	}
+
 	public function test_the_plugin_header_version_matches_the_version_constant(): void {
 		$header = (string) file_get_contents( dirname( __DIR__, 2 ) . '/cfp-dev-wordpress-shortcodes.php' );
 
