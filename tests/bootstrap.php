@@ -14,14 +14,21 @@ declare(strict_types=1);
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/stubs/wordpress.php';
 
-// The plugin resolves its own directory from WP_PLUGIN_DIR + the basename of
-// its folder, so point that at the repository root.
+// The plugin resolves its own directory from its own __FILE__, and WordPress
+// addresses it as a plugin through WP_PLUGIN_DIR, so link this checkout in.
+// The link is repointed rather than merely created: a stale link left by an
+// earlier run — or by a sibling working tree — would load a different
+// checkout's code and quietly report its results as this one's.
 if ( ! is_dir( WP_PLUGIN_DIR ) ) {
 	mkdir( WP_PLUGIN_DIR, 0777, true );
 }
+$cfp_dev_plugin_root = dirname( __DIR__ );
 $cfp_dev_plugin_link = WP_PLUGIN_DIR . '/cfp-dev-shortcodes';
+if ( is_link( $cfp_dev_plugin_link ) && realpath( $cfp_dev_plugin_link ) !== realpath( $cfp_dev_plugin_root ) ) {
+	unlink( $cfp_dev_plugin_link );
+}
 if ( ! file_exists( $cfp_dev_plugin_link ) ) {
-	symlink( dirname( __DIR__ ), $cfp_dev_plugin_link );
+	symlink( $cfp_dev_plugin_root, $cfp_dev_plugin_link );
 }
 
 // The snapshot pruner require_once's this core file before calling
