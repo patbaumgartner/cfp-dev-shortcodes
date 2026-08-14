@@ -46,6 +46,8 @@ abstract class PluginTestCase extends TestCase {
 		WP_Test_State::$json_responses  = [];
 		WP_Test_State::$env             = [ 'capabilities' => [ 'manage_options' ] ];
 
+		WP_Test_State::resetHooks();
+
 		cfp_dev_flush_request_cache();
 	}
 
