@@ -1280,6 +1280,24 @@ function cfp_dev_flush_rewrite_rules() {
 register_activation_hook( __FILE__, 'cfp_dev_flush_rewrite_rules' );
 
 /**
+ * Invalidates cached markup after the plugin is updated.
+ *
+ * Shortcode output is cached as rendered HTML, so a release that changes
+ * that HTML would keep serving the previous version's markup until every
+ * transient happened to expire — up to a month on the longest TTL.
+ */
+function cfp_dev_maybe_upgrade() {
+	if ( CFP_DEV_VERSION === get_option( 'cfp_dev_installed_version' ) ) {
+		return;
+	}
+
+	update_option( 'cfp_dev_installed_version', CFP_DEV_VERSION );
+	clearCache();
+	cfp_dev_log( 'upgrade: caches invalidated for version ' . CFP_DEV_VERSION );
+}
+add_action( 'init', 'cfp_dev_maybe_upgrade' );
+
+/**
  * Fetches one speaker by id from the API (offline-aware).
  *
  * @param int|string $id  Speaker id.
