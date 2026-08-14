@@ -564,6 +564,10 @@ function absint( $value ) {
 	return abs( (int) $value );
 }
 
+function number_format_i18n( $number, $decimals = 0 ) {
+	return number_format( (float) $number, (int) $decimals );
+}
+
 function wp_json_encode( $data, $options = 0, $depth = 512 ) {
 	return json_encode( $data, $options, $depth ); // phpcs:ignore
 }

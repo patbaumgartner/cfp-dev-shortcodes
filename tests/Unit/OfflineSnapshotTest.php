@@ -91,6 +91,46 @@ final class OfflineSnapshotTest extends PluginTestCase {
 		$this->assertSame( [ '2025-02-01_00-00-00', '2025-03-01_00-00-00' ], $remaining );
 	}
 
+	/**
+	 * Retention counts snapshots a read can be served from. Counting every
+	 * timestamped directory let two abandoned crawls push the last working
+	 * snapshot out of the window and delete it — the opposite of the point.
+	 */
+	public function test_abandoned_crawls_do_not_displace_a_working_snapshot(): void {
+		$this->makeSnapshot( '2025-01-01_00-00-00', true );
+		$this->makeSnapshot( '2025-06-01_00-00-00', false );
+		$this->makeSnapshot( '2025-07-01_00-00-00', false );
+
+		cfp_dev_prune_snapshots( 2 );
+
+		$this->assertSame(
+			cfp_dev_offline_dir() . '/2025-01-01_00-00-00',
+			cfp_dev_get_latest_snapshot(),
+			'the only completed snapshot was pruned'
+		);
+	}
+
+	/** A directory newer than the newest snapshot may be a crawl still writing. */
+	public function test_pruning_leaves_a_crawl_in_progress_alone(): void {
+		$this->makeSnapshot( '2025-01-01_00-00-00', true );
+		$this->makeSnapshot( '2025-09-01_00-00-00', false );
+
+		cfp_dev_prune_snapshots( 1 );
+
+		$this->assertDirectoryExists( cfp_dev_offline_dir() . '/2025-09-01_00-00-00' );
+	}
+
+	/** But one superseded by a completed crawl is finished with. */
+	public function test_pruning_drops_a_crawl_a_later_one_superseded(): void {
+		$this->makeSnapshot( '2025-01-01_00-00-00', false );
+		$this->makeSnapshot( '2025-02-01_00-00-00', true );
+
+		cfp_dev_prune_snapshots( 2 );
+
+		$this->assertDirectoryDoesNotExist( cfp_dev_offline_dir() . '/2025-01-01_00-00-00' );
+		$this->assertDirectoryExists( cfp_dev_offline_dir() . '/2025-02-01_00-00-00' );
+	}
+
 	public function test_image_urls_are_collected_recursively_and_deduplicated(): void {
 		$data = [
 			'imageUrl' => 'https://cdn.test/a.jpg',
