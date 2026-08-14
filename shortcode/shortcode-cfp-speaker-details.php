@@ -280,18 +280,21 @@ if ( ! function_exists( 'cfp_dev_speaker_details_shortcode' ) ) {
 	 * @return string
 	 */
 	function cfp_dev_render_speaker_talk_video( $talk ) {
-		$content = '';
-		if ( ! empty( $talk->videoURL ) ) {
-			$content .= '    <div class="cfp-video">';
-			$content .= '        <div class="cfp-picture"></div>';
-			$content .= '        <iframe width="560" height="315" style="z-index: 9999999;" src="' . esc_url( $talk->videoURL ) .
-				'" title="' . esc_attr(
-					/* translators: %s: talk title. */
-					sprintf( __( 'Video: %s', 'cfp-dev-shortcodes' ), (string) ( $talk->title ?? '' ) )
-				) . '" loading="lazy" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
-			$content .= '        <div class="cfp-player"></div>';
-			$content .= '    </div>';
+		$video = cfp_dev_embed_url( $talk->videoURL ?? '', cfp_dev_video_embed_hosts() );
+		if ( '' === $video ) {
+			return '';
 		}
+
+		$content  = '    <div class="cfp-video">';
+		$content .= '        <div class="cfp-picture"></div>';
+		$content .= '        <iframe width="560" height="315" style="z-index: 9999999;" src="' . esc_url( $video ) .
+			'" title="' . esc_attr(
+				/* translators: %s: talk title. */
+				sprintf( __( 'Video: %s', 'cfp-dev-shortcodes' ), (string) ( $talk->title ?? '' ) )
+			) . '" loading="lazy" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
+		$content .= '        <div class="cfp-player"></div>';
+		$content .= '    </div>';
+
 		return $content;
 	}
 

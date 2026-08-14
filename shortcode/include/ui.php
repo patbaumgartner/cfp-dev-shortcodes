@@ -169,6 +169,50 @@ function cfp_dev_render_time_slot( $slot ): string {
 }
 
 /**
+ * Returns $url when it is served by one of $allowed_hosts, otherwise ''.
+ *
+ * An <iframe src> is not just a link: the framed origin runs its own code in
+ * the visitor's browser, and these URLs come from a service the plugin does
+ * not control. esc_url() only guarantees a well-formed http(s) URL, so it
+ * would happily frame anything a compromised or mistaken CFP.DEV instance put
+ * in a videoURL field — with autoplay and encrypted-media already granted.
+ *
+ * @param mixed    $url            Candidate embed URL from the API.
+ * @param string[] $allowed_hosts  Lowercase hostnames that may be framed.
+ */
+function cfp_dev_embed_url( $url, array $allowed_hosts ): string {
+	$url  = (string) $url;
+	$host = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
+
+	return in_array( $host, $allowed_hosts, true ) ? $url : '';
+}
+
+/**
+ * Hosts allowed to supply an embedded talk video.
+ *
+ * @return string[]
+ */
+function cfp_dev_video_embed_hosts(): array {
+	/**
+	 * Filters the hosts whose videos the plugin will embed.
+	 *
+	 * @param string[] $hosts  Lowercase hostnames.
+	 */
+	return (array) apply_filters(
+		'cfp_dev_video_embed_hosts',
+		[
+			'www.youtube.com',
+			'youtube.com',
+			'www.youtube-nocookie.com',
+			'youtube-nocookie.com',
+			'youtu.be',
+			'player.vimeo.com',
+			'vimeo.com',
+		]
+	);
+}
+
+/**
  * Renders the social-link icons (LinkedIn, Bluesky, Mastodon, X/Twitter) for
  * a speaker. Returns an empty string when no handle is set.
  *
