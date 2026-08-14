@@ -108,7 +108,7 @@ final class OfflineSnapshotTest extends PluginTestCase {
 		$this->assertArrayNotHasKey( 'https://cdn.test/d.gif', $map );
 	}
 
-	public function test_image_extensions_outside_the_safe_pattern_fall_back_to_jpg(): void {
+	public function test_image_extensions_outside_the_allow_list_fall_back_to_jpg(): void {
 		$map = [];
 		cfp_dev_collect_image_urls(
 			[ 'imageUrl' => 'https://cdn.test/photo.php?x=1' ],
@@ -116,7 +116,29 @@ final class OfflineSnapshotTest extends PluginTestCase {
 			$map
 		);
 
-		$this->assertSame( md5( 'https://cdn.test/photo.php?x=1' ) . '.php', reset( $map ) );
+		// The snapshot lives under wp-content/uploads. Honouring the URL's own
+		// extension would let the upstream API name a file '.php' there.
+		$this->assertSame( md5( 'https://cdn.test/photo.php?x=1' ) . '.jpg', reset( $map ) );
+	}
+
+	/**
+	 * @dataProvider executableExtensionProvider
+	 */
+	public function test_executable_extensions_never_reach_the_filesystem( string $url ): void {
+		$map = [];
+		cfp_dev_collect_image_urls( [ 'imageUrl' => $url ], [ 'imageUrl' ], $map );
+
+		$this->assertStringEndsWith( '.jpg', (string) reset( $map ) );
+	}
+
+	public static function executableExtensionProvider(): array {
+		return [
+			'php'      => [ 'https://cdn.test/x.php' ],
+			'phtml'    => [ 'https://cdn.test/x.phtml' ],
+			'phar'     => [ 'https://cdn.test/x.phar' ],
+			'html'     => [ 'https://cdn.test/x.html' ],
+			'htaccess' => [ 'https://cdn.test/.htaccess' ],
+		];
 	}
 
 	// ─────────────────────────────────────────────────────────────────────────

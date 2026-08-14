@@ -42,66 +42,67 @@ if ( ! function_exists( 'cfp_dev_schedule_shortcode' ) ) {
 		// Whitelist the day name — it is user input and becomes part of API paths
 		// and cache keys (arbitrary values would create unbounded transients).
 		$valid_days = [ 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday' ];
-		$dayName    = ucfirst( strtolower( (string) get_query_var( 'id' ) ) );
-		if ( ! in_array( $dayName, $valid_days, true ) ) {
-			$dayName = '';
+		$day_name   = ucfirst( strtolower( (string) get_query_var( 'id' ) ) );
+		if ( ! in_array( $day_name, $valid_days, true ) ) {
+			$day_name = '';
 		}
 
 		// Get the current event — its timezone and date range drive everything below.
-		$currentEvent = cfp_dev_get_json( 'public/event' );
+		$current_event = cfp_dev_get_json( 'public/event' );
 
-		if ( is_null( $currentEvent ) ) {
+		if ( is_null( $current_event ) ) {
 			cfp_dev_log( 'schedule: failed to retrieve current event' );
-			return 'Failed to retrieve current event';
+			return esc_html__( 'Failed to retrieve current event', 'cfp-dev-shortcodes' );
 		}
 
-		cfp_dev_log( 'schedule: event=' . $currentEvent->id );
+		cfp_dev_log( 'schedule: event=' . $current_event->id );
 
-		if ( is_object( $currentEvent ) && ! empty( $currentEvent->timezone ) ) {
+		if ( is_object( $current_event ) && ! empty( $current_event->timezone ) ) {
 			try {
-				$timeZone = new DateTimeZone( $currentEvent->timezone );
-				cfp_dev_log( 'schedule: timezone=' . $timeZone->getName() );
+				$time_zone = new DateTimeZone( $current_event->timezone );
+				cfp_dev_log( 'schedule: timezone=' . $time_zone->getName() );
 			} catch ( Exception $e ) {
 				cfp_dev_log( 'schedule: error creating DateTimeZone — ' . $e->getMessage() );
-				return 'Invalid event timezone.';
+				return esc_html__( 'Invalid event timezone.', 'cfp-dev-shortcodes' );
 			}
 		} else {
 			cfp_dev_log( 'schedule: timezone not set on event' );
-			return 'Event timezone is not set.';
+			return esc_html__( 'Event timezone is not set.', 'cfp-dev-shortcodes' );
 		}
 
 		$rooms = cfp_dev_get_json( 'public/rooms' );
 
 		if ( is_null( $rooms ) ) {
 			cfp_dev_log( 'schedule: failed to retrieve rooms' );
-			return 'Failed to retrieve rooms';
+			return esc_html__( 'Failed to retrieve rooms', 'cfp-dev-shortcodes' );
 		}
 
-		$timeZone = new DateTimeZone( $currentEvent->timezone );
-		$fromDate = new DateTime( $currentEvent->fromDate );
-		$fromDate->setTimezone( $timeZone );
+		$time_zone = new DateTimeZone( $current_event->timezone );
+		$from_date = new DateTime( $current_event->fromDate );
+		$from_date->setTimezone( $time_zone );
 
-		if ( '' === $dayName ) {
-			$dayName = $fromDate->format( 'l' );
+		if ( '' === $day_name ) {
+			$day_name = $from_date->format( 'l' );
 		}
 
-		$day_schedule = cfp_dev_get_json( 'public/schedules/' . $dayName );
+		$day_schedule = cfp_dev_get_json( 'public/schedules/' . $day_name );
 
 		if ( empty( $day_schedule ) || ! is_array( $day_schedule ) ) {
-			cfp_dev_log( 'schedule: failed to retrieve schedule for day=' . $dayName );
-			return 'No schedule available for ' . esc_html( $dayName ) . '.';
+			cfp_dev_log( 'schedule: failed to retrieve schedule for day=' . $day_name );
+			/* translators: %s: day name. */
+			return esc_html( sprintf( __( 'No schedule available for %s.', 'cfp-dev-shortcodes' ), $day_name ) );
 		}
 
-		$_cache_group = cfp_dev_group_cache_key( 'cfp_schedule_' . $dayName . cfp_dev_atts_cache_suffix( $_atts, $defaults ) );
+		$_cache_group = cfp_dev_group_cache_key( 'cfp_schedule_' . $day_name . cfp_dev_atts_cache_suffix( $_atts, $defaults ) );
 
 		$ttl = cfp_dev_get_cache_ttl();
 		if ( 0 === $ttl ) {
-			cfp_dev_log( 'schedule: cache disabled, generating content for day=' . $dayName );
-			$content = cfp_dev_render_schedule( $day_schedule, $rooms, $timeZone, $fromDate, $currentEvent, $dayName, $_atts );
+			cfp_dev_log( 'schedule: cache disabled, generating content for day=' . $day_name );
+			$content = cfp_dev_render_schedule( $day_schedule, $rooms, $time_zone, $from_date, $current_event, $day_name, $_atts );
 		} else {
 			$cache = get_transient( $_cache_group );
 			if ( false === $cache ) {
-					$content = cfp_dev_render_schedule( $day_schedule, $rooms, $timeZone, $fromDate, $currentEvent, $dayName, $_atts );
+					$content = cfp_dev_render_schedule( $day_schedule, $rooms, $time_zone, $from_date, $current_event, $day_name, $_atts );
 					set_transient( $_cache_group, $content, $ttl );
 			} else {
 				$content = $cache;
@@ -116,19 +117,19 @@ if ( ! function_exists( 'cfp_dev_schedule_shortcode' ) ) {
 	 *
 	 * @param array        $day_schedule  Time slots for the day.
 	 * @param array        $rooms         All rooms from the API.
-	 * @param DateTimeZone $timeZone      Event timezone.
-	 * @param DateTime     $fromDate      Event start date (mutated while building the day tabs).
-	 * @param object       $currentEvent  Event object from the API.
-	 * @param string       $dayName       Selected day, e.g. 'Tuesday'.
+	 * @param DateTimeZone $time_zone      Event timezone.
+	 * @param DateTime     $from_date      Event start date (mutated while building the day tabs).
+	 * @param object       $current_event  Event object from the API.
+	 * @param string       $day_name       Selected day, e.g. 'Tuesday'.
 	 * @param array        $_atts         Normalised shortcode attributes (title, hide_title, hide_search).
 	 * @return string
 	 */
-	function cfp_dev_render_schedule( $day_schedule, $rooms, $timeZone, $fromDate, $currentEvent, $dayName, $_atts = [] ) {
+	function cfp_dev_render_schedule( $day_schedule, $rooms, $time_zone, $from_date, $current_event, $day_name, $_atts = [] ) {
 		// Tabs are per calendar day, so both ends are normalised to midnight in
 		// the event timezone: comparing the raw timestamps dropped the closing
 		// day whenever the event ended earlier in the day than it started.
-		$day_cursor = DateTimeImmutable::createFromInterface( $fromDate )->setTimezone( $timeZone )->setTime( 0, 0 );
-		$last_day   = ( new DateTimeImmutable( $currentEvent->toDate ) )->setTimezone( $timeZone )->setTime( 0, 0 );
+		$day_cursor = DateTimeImmutable::createFromInterface( $from_date )->setTimezone( $time_zone )->setTime( 0, 0 );
+		$last_day   = ( new DateTimeImmutable( $current_event->toDate ) )->setTimezone( $time_zone )->setTime( 0, 0 );
 
 		$content = cfp_dev_root_class_script( 'schedule' );
 
@@ -140,7 +141,7 @@ if ( ! function_exists( 'cfp_dev_schedule_shortcode' ) ) {
 			$content .= '    <div class="cfp-subject">';
 
 			$title    = empty( $_atts['hide_title'] )
-				? ( ! empty( $_atts['title'] ) ? $_atts['title'] : $currentEvent->name )
+				? ( ! empty( $_atts['title'] ) ? $_atts['title'] : $current_event->name )
 				: '';
 			$content .= cfp_dev_page_header( (string) $title, '', empty( $_atts['hide_search'] ) );
 
@@ -148,14 +149,14 @@ if ( ! function_exists( 'cfp_dev_schedule_shortcode' ) ) {
 			$content .= '	<div class="cfp-secondary">';
 			$content .= '		<nav class="cfp-tab">';
 			while ( $day_cursor <= $last_day ) {
-				$isActive   = ( $day_cursor->format( 'l' ) === $dayName ) ? 'cfp-active' : '';
-				$content   .= '		<a class="cfp-a ' . $isActive . '" href="' . esc_url( '?id=' . $day_cursor->format( 'l' ) ) . '">' .
+				$is_active  = ( $day_cursor->format( 'l' ) === $day_name ) ? 'cfp-active' : '';
+				$content   .= '		<a class="cfp-a ' . $is_active . '" href="' . esc_url( '?id=' . $day_cursor->format( 'l' ) ) . '">' .
 					esc_html( $day_cursor->format( 'l' ) . ' ' . $day_cursor->format( 'j' ) ) . '<sup>' .
 					esc_html( $day_cursor->format( 'S' ) ) . '</sup> ' . esc_html( $day_cursor->format( 'M' ) ) . '</a>';
 				$day_cursor = $day_cursor->modify( '+1 day' );
 			}
 			$content .= '		</nav>';
-			$content .= '		<a class="cfp-button" style="color:white" href="' . esc_url( 'https://mobile.devoxx.com/events/' . cfp_dev_get_key() . '/schedule' ) . '">Mobile Schedule</a>';
+			$content .= '		<a class="cfp-button" style="color:white" href="' . esc_url( 'https://mobile.devoxx.com/events/' . cfp_dev_get_key() . '/schedule' ) . '">' . esc_html__( 'Mobile Schedule', 'cfp-dev-shortcodes' ) . '</a>';
 			$content .= '	</div>';
 
 			$content .= '</div>';
@@ -163,8 +164,8 @@ if ( ! function_exists( 'cfp_dev_schedule_shortcode' ) ) {
 			// Grid start/end hours from the first and last time slot of the day.
 			$count = count( $day_schedule );
 
-			$hour_start  = cfp_dev_format_time( $day_schedule[0]->fromDate, $timeZone, 'H' );
-			$hour_finish = cfp_dev_format_time( $day_schedule[ $count - 1 ]->toDate, $timeZone, 'H' );
+			$hour_start  = cfp_dev_format_time( $day_schedule[0]->fromDate, $time_zone, 'H' );
+			$hour_finish = cfp_dev_format_time( $day_schedule[ $count - 1 ]->toDate, $time_zone, 'H' );
 
 			// The three grid wrappers are opened and closed as a pair so they
 			// cannot drift apart again (they used to be left unclosed).
@@ -180,7 +181,7 @@ if ( ! function_exists( 'cfp_dev_schedule_shortcode' ) ) {
 			// from "today" in the site timezone, which shifted every label by
 			// the site's UTC offset and dated them to the wrong day.
 			$day_start = ( new DateTimeImmutable( $day_schedule[0]->fromDate ) )
-				->setTimezone( $timeZone )
+				->setTimezone( $time_zone )
 				->setTime( 0, 0 );
 
 			// Time labels in the left column (10-minute steps).
@@ -196,7 +197,7 @@ if ( ! function_exists( 'cfp_dev_schedule_shortcode' ) ) {
 			// One column per room — the grid layout expects sessions sequentially per room.
 			foreach ( $rooms as $room ) {
 
-				$schedule_items = cfp_dev_get_json( 'public/schedules/' . $dayName . '/' . $room->id );
+				$schedule_items = cfp_dev_get_json( 'public/schedules/' . $day_name . '/' . $room->id );
 
 				if ( ! empty( $schedule_items ) ) {
 					$content .= '<div class="cfp-column cfp-event">';
@@ -206,33 +207,33 @@ if ( ! function_exists( 'cfp_dev_schedule_shortcode' ) ) {
 						if ( ! empty( $item ) ) {
 
 							try {
-								$startSession = new DateTime( $item->fromDate );
-								$startSession->setTimezone( $timeZone );
+								$start_session = new DateTime( $item->fromDate );
+								$start_session->setTimezone( $time_zone );
 
-								$endSession = new DateTime( $item->toDate );
-								$endSession->setTimezone( $timeZone );
+								$end_session = new DateTime( $item->toDate );
+								$end_session->setTimezone( $time_zone );
 							} catch ( Exception $e ) {
 								cfp_dev_log( 'schedule: skipping item with invalid dates — ' . $e->getMessage() );
 								continue;
 							}
 
-							$event_start  = $startSession->format( 'H:i' );
-							$event_finish = $endSession->format( 'H:i' );
+							$event_start  = $start_session->format( 'H:i' );
+							$event_finish = $end_session->format( 'H:i' );
 
-							$hasProposal = false;
-							$overflow    = ! empty( $item->overflow );
+							$has_proposal = false;
+							$overflow     = ! empty( $item->overflow );
 
 							if ( ! empty( $item->proposal->title ) && ! $overflow ) {
-								$hasProposal = true;
-								$sessionType = 'cfp-session';
+								$has_proposal = true;
+								$session_type = 'cfp-session';
 							} else {
-								$sessionType = 'cfp-recess';
+								$session_type = 'cfp-recess';
 							}
 
 							$duration = isset( $item->sessionType->duration ) ? absint( $item->sessionType->duration ) : 0;
-							$content .= '<article class="cfp-article ' . $sessionType . '" data-event-start="' . esc_attr( $event_start ) . '" data-event-finish="' . esc_attr( $event_finish ) . '" data-event-duration="' . esc_attr( $duration ) . '">';
+							$content .= '<article class="cfp-article ' . $session_type . '" data-event-start="' . esc_attr( $event_start ) . '" data-event-finish="' . esc_attr( $event_finish ) . '" data-event-duration="' . esc_attr( $duration ) . '">';
 
-							if ( $hasProposal ) {
+							if ( $has_proposal ) {
 								if ( 'no' === get_option( 'cfp_dev_content_by_id', 'yes' ) ) {
 									$talk_slug = cfp_dev_generate_slug( $item->proposal->title );
 									$content  .= '        <a class="cfp-a" href="' . esc_url( cfp_dev_url( '/talk/' . $talk_slug ) ) . '">';
@@ -244,7 +245,7 @@ if ( ! function_exists( 'cfp_dev_schedule_shortcode' ) ) {
 							$content .= '            <div class="cfp-content">';
 							$content .= '                <div class="cfp-meta">';
 
-							if ( $hasProposal ) {
+							if ( $has_proposal ) {
 								if ( ! empty( $item->proposal->totalFavourites ) && $item->proposal->totalFavourites > 0 ) {
 									$content .= '        <div id="dev-cfp-talk-' . absint( $item->proposal->id ) . '" class="cfp-favourite">' . absint( $item->proposal->totalFavourites ) . '</div>';
 								}
@@ -254,7 +255,7 @@ if ( ! function_exists( 'cfp_dev_schedule_shortcode' ) ) {
 							}
 
 							$content .= '                </div>';
-							if ( $hasProposal && 'yes' === get_option( 'cfp_dev_show_rooms', 'yes' ) && ! empty( $item->room->name ) ) {
+							if ( $has_proposal && 'yes' === get_option( 'cfp_dev_show_rooms', 'yes' ) && ! empty( $item->room->name ) ) {
 								$content .= '                <div class="cfp-room">' . esc_html( $item->room->name ) . '</div>';
 							}
 							if ( ! empty( $item->sessionType->name ) ) {
@@ -262,14 +263,14 @@ if ( ! function_exists( 'cfp_dev_schedule_shortcode' ) ) {
 							}
 							$content .= '                <div class="cfp-datetime">';
 
-							$content .= '                    <time class="cfp-time" datetime="' . esc_attr( $startSession->format( 'c' ) ) . '">' . esc_html( $event_start ) . '</time>';
-							$content .= '                    <time class="cfp-time" datetime="' . esc_attr( $endSession->format( 'c' ) ) . '">' . esc_html( $event_finish ) . '</time>';
+							$content .= '                    <time class="cfp-time" datetime="' . esc_attr( $start_session->format( 'c' ) ) . '">' . esc_html( $event_start ) . '</time>';
+							$content .= '                    <time class="cfp-time" datetime="' . esc_attr( $end_session->format( 'c' ) ) . '">' . esc_html( $event_finish ) . '</time>';
 							$content .= '                </div>';
-							if ( $hasProposal ) {
+							if ( $has_proposal ) {
 								$content .= '                <div class="cfp-name">' . esc_html( $item->proposal->title ) . '</div>';
 							}
 							if ( $overflow ) {
-								$content .= '                <div class="cfp-name">OVERFLOW</div>';
+								$content .= '                <div class="cfp-name">' . esc_html__( 'OVERFLOW', 'cfp-dev-shortcodes' ) . '</div>';
 							}
 
 							if ( ! empty( $item->proposal->speakers ) && ( is_array( $item->proposal->speakers ) || is_object( $item->proposal->speakers ) ) ) {
@@ -279,7 +280,7 @@ if ( ! function_exists( 'cfp_dev_schedule_shortcode' ) ) {
 							}
 
 							$content .= '            </div>';
-							if ( $hasProposal ) {
+							if ( $has_proposal ) {
 								$content .= '        </a>';
 							}
 							$content .= '</article>';

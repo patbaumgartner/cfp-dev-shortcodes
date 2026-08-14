@@ -33,16 +33,18 @@ abstract class PluginTestCase extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 
-		WP_Test_State::$options        = self::DEFAULT_OPTIONS;
-		WP_Test_State::$transients     = [];
-		WP_Test_State::$query_vars     = [];
-		WP_Test_State::$current_page   = [];
-		WP_Test_State::$http_responses = [];
-		WP_Test_State::$http_log       = [];
-		WP_Test_State::$enqueued       = [];
-		WP_Test_State::$theme_support  = [];
-		WP_Test_State::$json_responses = [];
-		WP_Test_State::$env            = [ 'capabilities' => [ 'manage_options' ] ];
+		WP_Test_State::$options         = self::DEFAULT_OPTIONS;
+		WP_Test_State::$transients      = [];
+		WP_Test_State::$query_vars      = [];
+		WP_Test_State::$current_page    = [];
+		WP_Test_State::$http_responses  = [];
+		WP_Test_State::$http_log        = [];
+		WP_Test_State::$http_requests   = [];
+		WP_Test_State::$enqueued        = [];
+		WP_Test_State::$enqueued_assets = [];
+		WP_Test_State::$theme_support   = [];
+		WP_Test_State::$json_responses  = [];
+		WP_Test_State::$env             = [ 'capabilities' => [ 'manage_options' ] ];
 
 		cfp_dev_flush_request_cache();
 	}
@@ -96,6 +98,38 @@ abstract class PluginTestCase extends TestCase {
 			'code' => 200,
 			'body' => (string) wp_json_encode( $results ),
 		];
+	}
+
+	/**
+	 * Registers a canned image response. The content type is explicit because
+	 * the crawler trusts it over the URL's extension.
+	 *
+	 * @param string $url           Absolute image URL.
+	 * @param string $body          Raw response body.
+	 * @param string $content_type  Content-Type header to serve.
+	 * @param int    $code          HTTP status code.
+	 */
+	protected function image( string $url, string $body = 'IMAGE-BYTES', string $content_type = 'image/jpeg', int $code = 200 ): void {
+		WP_Test_State::$http_responses[ $url ] = [
+			'code'    => $code,
+			'body'    => $body,
+			'headers' => [ 'content-type' => $content_type ],
+		];
+	}
+
+	/** Every request made so far, with its arguments. */
+	protected function httpRequests(): array {
+		return WP_Test_State::$http_requests;
+	}
+
+	/** The arguments of the most recent request to $url, or null. */
+	protected function lastRequestArgs( string $url ): ?array {
+		foreach ( array_reverse( WP_Test_State::$http_requests ) as $request ) {
+			if ( $request['url'] === $url ) {
+				return $request['args'];
+			}
+		}
+		return null;
 	}
 
 	/** Every URL requested so far, in order. */

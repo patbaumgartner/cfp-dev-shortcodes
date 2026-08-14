@@ -62,10 +62,25 @@ final class SpeakerPhotosAjaxTest extends PluginTestCase {
 		$this->assertStringContainsString( 'Jane Doe speaking at', $html );
 	}
 
-	public function test_an_unknown_speaker_degrades_to_the_empty_gallery(): void {
-		$this->api( 'public/speakers/999', null, 404 );
+	public function test_an_unknown_speaker_is_rejected_without_touching_the_api(): void {
+		$this->registerDefaultApi();
+		WP_Test_State::$http_log = [];
 
-		$html = $this->request( [ 'speaker_id' => '999' ] );
+		$this->request( [ 'speaker_id' => '999' ] );
+
+		// This endpoint is unauthenticated: an id that no speaker page could
+		// have linked to must cost neither an upstream request nor a transient.
+		$this->assertFalse( WP_Test_State::$json_responses[0]['success'] );
+		$this->assertSame( 0, $this->apiCallCount( 'public/album/999' ) );
+		$this->assertSame( 0, $this->apiCallCount( 'public/speakers/999' ) );
+		$this->assertFalse( get_transient( cfp_dev_detail_cache_key( 'photo', 999 ) ) );
+	}
+
+	public function test_a_speaker_with_no_album_still_renders_the_empty_gallery(): void {
+		$this->registerDefaultApi();
+		$this->api( 'public/album/100', null, 404 );
+
+		$html = $this->request( [ 'speaker_id' => '100' ] );
 
 		$this->assertStringContainsString( 'No photos found', $html );
 	}
@@ -176,9 +191,9 @@ final class SpeakerPhotosAjaxTest extends PluginTestCase {
 		return (string) ob_get_clean();
 	}
 
-	private function registerAlbum( int $speakerId ): void {
+	private function registerAlbum( int $speaker_id ): void {
 		$this->api(
-			'public/album/' . $speakerId,
+			'public/album/' . $speaker_id,
 			[
 				[
 					'photoId'      => 9001,

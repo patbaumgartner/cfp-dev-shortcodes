@@ -34,6 +34,28 @@ final class AssetLoadingTest extends PluginTestCase {
 		$this->assertSame( [ 'site-cfp', 'cfp-dev-style' ], WP_Test_State::$enqueued );
 	}
 
+	public function test_the_front_end_script_is_registered_without_jquery_and_version_busted(): void {
+		$this->queriedPost( '[cfp_speakers]' );
+
+		cfp_dev_enqueue_front_end_assets();
+
+		$script = WP_Test_State::$enqueued_assets['site-cfp'];
+		$this->assertStringEndsWith( 'js/site.js', $script['src'] );
+		$this->assertSame( [], $script['deps'], 'the front-end script must stay dependency-free' );
+		$this->assertSame( CFP_DEV_VERSION, $script['ver'], 'without a version bump browsers serve stale JS after an update' );
+		$this->assertTrue( (bool) $script['args'], 'the script belongs in the footer' );
+	}
+
+	public function test_the_stylesheet_is_registered_with_the_plugin_version(): void {
+		$this->queriedPost( '[cfp_speakers]' );
+
+		cfp_dev_enqueue_front_end_assets();
+
+		$style = WP_Test_State::$enqueued_assets['cfp-dev-style'];
+		$this->assertStringEndsWith( CFP_DEV_CSS, $style['src'] );
+		$this->assertSame( CFP_DEV_VERSION, $style['ver'] );
+	}
+
 	public function test_every_registered_shortcode_triggers_asset_loading(): void {
 		foreach ( cfp_dev_shortcode_tags() as $tag ) {
 			WP_Test_State::$enqueued = [];

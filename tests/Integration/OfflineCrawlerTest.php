@@ -88,14 +88,44 @@ final class OfflineCrawlerTest extends PluginTestCase {
 		$snapshot = $this->makeSnapshotDir();
 		$log      = [];
 		$errors   = 0;
-		WP_Test_State::$http_responses[ self::IMAGE_URL ] = [
-			'code' => 200,
-			'body' => 'JPEG-BYTES',
-		];
+		$this->image( self::IMAGE_URL, 'JPEG-BYTES' );
 
 		$this->assertTrue( cfp_dev_download_image( self::IMAGE_URL, $snapshot . '/images/a.jpg', $log, $errors ) );
 		$this->assertSame( 'JPEG-BYTES', file_get_contents( $snapshot . '/images/a.jpg' ) );
 		$this->assertSame( 0, $errors );
+	}
+
+	public function test_a_non_image_response_is_rejected(): void {
+		$snapshot = $this->makeSnapshotDir();
+		$log      = [];
+		$errors   = 0;
+		// A hostile upstream can point an image field anywhere; the served
+		// content type decides, not the URL.
+		$this->image( 'https://cdn.test/payload.jpg', '<?php echo 1;', 'text/html' );
+
+		$this->assertFalse( cfp_dev_download_image( 'https://cdn.test/payload.jpg', $snapshot . '/images/p.jpg', $log, $errors ) );
+		$this->assertFileDoesNotExist( $snapshot . '/images/p.jpg' );
+		$this->assertSame( 1, $errors );
+	}
+
+	public function test_an_image_on_a_private_address_is_not_fetched(): void {
+		$snapshot = $this->makeSnapshotDir();
+		$log      = [];
+		$errors   = 0;
+		$this->image( 'http://127.0.0.1/secret.jpg', 'INTERNAL' );
+
+		$this->assertFalse( cfp_dev_download_image( 'http://127.0.0.1/secret.jpg', $snapshot . '/images/s.jpg', $log, $errors ) );
+		$this->assertFileDoesNotExist( $snapshot . '/images/s.jpg' );
+		$this->assertSame( [], $this->httpLog(), 'a loopback URL must never be requested' );
+	}
+
+	public function test_a_non_http_image_scheme_is_rejected(): void {
+		$snapshot = $this->makeSnapshotDir();
+		$log      = [];
+		$errors   = 0;
+
+		$this->assertFalse( cfp_dev_download_image( 'file:///etc/passwd', $snapshot . '/images/f.jpg', $log, $errors ) );
+		$this->assertSame( 1, $errors );
 	}
 
 	public function test_an_unreachable_image_is_counted_as_an_error(): void {
@@ -253,6 +283,58 @@ final class OfflineCrawlerTest extends PluginTestCase {
 	// ─────────────────────────────────────────────────────────────────────────
 
 	/** Registers every endpoint a one-speaker, one-talk, one-day event needs. */
+	public function test_a_traversing_query_path_writes_nothing(): void {
+		$snapshot = $this->makeSnapshotDir();
+		$log      = [];
+		$errors   = 0;
+
+		// Ids come from the upstream API, so they choose part of the write path.
+		$this->assertNull( cfp_dev_fetch_and_save( 'public/speakers/../../../evil', $snapshot, $log, $errors ) );
+		$this->assertSame( 1, $errors );
+		$this->assertSame( [], $this->httpLog(), 'a rejected path must not be requested either' );
+		$this->assertFileDoesNotExist( dirname( $snapshot ) . '/evil.json' );
+	}
+
+	public function test_an_absolute_query_path_writes_nothing(): void {
+		$snapshot = $this->makeSnapshotDir();
+		$log      = [];
+		$errors   = 0;
+
+		$this->assertNull( cfp_dev_fetch_and_save( '/etc/passwd', $snapshot, $log, $errors ) );
+		$this->assertSame( 1, $errors );
+	}
+
+	public function test_a_crawl_that_captures_nothing_leaves_offline_mode_off(): void {
+		// No API responses registered: every fetch fails, exactly as it would
+		// with an unreachable API or a missing CFP.DEV key.
+		cfp_dev_start_crawl();
+		$snapshot = get_option( 'cfp_dev_crawl_state' )['snapshot'];
+
+		cfp_dev_do_crawl();
+
+		$state = get_option( 'cfp_dev_crawl_state' );
+		$this->assertSame( 'error', $state['status'] );
+		$this->assertSame( 0, (int) get_option( 'cfp_dev_offline_mode' ), 'an empty snapshot must never be served as the site' );
+		$this->assertFileDoesNotExist( $snapshot . '/manifest.json', 'a failed crawl must not be marked complete' );
+		$this->assertSame( '', cfp_dev_get_latest_snapshot() );
+	}
+
+	public function test_a_new_snapshot_is_not_browsable(): void {
+		cfp_dev_start_crawl();
+		$snapshot = get_option( 'cfp_dev_crawl_state' )['snapshot'];
+
+		// Snapshots sit under wp-content/uploads, which is web-served. Without
+		// these, a host with directory indexing on exposes the whole crawl.
+		foreach ( [ '', '/api', '/api/public', '/images' ] as $dir ) {
+			$this->assertFileExists( $snapshot . $dir . '/index.php', $dir . ' is listable' );
+		}
+		$this->assertFileExists( cfp_dev_offline_dir() . '/index.php' );
+		$this->assertStringContainsString(
+			'Options -Indexes',
+			(string) file_get_contents( cfp_dev_offline_dir() . '/.htaccess' )
+		);
+	}
+
 	private function registerCrawlableApi(): void {
 		$speaker = [
 			'id'        => 100,
@@ -323,8 +405,9 @@ final class OfflineCrawlerTest extends PluginTestCase {
 		$this->api( 'public/schedules/Monday/1', [] );
 
 		WP_Test_State::$http_responses[ self::IMAGE_URL ] = [
-			'code' => 200,
-			'body' => 'JPEG-BYTES',
+			'code'    => 200,
+			'body'    => 'JPEG-BYTES',
+			'headers' => [ 'content-type' => 'image/jpeg' ],
 		];
 	}
 
