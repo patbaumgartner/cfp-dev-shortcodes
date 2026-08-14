@@ -40,37 +40,17 @@ if ( ! function_exists( 'cfp_dev_speaker_details_shortcode' ) ) {
 			return esc_html__( 'Speaker not found.', 'cfp-dev-shortcodes' );
 		}
 
-		$ttl = cfp_dev_get_cache_ttl();
-
-		if ( 0 === $ttl ) {
-			cfp_dev_log( 'speaker-details: cache disabled for id=' . $speaker_id );
-			$speaker_info = cfp_dev_get_speaker_by_id( $speaker_id );
-			if ( empty( $speaker_info ) ) {
-				cfp_dev_log( 'speaker-details: speaker not found for id=' . $speaker_id );
-				return esc_html__( 'Speaker not found.', 'cfp-dev-shortcodes' );
-			}
-			return cfp_dev_render_speaker_page( $speaker_info );
-		}
-
-		$speaker_cache_key = cfp_dev_detail_cache_key( 'speaker', $speaker_id );
-
-		$cache = get_transient( $speaker_cache_key );
-		if ( false !== $cache ) {
-			cfp_dev_log( 'speaker-details: cache hit for id=' . $speaker_id );
-			return $cache;
-		}
-
-		cfp_dev_log( 'speaker-details: cache miss for id=' . $speaker_id );
-		$speaker_info = cfp_dev_get_speaker_by_id( $speaker_id );
-		if ( empty( $speaker_info ) ) {
-			// Do not cache failures — the API may just be temporarily unavailable.
-			cfp_dev_log( 'speaker-details: speaker not found for id=' . $speaker_id );
-			return esc_html__( 'Speaker not found.', 'cfp-dev-shortcodes' );
-		}
-
-		$content = cfp_dev_render_speaker_page( $speaker_info );
-		set_transient( $speaker_cache_key, $content, $ttl );
-		return $content;
+		return cfp_dev_cached_markup(
+			cfp_dev_detail_cache_key( 'speaker', $speaker_id ),
+			static function () use ( $speaker_id ) {
+				// Null, not the "not found" page: a failed lookup is an API
+				// outage as often as a removed speaker, and cfp_dev_cached_markup
+				// shows the fallback without storing it.
+				$speaker = cfp_dev_get_speaker_by_id( $speaker_id );
+				return empty( $speaker ) ? null : cfp_dev_render_speaker_page( $speaker );
+			},
+			esc_html__( 'Speaker not found.', 'cfp-dev-shortcodes' )
+		);
 	}
 
 	/**
