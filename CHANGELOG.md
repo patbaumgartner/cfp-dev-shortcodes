@@ -6,6 +6,55 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.6.0] — 2026-08-14
+
+### Security
+- **Stored XSS through JSON-LD.** Structured data was encoded with `JSON_UNESCAPED_SLASHES` and written straight into a `<script type="application/ld+json">` block. The HTML parser does not know it is looking at JSON, so a `</script>` anywhere in a speaker name, talk title, company or track description closed the element and everything after it was parsed as markup — on every public talk and speaker page, from data the plugin does not control. The payload is now hex-escaped (`JSON_HEX_TAG` and friends), which neutralises the breakout while still round-tripping the original text
+- **Attacker-named files written into `wp-content/uploads`.** The offline crawler derived each downloaded image's filename from the URL's own extension, admitted by the pattern `/^[a-z]{2,4}$/` — which accepts `php`. A hostile or compromised CFP.DEV instance could therefore place a response body of its choosing at a predictable uploads path under a name the web server may execute. Extensions now come from an allow-list, and the served `Content-Type` must be a real image type or the download is rejected
+- **Server-side request forgery in the crawler.** Image URLs came from the upstream API and went to `wp_remote_get()` unchecked, so a crawl could be pointed at loopback, link-local or private-range addresses and the response published under a public uploads URL. Downloads now use `wp_safe_remote_get()`, reject non-HTTP(S) schemes, and cap the response size
+- **Path traversal on snapshot writes.** Snapshot *reads* were containment-checked; writes were not. Every id interpolated into a crawl path comes from the API, so traversal segments could steer a response body outside the snapshot directory. Paths are now normalised and verified to stay inside `{snapshot}/api/`, and every API-supplied id is narrowed to a positive integer before use
+- **Unauthenticated request amplification.** The public speaker-photo endpoint accepted any numeric id, and each new value cost an upstream request plus a fresh transient — unbounded, from anonymous visitors. Ids are now checked against the event's actual speaker list, which is itself cached. A nonce was rejected deliberately: the endpoint URL is embedded in page HTML that full-page caches serve to everyone, so a nonce would be stale or foreign
+- **Offline snapshots were browsable.** Snapshots are written under `wp-content/uploads`, which is web-served, and carried no index or listing protection — on a host with directory indexing enabled the entire crawl was enumerable, including `manifest.json`, which records every URL fetched. Snapshot directories now get silence files and the snapshot root an `Options -Indexes` rule
+
+### Fixed
+- **A failed crawl no longer takes the site down.** With no CFP.DEV key, an unreachable API or a full disk, the crawler still wrote `manifest.json` and switched offline mode on — and the front end then served that empty snapshot as the site's content. A crawl that captures no talks and no speakers now stops, leaves offline mode off, and reports why. Failed writes are detected instead of being silently ignored
+- **The settings screen could hang for a minute.** It fetches the full speaker and talk lists purely to show which caches exist, each with a 30 second timeout, so an unreachable API blocked the page for up to 60 seconds before rendering anything. Admin-side requests now use a 10 second timeout, and the value is filterable through `cfp_dev_api_timeout`
+- **Deactivating the plugin left work scheduled.** There was no deactivation hook, so a pending `cfp_dev_do_crawl` cron event and the plugin's rewrite rules outlived deactivation. Both are now cleaned up; settings, caches and snapshots are deliberately kept, since deactivation is not uninstallation
+- **Uninstalling a multisite network only cleaned one site.** Options and transients are per-site, so every other site kept its rows. Cleanup now runs for each site in the network, and also unschedules the crawl event
+- `CFP_DEV_DIR` and `CFP_DEV_URL` were assembled from `WP_PLUGIN_DIR` and the plugin folder name; they are now derived from the plugin file itself, so a symlinked or renamed plugin directory resolves correctly
+
+### Accessibility
+- **The light/dark toggle was unreachable by keyboard.** It was an `<a>` with no `href`, which is neither focusable nor exposed with a role. It is now a `<button>` with `aria-pressed` reflecting the active theme, plus a visible focus ring. The stylesheet's `.cfp-active` rules were dead — nothing ever set that class — and have been replaced by state driven from `aria-pressed`
+- Icon-only social links announced as just "link", because the icons are CSS backgrounds and the elements had no text. Each now carries an `aria-label` naming the network and the speaker, and the containing `<nav>` is labelled
+- The programme search field had only a placeholder, which is not an accessible name. It now has a real (visually hidden) `<label>`, and the form is marked `role="search"`
+- `autofocus` is gone from the search field. It fired on every page rendering a shortcode, scrolling past the content the visitor asked for and disorienting screen-reader users
+
+### Added
+- **The plugin is actually translatable.** It declared a text domain but shipped only two translatable strings; roughly 180 user-facing strings across the settings screen, the shortcodes, the crawler status UI and the SEO metadata were hardcoded English. All are now wrapped with the correct escaping for their context, sentences use `sprintf()` placeholders with translator comments instead of concatenated fragments, and `languages/cfp-dev-shortcodes.pot` ships with 160 entries. The header gained the missing `Domain Path`
+- `SECURITY.md` with a private disclosure route, and `CODE_OF_CONDUCT.md`
+- `.editorconfig` matching the repository's existing conventions
+
+### Changed
+- **The 2,089-line main file is now 202 lines.** Its contents moved into eight focused modules under `shortcode/include/` — `helpers`, `settings`, `cache`, `api-client`, `ui`, `rewrite`, `admin` and `seo`. The main file now holds the plugin header, constants, the module list and asset loading. Lifecycle hooks are registered through a new `CFP_DEV_PLUGIN_FILE` constant, because a hook registered from a subdirectory file silently never fires
+- Minimum PHP is now 8.1, matching what CI can actually test — PHPUnit 10 requires 8.1, so the previously declared 8.0 floor only ever received a syntax check
+- `composer.lock` is committed so CI resolves the same toolchain on every run; it is excluded from the release ZIP
+- Local variables are snake_case throughout, and the blanket PHPCS suppressions for `StrictComparisons`, `VariableNotSnakeCase` and `CommentedOutCode` are gone. Two of the three turned out to be suppressing nothing at all
+
+### CI
+- **Releases now run lint and tests before publishing.** Tag pushes did not match the workflows' `branches` filter, so a tagged commit shipped without either ever running. The release workflow now gates on `composer check` and verifies the tag is an ancestor of `main`
+- The release ZIP is built with `git archive`, which honours the `export-ignore` rules already declared in `.gitattributes` — the previous rsync build leaked `.gitattributes` and `.gitignore` into every release. The artifact is verified for correct structure, absence of dev files and presence of the runtime files, and ships with a SHA-256 checksum and a build provenance attestation
+- Dependabot auto-merge no longer accepts major version bumps, and no longer treats an empty check list as success — it previously could merge before CI had started
+- Test and lint matrices start at PHP 8.1; workflows gained concurrency groups and Composer download caching
+
+### Tests
+- 182 → 232. New coverage for the SSRF and content-type guards, path-traversal rejection, the empty-crawl abort, snapshot listing protection, HTTP timeout contracts, asset registration details, uninstall behaviour including the multisite path, lifecycle hooks being bound to the main plugin file, and the release-packaging contract encoded in `.gitattributes`
+- The WordPress stand-in was strengthened where it was hiding bugs: `wp_clear_scheduled_hook()` was a no-op returning `0`, `wp_remote_get()` discarded its arguments, and the enqueue functions discarded source, dependencies and version — so the deactivation, HTTP hardening and asset-versioning defects were undetectable by construction. It now models request arguments, response headers, `wp_safe_remote_get()`'s private-address rejection, scheduled-event removal, asset registration and a minimal `$wpdb`
+- A test that asserted `.php` was a valid downloaded-image extension has been corrected — it was pinning the vulnerability in place
+- `composer coverage` added, and CI reports coverage on one PHP version (no threshold enforced until a baseline exists)
+- Activation was entirely untested despite being what makes a fresh install work at all: page creation, its idempotency on reactivation, and the slug rewrite rules (including the subdirectory path prefix) are now covered
+
+---
+
 ## [4.5.0] — 2026-08-14
 
 ### Security
