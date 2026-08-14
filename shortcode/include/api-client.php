@@ -45,6 +45,7 @@ function cfp_dev_get_json( $query_path ) {
 	$decoded = json_decode( $body );
 
 	if ( JSON_ERROR_NONE !== json_last_error() ) {
+		cfp_dev_note_api_failure();
 		cfp_dev_log( 'cfp_dev_get_json: JSON decode error for ' . $query_path . ' — ' . json_last_error_msg() );
 		return null;
 	}
@@ -102,6 +103,7 @@ function cfp_dev_fetch_json_body( $query_path ) {
 	}
 
 	if ( '' === cfp_dev_get_key() ) {
+		cfp_dev_note_api_failure();
 		cfp_dev_log( 'cfp_dev_get_json: no CFP.DEV key configured, skipping ' . $query_path );
 		return null;
 	}
@@ -118,12 +120,18 @@ function cfp_dev_fetch_json_body( $query_path ) {
 	);
 
 	if ( is_wp_error( $response ) ) {
+		cfp_dev_note_api_failure();
 		cfp_dev_log( 'cfp_dev_get_json: error for ' . $query_path . ' — ' . $response->get_error_message() );
 		return null;
 	}
 
 	$status_code = wp_remote_retrieve_response_code( $response );
 	if ( 200 !== $status_code ) {
+		// A 404 is an answer: the resource is not there. Anything else is the
+		// API failing to give one, which callers must not read as absence.
+		if ( 404 !== (int) $status_code ) {
+			cfp_dev_note_api_failure();
+		}
 		cfp_dev_log( 'cfp_dev_get_json: HTTP ' . $status_code . ' for ' . $query_path );
 		return null;
 	}
