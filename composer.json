@@ -14,7 +14,7 @@
         }
     ],
     "require": {
-        "php": ">=8.0"
+        "php": ">=8.1"
     },
     "require-dev": {
         "squizlabs/php_codesniffer": "^3.10",
@@ -27,6 +27,7 @@
         "lint": "phpcs",
         "lint-fix": "phpcbf",
         "test": "phpunit",
+        "coverage": "XDEBUG_MODE=coverage phpunit --coverage-text --coverage-html=.phpunit.cache/coverage",
         "check": [
             "@lint",
             "@test"

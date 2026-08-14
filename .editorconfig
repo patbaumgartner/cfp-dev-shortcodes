@@ -1,0 +1,21 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.php]
+indent_style = tab
+
+# Matches the existing front-end and admin scripts, and the PHP convention.
+[*.js]
+indent_style = tab
+
+[*.{yml,yaml,json,xml,css,md}]
+indent_style = space
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false

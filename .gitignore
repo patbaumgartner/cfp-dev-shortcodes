@@ -12,7 +12,9 @@ sitemap.xml.gz
 
 # Composer
 vendor/
-composer.lock
+# composer.lock is committed: this is a distributed plugin, not a library, and
+# CI must resolve the same toolchain on every run. It is export-ignored from
+# the release ZIP.
 
 # PHPUnit
 .phpunit.cache/
