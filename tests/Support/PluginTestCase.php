@@ -199,6 +199,32 @@ abstract class PluginTestCase extends TestCase {
 		$this->assertSame( [], $stack, trim( $message . ' — unclosed element(s): ' . implode( ', ', $stack ) ) );
 	}
 
+	/**
+	 * Asserts that the fragment offers a heading outline a screen reader can
+	 * navigate: at least one, starting at level 2 (themes own the `<h1>`), and
+	 * never skipping a level on the way down.
+	 *
+	 * @param string $html     Rendered fragment.
+	 * @param string $message  Context for the failure.
+	 */
+	protected function assertHeadingOutline( string $html, string $message = '' ): void {
+		preg_match_all( '#aria-level="(\d)"#', $html, $matches );
+		$levels = array_map( 'intval', $matches[1] );
+
+		$this->assertNotSame( [], $levels, trim( $message . ' — the page offers no headings to navigate by' ) );
+		$this->assertSame( 2, $levels[0], trim( $message . ' — the first heading should be level 2, under the theme\'s h1' ) );
+
+		$previous = $levels[0];
+		foreach ( $levels as $level ) {
+			$this->assertLessThanOrEqual(
+				$previous + 1,
+				$level,
+				trim( $message . ' — heading level ' . $level . ' follows ' . $previous . ', skipping a level' )
+			);
+			$previous = $level;
+		}
+	}
+
 	/** Removes `<script>` bodies so inline JS is not parsed as markup. */
 	private function stripScripts( string $html ): string {
 		return (string) preg_replace( '#<script\b[^>]*>.*?</script>#si', '', $html );

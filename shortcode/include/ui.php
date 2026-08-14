@@ -32,6 +32,24 @@ function cfp_dev_empty_list_page( string $message ): string {
 }
 
 /**
+ * Attributes that make a block a heading without changing what element it is.
+ *
+ * The plugin renders whole pages — page titles, talk titles, speaker names —
+ * as `<div class="cfp-name">`, so its content reaches a screen reader as an
+ * undifferentiated run of text with nothing to navigate by. The obvious fix is
+ * to emit `<h2>` and `<h3>`, but the stylesheet is compiled from a design
+ * system and styles these by class alone: an element selector for the headings
+ * would outrank `.cfp-name` and restyle every one of them. The heading role
+ * puts the structure in the accessibility tree and leaves the rendering
+ * exactly as the design system drew it.
+ *
+ * @param int $level  Heading level. Themes own <h1>, so the plugin starts at 2.
+ */
+function cfp_dev_heading( int $level = 2 ): string {
+	return ' role="heading" aria-level="' . max( 2, min( 6, $level ) ) . '"';
+}
+
+/**
  * Renders the shared page header block (title, optional subtitle, optional
  * search form) — the '.cfp-primary' element used by every list shortcode.
  *
@@ -42,7 +60,7 @@ function cfp_dev_empty_list_page( string $message ): string {
 function cfp_dev_page_header( string $title, string $subtitle = '', bool $show_search = true ): string {
 	$content = '<div class="cfp-primary">';
 	if ( '' !== $title ) {
-		$content .= '<div class="cfp-name">' . esc_html( $title ) . '</div>';
+		$content .= '<div class="cfp-name"' . cfp_dev_heading( 2 ) . '>' . esc_html( $title ) . '</div>';
 	}
 	if ( '' !== $subtitle ) {
 		$content .= '<div class="cfp-company">' . esc_html( $subtitle ) . '</div>';

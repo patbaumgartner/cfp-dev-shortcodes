@@ -135,7 +135,7 @@ if ( ! function_exists( 'cfp_dev_speaker_details_shortcode' ) ) {
 		$content .= '    <div class="cfp-picture" style="background-image: url(\'' . esc_url( (string) ( $speaker->imageUrl ?? '' ) ) . '\')"></div>';
 		$content .= '    <div class="cfp-content">';
 		$content .= '        <div class="cfp-detail">';
-		$content .= '            <div class="cfp-name">' . esc_html( trim( ( $speaker->firstName ?? '' ) . ' ' . ( $speaker->lastName ?? '' ) ) ) . '</div>';
+		$content .= '            <div class="cfp-name"' . cfp_dev_heading( 2 ) . '>' . esc_html( trim( ( $speaker->firstName ?? '' ) . ' ' . ( $speaker->lastName ?? '' ) ) ) . '</div>';
 		$content .= cfp_dev_social_links( $speaker );
 		$content .= '        </div>';
 		if ( ! empty( $speaker->company ) ) {
@@ -172,7 +172,7 @@ if ( ! function_exists( 'cfp_dev_speaker_details_shortcode' ) ) {
 		$content .= '            <div class="cfp-track" title="' . esc_attr( (string) ( $talk->track->name ?? '' ) ) . '" style="background-image: url(\'' . esc_url( (string) ( $talk->track->imageURL ?? '' ) ) . '\')"></div>';
 		$content .= '        </a>';
 		$content .= '        <a class="cfp-a" href="' . esc_url( $talk_url ) . '">';
-		$content .= '            <div class="cfp-name">' . esc_html( (string) ( $talk->title ?? '' ) ) . '</div>';
+		$content .= '            <div class="cfp-name"' . cfp_dev_heading( 3 ) . '>' . esc_html( (string) ( $talk->title ?? '' ) ) . '</div>';
 		$content .= '        </a>';
 		$content .= '        <div class="cfp-type">';
 		/* translators: %s: audience level. */
