@@ -731,15 +731,15 @@ function cfp_dev_do_crawl(): void {
 	cfp_dev_update_crawl_state( [ 'step_label' => __( 'Fetching schedules...', 'cfp-dev-shortcodes' ) ] );
 
 	$event_days = [];
-	if ( ! empty( $event->fromDate ) ) {
-		// Extract date portion only ("2025-03-25T07:30:00Z" → "2025-03-25").
-		$from_str = substr( $event->fromDate, 0, 10 );
-		$to_str   = ! empty( $event->toDate ) ? substr( $event->toDate, 0, 10 ) : $from_str;
-		$current  = new DateTime( $from_str );
-		$end      = new DateTime( $to_str );
+	$from_day   = cfp_dev_date( $event->fromDate ?? '' );
+	if ( null !== $from_day ) {
+		// The end date is optional; a single-day event has only fromDate.
+		$to_day  = cfp_dev_date( $event->toDate ?? '' ) ?? $from_day;
+		$current = $from_day->setTime( 0, 0 );
+		$end     = $to_day->setTime( 0, 0 );
 		while ( $current <= $end ) {
 			$event_days[] = $current->format( 'l' ); // e.g. "Tuesday" — matches shortcode format
-			$current->modify( '+1 day' );
+			$current      = $current->modify( '+1 day' );
 		}
 	}
 

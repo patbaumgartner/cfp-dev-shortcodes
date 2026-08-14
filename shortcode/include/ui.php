@@ -129,6 +129,46 @@ function cfp_dev_search_form() {
 }
 
 /**
+ * Renders the date/time/room block for one time slot.
+ *
+ * Shared by the talk and speaker detail pages, which rendered byte-identical
+ * markup from their own copies of this logic. Returns an empty string when the
+ * slot is absent or carries a date the API's own service cannot be trusted to
+ * have made parseable — a slot is optional data, not a reason to fail the page.
+ *
+ * @param mixed $slot  Time slot object from the API.
+ */
+function cfp_dev_render_time_slot( $slot ): string {
+	if ( ! is_object( $slot ) ) {
+		return '';
+	}
+
+	$timezone = cfp_dev_timezone( $slot->timezone ?? '' );
+	$from     = cfp_dev_date( $slot->fromDate ?? '', $timezone );
+	$to       = cfp_dev_date( $slot->toDate ?? '', $timezone );
+
+	if ( null === $from || null === $to ) {
+		return '';
+	}
+
+	$content = '        <div class="cfp-datetime">';
+	/* translators: 1: weekday, 2: start time. */
+	$content .= '            <time class="cfp-time" datetime="' . esc_attr( $from->format( 'c' ) ) . '">' . esc_html( sprintf( __( '%1$s from %2$s', 'cfp-dev-shortcodes' ), $from->format( 'l' ), $from->format( 'H:i' ) ) ) . '</time>';
+	$content .= '            <time class="cfp-time" datetime="' . esc_attr( $to->format( 'c' ) ) . '">' . esc_html( $to->format( 'H:i' ) ) . '</time>';
+	$content .= '        </div>';
+
+	if ( 'yes' === get_option( 'cfp_dev_show_rooms', 'yes' ) && ! empty( $slot->roomName ) ) {
+		$content .= '        <div class="cfp-room">' . esc_html( $slot->roomName ) . '</div>';
+	}
+
+	$content .= '<input type="hidden" id="cfpTimezone" value="' . esc_attr( $from->getTimezone()->getName() ) . '">';
+	$content .= '<input type="hidden" id="cfpTalkFrom" value="' . esc_attr( $from->getTimestamp() ) . '">';
+	$content .= '<input type="hidden" id="cfpTalkExpiry" value="' . esc_attr( $to->getTimestamp() ) . '">';
+
+	return $content;
+}
+
+/**
  * Renders the social-link icons (LinkedIn, Bluesky, Mastodon, X/Twitter) for
  * a speaker. Returns an empty string when no handle is set.
  *

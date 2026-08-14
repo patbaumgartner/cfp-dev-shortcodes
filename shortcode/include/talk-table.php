@@ -44,14 +44,11 @@ function cfp_dev_talk_table_rows( $talks ) {
 		return '';
 	}
 
-	$use_slugs = ( 'no' === get_option( 'cfp_dev_content_by_id', 'yes' ) );
-	$content   = '';
+	$content = '';
 
 	foreach ( $talks as $talk ) {
 		$title    = (string) ( $talk->title ?? '' );
-		$talk_url = $use_slugs
-			? cfp_dev_url( '/talk/' . cfp_dev_generate_slug( $title ) )
-			: cfp_dev_url( '/talk?id=' . absint( $talk->id ?? 0 ) );
+		$talk_url = cfp_dev_talk_url( $talk );
 
 		// The list endpoint sends a flat trackImageURL; the detail endpoint
 		// nests it under track.
@@ -63,7 +60,7 @@ function cfp_dev_talk_table_rows( $talks ) {
 		$content .= '<article class="cfp-article cfp-row cfp-event">';
 		$content .= '    <div class="cfp-field">' . esc_html( $title ) . '</div>';
 		$content .= '    <div class="cfp-field cfp-speaker">';
-		$content .= cfp_dev_talk_table_speakers( $talk, $use_slugs );
+		$content .= cfp_dev_talk_table_speakers( $talk );
 		$content .= '    </div>';
 		$content .= '    <div class="cfp-field">';
 		$content .= '        <div class="cfp-track" style="background-image: url(\'' . esc_url( $track_image ) . '\')"></div>';
@@ -80,21 +77,17 @@ function cfp_dev_talk_table_rows( $talks ) {
 /**
  * Renders the linked speaker names for one talk row.
  *
- * @param object $talk       Talk object from the API.
- * @param bool   $use_slugs  Whether permalinks use slugs instead of ids.
+ * @param object $talk  Talk object from the API.
  * @return string
  */
-function cfp_dev_talk_table_speakers( $talk, $use_slugs ) {
+function cfp_dev_talk_table_speakers( $talk ) {
 	$content = '';
 
 	foreach ( (array) ( $talk->speakers ?? [] ) as $speaker ) {
 		$first = (string) ( $speaker->firstName ?? '' );
 		$last  = (string) ( $speaker->lastName ?? '' );
-		$url   = $use_slugs
-			? cfp_dev_url( '/speaker/' . cfp_dev_generate_slug( $first . '-' . $last ) )
-			: cfp_dev_url( '/speaker?id=' . absint( $speaker->id ?? 0 ) );
 
-		$content .= '<a class="cfp-a" href="' . esc_url( $url ) . '">' . esc_html( $first ) . '&nbsp;' . esc_html( $last ) . '</a>';
+		$content .= '<a class="cfp-a" href="' . esc_url( cfp_dev_speaker_url( $speaker ) ) . '">' . esc_html( $first ) . '&nbsp;' . esc_html( $last ) . '</a>';
 	}
 
 	return $content;

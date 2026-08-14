@@ -66,17 +66,59 @@ function cfp_dev_compare_name( $x, $y ) {
 }
 
 /**
+ * Builds a timezone from an API-supplied name, or null when it is unusable.
+ *
+ * Dates and zones arrive as free-form strings from a service this plugin does
+ * not control, and both constructors throw on anything they cannot parse. An
+ * uncaught throw here is a white screen on a public page, so every such value
+ * is turned into null and handled as missing data instead.
+ *
+ * @param mixed $name  Timezone identifier, e.g. 'Europe/Brussels'.
+ */
+function cfp_dev_timezone( $name ): ?DateTimeZone {
+	if ( ! is_string( $name ) || '' === $name ) {
+		return null;
+	}
+	try {
+		return new DateTimeZone( $name );
+	} catch ( Exception $e ) {
+		cfp_dev_log( 'unusable timezone from API (' . $name . ') — ' . $e->getMessage() );
+		return null;
+	}
+}
+
+/**
+ * Builds a date from an API-supplied value, or null when it is unusable.
+ *
+ * @param mixed             $value     Date/time string, e.g. '2025-10-06T08:30:00Z'.
+ * @param DateTimeZone|null $timezone  Zone to assume when the value carries no
+ *                                     offset, and to convert the result into.
+ *                                     Defaults to UTC, which is what the API sends.
+ */
+function cfp_dev_date( $value, ?DateTimeZone $timezone = null ): ?DateTimeImmutable {
+	if ( ! is_string( $value ) || '' === $value ) {
+		return null;
+	}
+	try {
+		$date = new DateTimeImmutable( $value, $timezone ?? new DateTimeZone( 'UTC' ) );
+	} catch ( Exception $e ) {
+		cfp_dev_log( 'unusable date from API (' . $value . ') — ' . $e->getMessage() );
+		return null;
+	}
+	return null === $timezone ? $date : $date->setTimezone( $timezone );
+}
+
+/**
  * Formats a UTC time string in the given timezone.
  *
- * @param string       $time      UTC date/time string.
+ * @param mixed        $time      UTC date/time string.
  * @param DateTimeZone $timezone  Target timezone.
  * @param string       $format    date() format string.
- * @return string
+ * @return string  Formatted time, or '' when the value is unusable.
  */
 function cfp_dev_format_time( $time, $timezone, $format ) {
-	$dt = new DateTime( $time, new DateTimeZone( 'UTC' ) );
-	$dt->setTimezone( $timezone );
-	return $dt->format( $format );
+	$date = cfp_dev_date( $time );
+	return null === $date ? '' : $date->setTimezone( $timezone )->format( $format );
 }
 
 /**

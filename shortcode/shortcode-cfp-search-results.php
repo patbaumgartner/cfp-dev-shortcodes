@@ -71,7 +71,6 @@ if ( ! function_exists( 'cfp_dev_search_results_shortcode' ) ) {
 	function cfp_dev_search_results_body( $query ) {
 		$exact_search_result = cfp_dev_get_json( 'public/search?query=' . rawurlencode( $query ) );
 		$semantic_result     = cfp_dev_search_json( $query );
-		$use_slugs           = ( 'no' === get_option( 'cfp_dev_content_by_id', 'yes' ) );
 		$content             = '';
 
 		if ( ! empty( $exact_search_result->proposals ) ) {
@@ -85,14 +84,10 @@ if ( ! function_exists( 'cfp_dev_search_results_shortcode' ) ) {
 				$content .= '		</div>';
 				$content .= '		<div class="cfp-block">';
 				foreach ( (array) ( $talk->speakers ?? [] ) as $speaker ) {
-					$content .= cfp_dev_search_speaker_card( $speaker, $use_slugs );
+					$content .= cfp_dev_search_speaker_card( $speaker );
 				}
 				$content .= '		</div>';
-				if ( $use_slugs ) {
-					$content .= '        <a class="cfp-button" href="' . esc_url( cfp_dev_url( '/talk/' . cfp_dev_generate_slug( (string) ( $talk->title ?? '' ) ) ) ) . '">' . esc_html__( 'View', 'cfp-dev-shortcodes' ) . '</a>';
-				} else {
-					$content .= '        <a class="cfp-button" href="' . esc_url( cfp_dev_url( '/talk?id=' . absint( $talk->id ?? 0 ) ) ) . '">' . esc_html__( 'View', 'cfp-dev-shortcodes' ) . '</a>';
-				}
+				$content .= '        <a class="cfp-button" href="' . esc_url( cfp_dev_talk_url( $talk ) ) . '">' . esc_html__( 'View', 'cfp-dev-shortcodes' ) . '</a>';
 				$content .= '	</article>';
 			}
 		}
@@ -101,7 +96,7 @@ if ( ! function_exists( 'cfp_dev_search_results_shortcode' ) ) {
 			foreach ( $exact_search_result->speakers as $speaker ) {
 				$content .= '	<article class="cfp-article">';
 				$content .= '		<div class="cfp-block">';
-				$content .= cfp_dev_search_speaker_card( $speaker, $use_slugs );
+				$content .= cfp_dev_search_speaker_card( $speaker );
 				$content .= '		</div>';
 				$content .= '	</article>';
 			}
@@ -121,11 +116,7 @@ if ( ! function_exists( 'cfp_dev_search_results_shortcode' ) ) {
 				$content .= '		<div class="cfp-name">' . esc_html( (string) ( $item->title ?? '' ) ) . '</div>';
 				/* translators: %s: similarity score. */
 				$content .= '		<div class="cfp-type">' . esc_html( sprintf( __( 'Similarity score = %s', 'cfp-dev-shortcodes' ), number_format( (float) ( $item->score ?? 0 ), 2 ) ) ) . '</div>';
-				if ( $use_slugs ) {
-					$content .= '   	<a class="cfp-button" href="' . esc_url( cfp_dev_url( '/talk/' . cfp_dev_generate_slug( (string) ( $item->title ?? '' ) ) ) ) . '">' . esc_html__( 'More', 'cfp-dev-shortcodes' ) . '</a>';
-				} else {
-					$content .= '   	<a class="cfp-button" href="' . esc_url( cfp_dev_url( '/talk?id=' . absint( $item->id ?? 0 ) ) ) . '">' . esc_html__( 'More', 'cfp-dev-shortcodes' ) . '</a>';
-				}
+				$content .= '   	<a class="cfp-button" href="' . esc_url( cfp_dev_talk_url( $item ) ) . '">' . esc_html__( 'More', 'cfp-dev-shortcodes' ) . '</a>';
 				$content .= '	</div>';
 				$content .= '</article>';
 			}
@@ -143,17 +134,12 @@ if ( ! function_exists( 'cfp_dev_search_results_shortcode' ) ) {
 	/**
 	 * Renders one linked speaker tile (photo, name, company).
 	 *
-	 * @param object $speaker    Speaker object from the search response.
-	 * @param bool   $use_slugs  Whether permalinks use slugs instead of ids.
+	 * @param object $speaker  Speaker object from the search response.
 	 * @return string
 	 */
-	function cfp_dev_search_speaker_card( $speaker, $use_slugs ) {
-		$url = $use_slugs
-			? cfp_dev_url( '/speaker/' . cfp_dev_generate_slug( ( $speaker->firstName ?? '' ) . '-' . ( $speaker->lastName ?? '' ) ) )
-			: cfp_dev_url( '/speaker?id=' . absint( $speaker->id ?? 0 ) );
-
+	function cfp_dev_search_speaker_card( $speaker ) {
 		$content  = '		<div class="cfp-person">';
-		$content .= '        	<a class="cfp-a" href="' . esc_url( $url ) . '">';
+		$content .= '        	<a class="cfp-a" href="' . esc_url( cfp_dev_speaker_url( $speaker ) ) . '">';
 		$content .= '    			<div class="cfp-picture" style="background-image: url(\'' . esc_url( (string) ( $speaker->imageUrl ?? '' ) ) . '\')"></div>';
 		$content .= '				<div class="cfp-name">' . esc_html( trim( ( $speaker->firstName ?? '' ) . ' ' . ( $speaker->lastName ?? '' ) ) ) . '</div>';
 		if ( ! empty( $speaker->company ) ) {
