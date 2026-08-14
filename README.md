@@ -313,6 +313,7 @@ composer lint         # PHP_CodeSniffer (WordPress Coding Standards)
 composer lint-fix     # phpcbf auto-fix
 composer test         # PHPUnit
 composer check        # both
+composer i18n         # regenerate the .pot (needs WP-CLI)
 ```
 
 ### Test suite
@@ -356,7 +357,9 @@ GitHub Actions runs on every push and pull request to `main`:
 ## Translations
 
 All user-facing strings are translatable under the `cfp-dev-shortcodes` text
-domain. The template lives at `languages/cfp-dev-shortcodes.pot`.
+domain. The template lives at `languages/cfp-dev-shortcodes.pot` and is
+regenerated with `composer i18n` (needs [WP-CLI](https://wp-cli.org)); the test
+suite fails if it and the source ever disagree.
 
 To add a language, place a compiled `.mo` file next to it:
 
