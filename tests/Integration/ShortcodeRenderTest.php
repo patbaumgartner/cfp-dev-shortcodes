@@ -475,6 +475,47 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		$this->assertStringNotContainsString( 'cfp-datetime', $html );
 	}
 
+	/**
+	 * The cache stores rendered HTML, so a hit does not depend on any API
+	 * data. The lookup used to sit below the event, rooms and day-schedule
+	 * fetches, which meant serving a cached day still cost three round trips.
+	 */
+	public function test_a_cached_schedule_day_is_served_without_calling_the_api(): void {
+		$this->registerScheduleApi();
+		$this->option( 'cfp_dev_cache_duration', HOUR_IN_SECONDS );
+		$this->queryVar( 'id', 'Monday' );
+
+		$first = cfp_dev_schedule_shortcode( [] );
+		$this->assertStringContainsString( 'Modern Java in Practice', $first );
+		$this->assertNotSame( [], $this->httpLog(), 'the first render must populate the cache from the API' );
+
+		// A second request: same day, nothing memoised, cache already warm.
+		\WP_Test_State::$http_log = [];
+		cfp_dev_flush_request_cache();
+
+		$this->assertSame( $first, cfp_dev_schedule_shortcode( [] ) );
+		$this->assertSame( [], $this->httpLog(), 'a cached day must not touch the API' );
+	}
+
+	/** Without ?id= the default day is only knowable from the event itself. */
+	public function test_a_cached_default_schedule_day_costs_only_the_event_lookup(): void {
+		$this->registerScheduleApi();
+		$this->option( 'cfp_dev_cache_duration', HOUR_IN_SECONDS );
+
+		cfp_dev_schedule_shortcode( [] );
+
+		\WP_Test_State::$http_log = [];
+		cfp_dev_flush_request_cache();
+
+		cfp_dev_schedule_shortcode( [] );
+
+		$this->assertSame(
+			[ cfp_dev_api_base() . 'public/event' ],
+			$this->httpLog(),
+			'only the lookup that names the default day is needed'
+		);
+	}
+
 	public function test_shortcodes_are_registered_on_plugins_loaded(): void {
 		foreach (
 			[
