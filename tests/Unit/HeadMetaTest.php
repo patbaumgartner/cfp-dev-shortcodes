@@ -50,6 +50,19 @@ final class HeadMetaTest extends PluginTestCase {
 		$this->assertSame( 'profile', $meta['og_type'] );
 	}
 
+	public function test_speaker_pages_reject_unusable_social_images(): void {
+		$this->registerDefaultApi();
+		$speaker             = Fixtures::speakerDetail( 100 );
+		$speaker['imageUrl'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:x';
+		$this->api( 'public/speakers/100', $speaker );
+		$this->onPage( 'speaker' );
+		$this->queryVar( 'id', 100 );
+
+		// A ~90px Google cache thumbnail makes a blurry share card; talk pages
+		// already fell back to the site default, speaker pages did not.
+		$this->assertSame( '', cfp_dev_page_meta()['image'] );
+	}
+
 	public function test_list_pages_keep_the_wordpress_title_and_get_a_description(): void {
 		$this->registerDefaultApi();
 		$this->onPage( 'speakers' );

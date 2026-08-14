@@ -1320,61 +1320,80 @@ function cfp_dev_get_talk_by_id( $id ) {
 }
 
 /**
- * Resolves a speaker slug to its id by scanning the full speaker list.
- * Hits and misses are transient-cached (misses with a short TTL).
+ * Resolves a slug to an entity id by scanning a list endpoint.
+ *
+ * Resolving a slug costs a full list fetch, so results are cached — hits for
+ * the configured TTL, and misses always for at least a few minutes even when
+ * caching is switched off: these lookups run on public URLs, so a loop over
+ * made-up slugs would otherwise refetch the whole list on every request.
+ *
+ * @param string   $cache_prefix  Transient key prefix, e.g. 'cfp_speaker_slug_'.
+ * @param string   $endpoint      List endpoint to scan.
+ * @param string   $slug          Slug to resolve.
+ * @param callable $slug_of       Returns the slug for one record.
+ * @return int|null  Entity id, or null when the slug is unknown.
+ */
+function cfp_dev_resolve_slug( string $cache_prefix, string $endpoint, string $slug, callable $slug_of ) {
+	$cache_key = cfp_dev_group_cache_key( $cache_prefix . md5( $slug ) );
+	$id        = get_transient( $cache_key );
+
+	if ( false === $id ) {
+		$id      = 0;
+		$records = cfp_dev_get_json( $endpoint );
+
+		if ( is_array( $records ) ) {
+			foreach ( $records as $record ) {
+				if ( $slug_of( $record ) === $slug ) {
+					$id = (int) ( $record->id ?? 0 );
+					break;
+				}
+			}
+
+			$ttl = cfp_dev_get_cache_ttl();
+			if ( ! $id ) {
+				set_transient( $cache_key, 0, max( $ttl, 5 * MINUTE_IN_SECONDS ) );
+			} elseif ( $ttl > 0 ) {
+				// set_transient() with 0 would cache forever — skip when disabled.
+				set_transient( $cache_key, $id, $ttl );
+			}
+		}
+	}
+
+	return $id ? (int) $id : null;
+}
+
+/**
+ * Resolves a speaker slug to its id.
  *
  * @param string $slug  Speaker slug, e.g. 'jane-doe'.
  * @return int|null  Speaker id, or null when the slug is unknown.
  */
 function cfp_dev_speaker_id_from_slug( $slug ) {
-	$cache_key  = cfp_dev_group_cache_key( 'cfp_speaker_slug_' . md5( $slug ) );
-	$speaker_id = get_transient( $cache_key );
-
-	if ( false === $speaker_id ) {
-		$speaker_id = 0;
-		$speakers   = cfp_dev_get_json( 'public/speakers?size=' . CFP_DEV_SPEAKERS_FETCH_SIZE );
-		if ( is_array( $speakers ) ) {
-			foreach ( $speakers as $speaker ) {
-				$current_slug = cfp_dev_generate_slug( $speaker->firstName . '-' . $speaker->lastName );
-				if ( $current_slug === $slug ) {
-					$speaker_id = $speaker->id;
-					break;
-				}
-			}
-			// Cache misses too (shorter TTL) so unknown slugs don't refetch the full list every hit.
-			set_transient( $cache_key, $speaker_id, $speaker_id ? DAY_IN_SECONDS : 5 * MINUTE_IN_SECONDS );
+	return cfp_dev_resolve_slug(
+		'cfp_speaker_slug_',
+		'public/speakers?size=' . CFP_DEV_SPEAKERS_FETCH_SIZE,
+		(string) $slug,
+		static function ( $speaker ) {
+			return cfp_dev_generate_slug( ( $speaker->firstName ?? '' ) . '-' . ( $speaker->lastName ?? '' ) );
 		}
-	}
-
-	return $speaker_id ? $speaker_id : null;
+	);
 }
 
 /**
- * Resolves a talk slug to its id by scanning the full talk list.
- * Hits and misses are transient-cached (misses with a short TTL).
+ * Resolves a talk slug to its id.
  *
  * @param string $slug  Talk slug, e.g. 'my-great-talk'.
  * @return int|null  Talk id, or null when the slug is unknown.
  */
 function cfp_dev_talk_id_from_slug( $slug ) {
-	$cache_key = cfp_dev_group_cache_key( 'cfp_talk_slug_' . md5( $slug ) );
-	$talk_id   = get_transient( $cache_key );
-
-	if ( false === $talk_id ) {
-		$talk_id = 0;
-		$talks   = cfp_dev_get_json( 'public/talks' );
-		if ( is_array( $talks ) ) {
-			foreach ( $talks as $talk ) {
-				if ( cfp_dev_generate_slug( $talk->title ) === $slug ) {
-					$talk_id = $talk->id;
-					break;
-				}
-			}
-			set_transient( $cache_key, $talk_id, $talk_id ? DAY_IN_SECONDS : 5 * MINUTE_IN_SECONDS );
+	return cfp_dev_resolve_slug(
+		'cfp_talk_slug_',
+		'public/talks',
+		(string) $slug,
+		static function ( $talk ) {
+			return cfp_dev_generate_slug( (string) ( $talk->title ?? '' ) );
 		}
-	}
-
-	return $talk_id ? $talk_id : null;
+	);
 }
 
 /**
@@ -1721,7 +1740,7 @@ function cfp_dev_resolve_page_meta() {
 			'title'       => $name . ' - ' . $event_name,
 			'description' => $description,
 			'url'         => home_url( cfp_dev_url( '/speaker/' . cfp_dev_generate_slug( $speaker->firstName . '-' . $speaker->lastName ) ) ),
-			'image'       => (string) ( $speaker->imageUrl ?? '' ),
+			'image'       => cfp_dev_usable_image( $speaker->imageUrl ?? '' ),
 			'og_type'     => 'profile',
 		];
 	}
