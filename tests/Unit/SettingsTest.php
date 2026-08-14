@@ -201,6 +201,23 @@ final class SettingsTest extends PluginTestCase {
 		$this->assertSame( [], WP_Test_State::$env['scheduled'] ?? [] );
 	}
 
+	public function test_updating_the_plugin_invalidates_cached_markup(): void {
+		$this->option( 'cfp_dev_installed_version', '0.0.1' );
+
+		cfp_dev_maybe_upgrade();
+
+		$this->assertSame( CFP_DEV_VERSION, get_option( 'cfp_dev_installed_version' ) );
+		$this->assertSame( 2, (int) get_option( 'cfp_dev_cache_version' ) );
+	}
+
+	public function test_an_unchanged_version_leaves_caches_alone(): void {
+		$this->option( 'cfp_dev_installed_version', CFP_DEV_VERSION );
+
+		cfp_dev_maybe_upgrade();
+
+		$this->assertSame( 1, (int) get_option( 'cfp_dev_cache_version' ) );
+	}
+
 	public function test_an_unrelated_post_changes_nothing(): void {
 		$before = WP_Test_State::$options;
 

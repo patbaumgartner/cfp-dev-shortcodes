@@ -22,6 +22,7 @@ $cfp_dev_options = [
 	'cfp_dev_event_name',
 	'cfp_dev_cache_duration',
 	'cfp_dev_cache_version',
+	'cfp_dev_installed_version',
 	'cfp_dev_default_theme',
 	'cfp_dev_enable_theme_switch',
 	'enable_theme_switch',
