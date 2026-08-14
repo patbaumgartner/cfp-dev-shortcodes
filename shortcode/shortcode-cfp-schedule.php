@@ -47,6 +47,22 @@ if ( ! function_exists( 'cfp_dev_schedule_shortcode' ) ) {
 			$day_name = '';
 		}
 
+		$ttl = cfp_dev_get_cache_ttl();
+
+		/*
+		 * The cache stores rendered HTML, so a hit needs no API data at all —
+		 * only the key. An explicit ?id=<day> settles the key on its own, which
+		 * is the case every day tab links to. This lookup used to sit below the
+		 * event, rooms and day-schedule fetches, so serving a cached day still
+		 * cost three round trips to an API the answer did not depend on.
+		 */
+		if ( $ttl > 0 && '' !== $day_name ) {
+			$cache = get_transient( cfp_dev_schedule_cache_key( $day_name, $_atts, $defaults ) );
+			if ( false !== $cache ) {
+				return $cache;
+			}
+		}
+
 		// Get the current event — its timezone and date range drive everything below.
 		$current_event = cfp_dev_get_json( 'public/event' );
 
@@ -72,15 +88,23 @@ if ( ! function_exists( 'cfp_dev_schedule_shortcode' ) ) {
 			return esc_html__( 'Event dates are not set.', 'cfp-dev-shortcodes' );
 		}
 
+		// Without an explicit day the event itself names the default, so the
+		// key is only knowable here — one fetch rather than three.
+		if ( '' === $day_name ) {
+			$day_name = $from_date->format( 'l' );
+			if ( $ttl > 0 ) {
+				$cache = get_transient( cfp_dev_schedule_cache_key( $day_name, $_atts, $defaults ) );
+				if ( false !== $cache ) {
+					return $cache;
+				}
+			}
+		}
+
 		$rooms = cfp_dev_get_json( 'public/rooms' );
 
 		if ( is_null( $rooms ) ) {
 			cfp_dev_log( 'schedule: failed to retrieve rooms' );
 			return esc_html__( 'Failed to retrieve rooms', 'cfp-dev-shortcodes' );
-		}
-
-		if ( '' === $day_name ) {
-			$day_name = $from_date->format( 'l' );
 		}
 
 		$day_schedule = cfp_dev_get_json( 'public/schedules/' . $day_name );
@@ -91,22 +115,25 @@ if ( ! function_exists( 'cfp_dev_schedule_shortcode' ) ) {
 			return esc_html( sprintf( __( 'No schedule available for %s.', 'cfp-dev-shortcodes' ), $day_name ) );
 		}
 
-		$_cache_group = cfp_dev_group_cache_key( 'cfp_schedule_' . $day_name . cfp_dev_atts_cache_suffix( $_atts, $defaults ) );
-
-		$ttl = cfp_dev_get_cache_ttl();
-		if ( 0 === $ttl ) {
-			cfp_dev_log( 'schedule: cache disabled, generating content for day=' . $day_name );
-			return cfp_dev_render_schedule( $day_schedule, $rooms, $time_zone, $from_date, $to_date, $current_event, $day_name, $_atts );
-		}
-
-		$cache = get_transient( $_cache_group );
-		if ( false !== $cache ) {
-			return $cache;
-		}
-
 		$content = cfp_dev_render_schedule( $day_schedule, $rooms, $time_zone, $from_date, $to_date, $current_event, $day_name, $_atts );
-		set_transient( $_cache_group, $content, $ttl );
+
+		if ( $ttl > 0 ) {
+			set_transient( cfp_dev_schedule_cache_key( $day_name, $_atts, $defaults ), $content, $ttl );
+		}
+
 		return $content;
+	}
+
+	/**
+	 * Cache key for one rendered schedule day.
+	 *
+	 * @param string $day_name  Weekday name, e.g. 'Tuesday'.
+	 * @param array  $_atts     Normalised shortcode attributes.
+	 * @param array  $defaults  The shortcode's default attributes.
+	 * @return string
+	 */
+	function cfp_dev_schedule_cache_key( string $day_name, array $_atts, array $defaults ): string {
+		return cfp_dev_group_cache_key( 'cfp_schedule_' . $day_name . cfp_dev_atts_cache_suffix( $_atts, $defaults ) );
 	}
 
 	/**
