@@ -48,7 +48,7 @@ if ( ! function_exists( 'cfp_dev_talks_by_tracks_shortcode' ) ) {
 			static function () use ( $track_id, $_atts ) {
 				return cfp_dev_render_talks_by_tracks( $track_id, $_atts );
 			},
-			cfp_dev_root_class_script( 'session' ) . '<div class="cfp-main"><section class="cfp-list">' . cfp_dev_render_no_tracks() . '</section></div>'
+			cfp_dev_empty_list_page( __( 'No tracks found', 'cfp-dev-shortcodes' ) )
 		);
 	}
 
@@ -96,7 +96,7 @@ if ( ! function_exists( 'cfp_dev_talks_by_tracks_shortcode' ) ) {
 			$talks = cfp_dev_get_json( 'public/talks/track/' . absint( $track_id ) );
 		}
 
-		$content  = cfp_dev_session_root_class_script();
+		$content  = cfp_dev_root_class_script( 'session' );
 		$content .= '<div class="cfp-main">';
 		$content .= '<section class="cfp-list">';
 
@@ -117,29 +117,6 @@ if ( ! function_exists( 'cfp_dev_talks_by_tracks_shortcode' ) ) {
 		$content .= '</div>';
 
 		$content .= cfp_dev_footer();
-		return $content;
-	}
-
-	/**
-	 * Emits the root-element class script for this page type.
-	 *
-	 * @return string
-	 */
-	function cfp_dev_session_root_class_script() {
-		return cfp_dev_root_class_script( 'session' );
-	}
-
-	/**
-	 * Renders the "no tracks found" placeholder.
-	 *
-	 * @return string
-	 */
-	function cfp_dev_render_no_tracks() {
-		$content  = '<div class="dev-cfp-row">';
-		$content .= '    <div class="dev-cfp-column">';
-		$content .= '        <p>' . esc_html__( 'No tracks found', 'cfp-dev-shortcodes' ) . '</p>';
-		$content .= '    </div>';
-		$content .= '</div>';
 		return $content;
 	}
 

@@ -12,6 +12,26 @@ if ( ! defined( 'WPINC' ) ) {
 }
 
 /**
+ * Renders the whole page a list shortcode falls back to when its list could
+ * not be fetched: the page shell it would otherwise have produced, with one
+ * message where the list belongs.
+ *
+ * The two list pages each carried their own copy of this, wrapping the message
+ * in `dev-cfp-row`/`dev-cfp-column` — classes the stylesheet has no rules for,
+ * so the message rendered outside the layout it was supposed to sit in.
+ *
+ * @param string $message  Already-translated message, e.g. 'No tracks found'.
+ */
+function cfp_dev_empty_list_page( string $message ): string {
+	return cfp_dev_root_class_script( 'session' )
+		. '<div class="cfp-main"><section class="cfp-list">'
+		. '<div class="cfp-group"><div class="cfp-foreword"><div class="cfp-text">'
+		. '<p>' . esc_html( $message ) . '</p>'
+		. '</div></div></div>'
+		. '</section></div>';
+}
+
+/**
  * Renders the shared page header block (title, optional subtitle, optional
  * search form) — the '.cfp-primary' element used by every list shortcode.
  *
