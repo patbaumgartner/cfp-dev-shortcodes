@@ -54,6 +54,49 @@ final class ApiClientTest extends PluginTestCase {
 		$this->assertSame( 3, $this->lastRequestArgs( cfp_dev_api_base() . 'public/talks' )['timeout'] );
 	}
 
+	/**
+	 * Every other read populates a cache, so at most one visitor waits out a
+	 * slow API. Search results are never cached — the query space is
+	 * unbounded — so every request to a public URL waits in full, and enough
+	 * of them at once occupy every PHP worker the site has.
+	 */
+	public function test_search_requests_give_up_sooner_than_cacheable_ones(): void {
+		$this->api( 'public/talks', [] );
+		$this->api( 'public/search?query=java', [] );
+		$this->search( 'java', [] );
+
+		cfp_dev_get_json( 'public/talks' );
+		cfp_dev_get_json( 'public/search?query=java' );
+		cfp_dev_search_json( 'java' );
+
+		$cacheable = $this->lastRequestArgs( cfp_dev_api_base() . 'public/talks' )['timeout'];
+		$exact     = $this->lastRequestArgs( cfp_dev_api_base() . 'public/search?query=java' )['timeout'];
+		$semantic  = $this->lastRequestArgs( cfp_dev_search_base() . 'java' )['timeout'];
+
+		$this->assertSame( 30, $cacheable );
+		$this->assertLessThan( $cacheable, $exact );
+		$this->assertLessThan( $cacheable, $semantic );
+	}
+
+	/** The filter is told which path it is deciding for. */
+	public function test_the_timeout_filter_receives_the_query_path(): void {
+		$seen = [];
+		add_filter(
+			'cfp_dev_api_timeout',
+			static function ( $timeout, $query_path ) use ( &$seen ) {
+				$seen[] = $query_path;
+				return $timeout;
+			},
+			10,
+			2
+		);
+		$this->api( 'public/talks', [] );
+
+		cfp_dev_get_json( 'public/talks' );
+
+		$this->assertContains( 'public/talks', $seen );
+	}
+
 	public function test_get_json_decodes_a_successful_response(): void {
 		$this->api( 'public/event', [ 'name' => 'Devoxx' ] );
 
