@@ -184,10 +184,7 @@ if ( ! function_exists( 'cfp_dev_speaker_details_shortcode' ) ) {
 	 * @return string
 	 */
 	function cfp_dev_render_speaker_talk( $talk ) {
-		$use_slugs = ( 'no' === get_option( 'cfp_dev_content_by_id', 'yes' ) );
-		$talk_url  = $use_slugs
-			? cfp_dev_url( '/talk/' . cfp_dev_generate_slug( (string) ( $talk->title ?? '' ) ) )
-			: cfp_dev_url( '/talk?id=' . absint( $talk->id ?? 0 ) );
+		$talk_url = cfp_dev_talk_url( $talk );
 
 		$content  = '<section class="cfp-session">';
 		$content .= '    <div class="cfp-foreword">';
@@ -229,43 +226,16 @@ if ( ! function_exists( 'cfp_dev_speaker_details_shortcode' ) ) {
 	 * @return string
 	 */
 	function cfp_dev_render_proposal_schedule( $talk ) {
-		$content      = '';
 		$talk_details = cfp_dev_get_json( 'public/talks/' . absint( $talk->id ?? 0 ) );
-		if ( empty( $talk_details ) || empty( $talk_details->timeSlots ) || ! is_array( $talk_details->timeSlots ) ) {
-			return $content;
+		if ( empty( $talk_details->timeSlots ) || ! is_array( $talk_details->timeSlots ) ) {
+			return '';
 		}
 
 		// end() on a local copy: array_pop() would consume the slots on the
 		// shared, memoised talk object.
 		$slots = (array) $talk_details->timeSlots;
-		$slot  = end( $slots );
-		if ( ! empty( $slot->fromDate ) && ! empty( $slot->toDate ) ) {
-			try {
-				$time_zone = new DateTimeZone( $slot->timezone );
-				$from_date = new DateTime( $slot->fromDate, $time_zone );
-				$from_date->setTimezone( $time_zone );
-				$to_date = new DateTime( $slot->toDate, $time_zone );
-				$to_date->setTimezone( $time_zone );
-			} catch ( Exception $e ) {
-				cfp_dev_log( 'speaker-details: invalid slot date/timezone — ' . $e->getMessage() );
-				return $content;
-			}
 
-			$content .= '        <div class="cfp-datetime">';
-			/* translators: 1: weekday, 2: start time. */
-			$content .= '            <time class="cfp-time" datetime="' . esc_attr( $from_date->format( 'c' ) ) . '">' . esc_html( sprintf( __( '%1$s from %2$s', 'cfp-dev-shortcodes' ), $from_date->format( 'l' ), $from_date->format( 'H:i' ) ) ) . '</time>';
-			$content .= '            <time class="cfp-time" datetime="' . esc_attr( $to_date->format( 'c' ) ) . '">' . esc_html( $to_date->format( 'H:i' ) ) . '</time>';
-			$content .= '        </div>';
-
-			if ( 'yes' === get_option( 'cfp_dev_show_rooms', 'yes' ) && ! empty( $slot->roomName ) ) {
-				$content .= '        <div class="cfp-room">' . esc_html( $slot->roomName ) . '</div>';
-			}
-
-			$content .= '        <input type="hidden" id="cfpTimezone" value="' . esc_attr( $slot->timezone ) . '">';
-			$content .= '        <input type="hidden" id="cfpTalkFrom" value="' . esc_attr( $from_date->getTimestamp() ) . '">';
-			$content .= '        <input type="hidden" id="cfpTalkExpiry" value="' . esc_attr( $to_date->getTimestamp() ) . '">';
-		}
-		return $content;
+		return cfp_dev_render_time_slot( end( $slots ) );
 	}
 
 	/**

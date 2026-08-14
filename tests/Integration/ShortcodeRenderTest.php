@@ -403,6 +403,78 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		$this->assertSame( 'Event timezone is not set.', cfp_dev_schedule_shortcode( [] ) );
 	}
 
+	/**
+	 * Every date on this page is a string from a service the plugin does not
+	 * control, and DateTime throws on anything it cannot parse. Uncaught, that
+	 * is a blank page rather than a blank schedule.
+	 *
+	 * @dataProvider unusableEventDateProvider
+	 */
+	public function test_schedule_reports_an_unusable_event_date_range( string $field, string $value ): void {
+		$this->registerScheduleApi();
+		$event           = Fixtures::event();
+		$event[ $field ] = $value;
+		$this->api( 'public/event', $event );
+
+		$this->assertSame( 'Event dates are not set.', cfp_dev_schedule_shortcode( [] ) );
+	}
+
+	public static function unusableEventDateProvider(): array {
+		return [
+			'unparseable start' => [ 'fromDate', 'not a date' ],
+			'unparseable end'   => [ 'toDate', 'yesterday-ish' ],
+			'empty start'       => [ 'fromDate', '' ],
+		];
+	}
+
+	/** A single broken session must not cost the reader the rest of the day. */
+	public function test_schedule_skips_only_the_sessions_with_unusable_dates(): void {
+		$this->registerScheduleApi();
+
+		$broken             = Fixtures::roomSchedule()[0];
+		$broken['fromDate'] = 'whenever';
+		$this->api( 'public/schedules/Monday/1', [ $broken ] );
+
+		$html = cfp_dev_schedule_shortcode( [] );
+
+		$this->assertHtmlBalanced( $html, '[cfp_schedule] with a broken session' );
+		$this->assertStringNotContainsString( 'Modern Java in Practice', $html );
+		$this->assertStringContainsString( '?id=Monday', $html, 'the rest of the page must still render' );
+	}
+
+	/** The ruler is built from the day's own slots, which are API data too. */
+	public function test_schedule_omits_the_grid_when_the_day_has_unusable_slot_times(): void {
+		$this->registerScheduleApi();
+		$this->api(
+			'public/schedules/Monday',
+			[
+				[
+					'fromDate' => 'nope',
+					'toDate'   => 'nope',
+				],
+			]
+		);
+
+		$html = cfp_dev_schedule_shortcode( [] );
+
+		$this->assertHtmlBalanced( $html, '[cfp_schedule] with unusable slot times' );
+		$this->assertStringNotContainsString( '--hour-start', $html );
+	}
+
+	/** A slot the API cannot describe is dropped, not rendered half-formed. */
+	public function test_talk_details_omits_a_time_slot_with_an_unusable_date(): void {
+		$talk                           = Fixtures::talkDetail( 200 );
+		$talk['timeSlots'][0]['toDate'] = 'sometime';
+		$this->api( 'public/talks/200', $talk );
+		$this->queryVar( 'id', 200 );
+
+		$html = cfp_dev_talk_details_shortcode();
+
+		$this->assertHtmlBalanced( $html, '[cfp_talk_details] with an unusable slot' );
+		$this->assertStringContainsString( 'Modern Java in Practice', $html );
+		$this->assertStringNotContainsString( 'cfp-datetime', $html );
+	}
+
 	public function test_shortcodes_are_registered_on_plugins_loaded(): void {
 		foreach (
 			[

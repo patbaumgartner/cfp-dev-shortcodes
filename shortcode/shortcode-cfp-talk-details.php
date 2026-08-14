@@ -187,43 +187,16 @@ if ( ! function_exists( 'cfp_dev_talk_details_shortcode' ) ) {
 	 * @return string
 	 */
 	function cfp_dev_render_talk_schedule( $talk ) {
-		$content = '';
-		if ( ! empty( $talk->timeSlots ) && is_array( $talk->timeSlots ) && count( $talk->timeSlots ) > 0 ) {
-
-			// end() on a local copy: array_pop() would consume the slots on the
-			// shared, memoised talk object.
-			$slots = (array) $talk->timeSlots;
-			$slot  = end( $slots );
-
-			if ( ! empty( $slot->fromDate ) && ! empty( $slot->toDate ) ) {
-				try {
-					$time_zone = new DateTimeZone( $slot->timezone );
-					$from_date = new DateTime( $slot->fromDate, $time_zone );
-					$from_date->setTimezone( $time_zone );
-
-					$to_date = new DateTime( $slot->toDate, $time_zone );
-					$to_date->setTimezone( $time_zone );
-				} catch ( Exception $e ) {
-					cfp_dev_log( 'talk-details: invalid slot date/timezone — ' . $e->getMessage() );
-					return $content;
-				}
-
-				$content = '        <div class="cfp-datetime">';
-				/* translators: 1: weekday, 2: start time. */
-				$content .= '            <time class="cfp-time" datetime="' . esc_attr( $from_date->format( 'c' ) ) . '">' . esc_html( sprintf( __( '%1$s from %2$s', 'cfp-dev-shortcodes' ), $from_date->format( 'l' ), $from_date->format( 'H:i' ) ) ) . '</time>';
-				$content .= '            <time class="cfp-time" datetime="' . esc_attr( $to_date->format( 'c' ) ) . '">' . esc_html( $to_date->format( 'H:i' ) ) . '</time>';
-				$content .= '        </div>';
-
-				if ( 'yes' === get_option( 'cfp_dev_show_rooms', 'yes' ) && ! empty( $slot->roomName ) ) {
-					$content .= '        <div class="cfp-room">' . esc_html( $slot->roomName ) . '</div>';
-				}
-
-				$content .= '<input type="hidden" id="cfpTimezone" value="' . esc_attr( $slot->timezone ) . '">';
-				$content .= '<input type="hidden" id="cfpTalkFrom" value="' . esc_attr( $from_date->getTimestamp() ) . '">';
-				$content .= '<input type="hidden" id="cfpTalkExpiry" value="' . esc_attr( $to_date->getTimestamp() ) . '">';
-			}
+		if ( empty( $talk->timeSlots ) || ! is_array( $talk->timeSlots ) ) {
+			return '';
 		}
-		return $content;
+
+		// end() on a local copy: array_pop() would consume the slots on the
+		// shared, memoised talk object.
+		$slots = (array) $talk->timeSlots;
+		$slot  = end( $slots );
+
+		return cfp_dev_render_time_slot( $slot );
 	}
 
 	/**
@@ -263,18 +236,12 @@ if ( ! function_exists( 'cfp_dev_talk_details_shortcode' ) ) {
 			// Sort the fetched results by score, best (lowest) first.
 			usort( $semantic_result, fn( $a, $b ) => ( $a->score ?? 0 ) <=> ( $b->score ?? 0 ) );
 
-			$use_slugs = ( 'no' === get_option( 'cfp_dev_content_by_id', 'yes' ) );
-
 			$content .= '<div class="cfp-related-title">' . esc_html__( 'Related', 'cfp-dev-shortcodes' ) . '</div>';
 			foreach ( $semantic_result as $item ) {
 				$item_title = (string) ( $item->title ?? '' );
 				if ( absint( $item->id ?? 0 ) !== absint( $talk->id ?? 0 ) && ! str_contains( strtolower( $item_title ), 'overflow' ) ) {
 					$content .= '    <div class="cfp-related">';
-					if ( $use_slugs ) {
-						$content .= '       <a href="' . esc_url( cfp_dev_url( '/talk/' . cfp_dev_generate_slug( $item_title ) ) ) . '">' . esc_html( $item_title ) . '</a>';
-					} else {
-						$content .= '       <a href="' . esc_url( cfp_dev_url( '/talk?id=' . absint( $item->id ?? 0 ) ) ) . '">' . esc_html( $item_title ) . '</a>';
-					}
+					$content .= '       <a href="' . esc_url( cfp_dev_talk_url( $item ) ) . '">' . esc_html( $item_title ) . '</a>';
 					$content .= '    </div>';
 				}
 			}
@@ -293,15 +260,9 @@ if ( ! function_exists( 'cfp_dev_talk_details_shortcode' ) ) {
 		if ( empty( $talk->speakers ) ) {
 			return $content;
 		}
-		$use_slugs = ( 'no' === get_option( 'cfp_dev_content_by_id', 'yes' ) );
 		foreach ( (array) ( $talk->speakers ?? [] ) as $speaker ) {
 			$content .= '		<div class="cfp-profile">';
-			if ( $use_slugs ) {
-				$speaker_slug = cfp_dev_generate_slug( ( $speaker->firstName ?? '' ) . '-' . ( $speaker->lastName ?? '' ) );
-				$content     .= '<a class="cfp-a" href="' . esc_url( cfp_dev_url( "/speaker/{$speaker_slug}" ) ) . '">';
-			} else {
-				$content .= '<a class="cfp-a" href="' . esc_url( cfp_dev_url( '/speaker?id=' . absint( $speaker->id ?? 0 ) ) ) . '">';
-			}
+			$content .= '<a class="cfp-a" href="' . esc_url( cfp_dev_speaker_url( $speaker ) ) . '">';
 			if ( empty( $speaker->imageUrl ) ) {
 				$content .= '			<div class="cfp-picture" title="' . esc_attr( (string) ( $speaker->company ?? '' ) ) . '" style="background-image: url(\'' . esc_url( plugins_url( 'shortcode/gfx/avatar.jpg', __DIR__ ) ) . '\')"></div>';
 			} else {

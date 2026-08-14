@@ -94,18 +94,11 @@ if ( ! function_exists( 'cfp_dev_speakers_shortcode' ) ) {
 		$content .= '    </div>';
 		$content .= '    <div class="cfp-block">';
 
-		$use_slugs = ( 'no' === get_option( 'cfp_dev_content_by_id', 'yes' ) );
-
 		foreach ( $data as $speaker ) {
 			$content .= ' <div class="cfp-person">';
 			$first    = (string) ( $speaker->firstName ?? '' );
 			$last     = (string) ( $speaker->lastName ?? '' );
-			if ( $use_slugs ) {
-				$speaker_slug = cfp_dev_generate_slug( $first . '-' . $last );
-				$content     .= '<a class="cfp-a" href="' . esc_url( cfp_dev_url( "/speaker/{$speaker_slug}" ) ) . '">';
-			} else {
-				$content .= '<a class="cfp-a" href="' . esc_url( cfp_dev_url( '/speaker?id=' . absint( $speaker->id ?? 0 ) ) ) . '">';
-			}
+			$content .= '<a class="cfp-a" href="' . esc_url( cfp_dev_speaker_url( $speaker ) ) . '">';
 			$content .= '           <div class="cfp-picture" style="background-image: url(\'' . esc_url( (string) ( $speaker->imageUrl ?? '' ) ) . '\')"></div>';
 			$content .= '        <div class="cfp-name">' . esc_html( trim( $first . ' ' . $last ) ) . '</div>';
 			if ( ! empty( $speaker->company ) ) {

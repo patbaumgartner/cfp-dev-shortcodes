@@ -67,6 +67,41 @@ function cfp_dev_url( $path ) {
 }
 
 /**
+ * Whether permalinks address content by slug rather than by id.
+ *
+ * Multisite installs must stay on ids, so this is a setting rather than a
+ * property of the permalink structure.
+ */
+function cfp_dev_uses_slugs(): bool {
+	return 'no' === get_option( 'cfp_dev_content_by_id', 'yes' );
+}
+
+/**
+ * Permalink for a talk, in whichever form the site is configured for.
+ *
+ * Both fields are optional in every API response that carries a talk, so the
+ * caller does not have to prove they are present.
+ *
+ * @param mixed $talk  Talk object with an id and/or a title.
+ */
+function cfp_dev_talk_url( $talk ): string {
+	return cfp_dev_uses_slugs()
+		? cfp_dev_url( '/talk/' . cfp_dev_generate_slug( (string) ( $talk->title ?? '' ) ) )
+		: cfp_dev_url( '/talk?id=' . absint( $talk->id ?? 0 ) );
+}
+
+/**
+ * Permalink for a speaker, in whichever form the site is configured for.
+ *
+ * @param mixed $speaker  Speaker object with an id and/or a first/last name.
+ */
+function cfp_dev_speaker_url( $speaker ): string {
+	return cfp_dev_uses_slugs()
+		? cfp_dev_url( '/speaker/' . cfp_dev_generate_slug( ( $speaker->firstName ?? '' ) . '-' . ( $speaker->lastName ?? '' ) ) )
+		: cfp_dev_url( '/speaker?id=' . absint( $speaker->id ?? 0 ) );
+}
+
+/**
  * Registers the query vars used by the plugin pages.
  *
  * @param array $vars  Public query vars.
