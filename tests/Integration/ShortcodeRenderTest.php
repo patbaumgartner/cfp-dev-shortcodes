@@ -96,6 +96,39 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		$this->assertSame( 'Speaker not found.', cfp_dev_speaker_details_shortcode() );
 	}
 
+	public function test_a_cached_speaker_page_is_served_without_calling_the_api(): void {
+		$this->registerDefaultApi();
+		$this->option( 'cfp_dev_cache_duration', HOUR_IN_SECONDS );
+		$this->queryVar( 'id', 100 );
+
+		$first = cfp_dev_speaker_details_shortcode();
+		$this->assertStringContainsString( 'Jane Doe', $first );
+
+		\WP_Test_State::$http_log = [];
+		cfp_dev_flush_request_cache();
+
+		$this->assertSame( $first, cfp_dev_speaker_details_shortcode() );
+		$this->assertSame( [], $this->httpLog(), 'a cached speaker page must not touch the API' );
+	}
+
+	public function test_an_outage_is_not_cached_as_a_missing_speaker(): void {
+		$this->registerDefaultApi();
+		$this->option( 'cfp_dev_cache_duration', WEEK_IN_SECONDS );
+		$this->queryVar( 'id', 100 );
+
+		$this->api( 'public/speakers/100', null, 503 );
+		$this->assertSame( 'Speaker not found.', cfp_dev_speaker_details_shortcode() );
+
+		$this->api( 'public/speakers/100', Fixtures::speakerDetail( 100 ) );
+		cfp_dev_flush_request_cache();
+
+		$this->assertStringContainsString(
+			'Jane Doe',
+			cfp_dev_speaker_details_shortcode(),
+			'the outage was cached and outlived itself'
+		);
+	}
+
 	public function test_talk_details_renders_description_schedule_video_and_speakers(): void {
 		$this->registerDefaultApi();
 		$this->search( 'x', [] );
