@@ -52,6 +52,22 @@ function cfp_dev_flush_request_cache(): void {
 }
 
 /**
+ * Records that an API lookup failed for a reason that is not "the thing is
+ * not there" — a transport error, a 5xx, a body that was not JSON, a missing
+ * key. Absence is an answer; these are the absence of an answer.
+ */
+function cfp_dev_note_api_failure(): void {
+	$cache               = &cfp_dev_request_cache();
+	$cache['api_failed'] = true;
+}
+
+/** Whether any API lookup in this request failed to produce an answer. */
+function cfp_dev_api_had_failure(): bool {
+	$cache = &cfp_dev_request_cache();
+	return ! empty( $cache['api_failed'] );
+}
+
+/**
  * Returns the cached markup for $key, rendering it on a miss.
  *
  * $render returns null to mean "this is a failure, not an absence". The

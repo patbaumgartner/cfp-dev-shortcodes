@@ -465,15 +465,33 @@ function cfp_dev_robots( $robots ) {
 add_filter( 'wp_robots', 'cfp_dev_robots' );
 
 /**
- * Serves a real 404 when a talk/speaker detail request cannot be resolved
- * (removed entities, legacy pre-4.3.4 accent slugs, bare /talk/ or /speaker/
- * without parameters). These rendered "not found" text with HTTP 200, which
- * Search Console flags as soft 404s.
+ * Answers a talk/speaker detail request that resolved to nothing with the
+ * right status code.
+ *
+ * A removed talk and an unreachable API look identical on the page — both say
+ * "not found" — but they must not look identical to a crawler. Rendering that
+ * text with HTTP 200 made Search Console report soft 404s; answering 404
+ * whenever the lookup came back empty was worse, because a minute of API
+ * downtime then told Google that every talk and speaker on the site was gone.
+ *
+ * So the status follows what the plugin actually knows: 404 only when a
+ * lookup that succeeded proved the entity absent, and 503 while it cannot
+ * tell, which is the answer that asks a crawler to come back.
  */
 function cfp_dev_404_unresolved_detail() {
 	if ( ! is_page( [ 'talk', 'speaker' ] ) || null !== cfp_dev_current_entity() ) {
 		return;
 	}
+
+	if ( cfp_dev_api_had_failure() ) {
+		status_header( 503 );
+		if ( ! headers_sent() ) {
+			header( 'Retry-After: 300' );
+		}
+		nocache_headers();
+		return;
+	}
+
 	global $wp_query;
 	$wp_query->set_404();
 	status_header( 404 );

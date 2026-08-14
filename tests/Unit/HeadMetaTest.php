@@ -193,6 +193,52 @@ final class HeadMetaTest extends PluginTestCase {
 		$this->assertFalse( $GLOBALS['wp_query']->is_404 );
 	}
 
+	/**
+	 * A removed talk and an unreachable API both render "not found", but they
+	 * must not answer the same. Returning 404 whenever the lookup came back
+	 * empty meant a minute of API downtime told Google that every talk and
+	 * speaker on the site was gone.
+	 *
+	 * @dataProvider outageLookupProvider
+	 */
+	public function test_an_unreachable_api_does_not_report_a_detail_page_as_gone( string $page, string $query_var, string $value, string $failing_path ): void {
+		$this->registerDefaultApi();
+		$this->api( $failing_path, null, 503 );
+		$this->onPage( $page );
+		$this->queryVar( $query_var, $value );
+
+		$GLOBALS['wp_query'] = $this->spyQuery();
+
+		cfp_dev_404_unresolved_detail();
+
+		$this->assertFalse( $GLOBALS['wp_query']->is_404, 'an outage was reported as a removed page' );
+		$this->assertSame( 503, \WP_Test_State::$env['status_header'], 'a crawler needs to be told to come back' );
+	}
+
+	public static function outageLookupProvider(): array {
+		return [
+			'talk by slug'    => [ 'talk', 'talk_slug', 'modern-java-in-practice', 'public/talks' ],
+			'talk by id'      => [ 'talk', 'id', '200', 'public/talks/200' ],
+			'speaker by slug' => [ 'speaker', 'speaker_slug', 'jane-doe', 'public/speakers?size=' . CFP_DEV_SPEAKERS_FETCH_SIZE ],
+			'speaker by id'   => [ 'speaker', 'id', '100', 'public/speakers/100' ],
+		];
+	}
+
+	/** A 404 from the API is an answer, and the answer is that it is gone. */
+	public function test_an_api_404_still_produces_a_404(): void {
+		$this->registerDefaultApi();
+		$this->api( 'public/talks/999', null, 404 );
+		$this->onPage( 'talk' );
+		$this->queryVar( 'id', '999' );
+
+		$GLOBALS['wp_query'] = $this->spyQuery();
+
+		cfp_dev_404_unresolved_detail();
+
+		$this->assertTrue( $GLOBALS['wp_query']->is_404 );
+		$this->assertSame( 404, \WP_Test_State::$env['status_header'] );
+	}
+
 	public function test_sitemap_lists_every_talk_and_speaker_url_once(): void {
 		$this->registerDefaultApi();
 
@@ -214,6 +260,17 @@ final class HeadMetaTest extends PluginTestCase {
 	}
 
 	// ─────────────────────────────────────────────────────────────────────────
+
+	/** A stand-in for $wp_query that records whether it was marked as a 404. */
+	private function spyQuery(): object {
+		return new class() {
+			public bool $is_404 = false;
+
+			public function set_404(): void {
+				$this->is_404 = true;
+			}
+		};
+	}
 
 	/** Runs a function that echoes into the head and returns its output. */
 	private function capture( callable $callback ): string {
