@@ -234,7 +234,10 @@ if ( ! function_exists( 'cfp_speaker_details_shortcode' ) ) {
 			return $content;
 		}
 
-		$slot = array_pop( $talkDetails->timeSlots );
+		// end() on a local copy: array_pop() would consume the slots on the
+		// shared, memoised talk object.
+		$slots = (array) $talkDetails->timeSlots;
+		$slot  = end( $slots );
 		if ( ! empty( $slot->fromDate ) && ! empty( $slot->toDate ) ) {
 			try {
 				$timeZone = new DateTimeZone( $slot->timezone );
