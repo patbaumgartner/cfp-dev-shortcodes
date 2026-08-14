@@ -203,6 +203,21 @@ abstract class PluginTestCase extends TestCase {
 	}
 
 	/**
+	 * Asserts that no `id` attribute appears twice in the fragment.
+	 *
+	 * An id is a document-wide handle: getElementById() and `<label for>` both
+	 * resolve to the first match, so a repeated one silently points a theme's
+	 * script or a screen reader at the wrong element.
+	 */
+	protected function assertUniqueElementIds( string $html, string $message = '' ): void {
+		preg_match_all( '#\sid="([^"]+)"#', $this->stripScripts( $html ), $matches );
+
+		$duplicates = array_keys( array_filter( array_count_values( $matches[1] ), static fn( $count ) => $count > 1 ) );
+
+		$this->assertSame( [], $duplicates, trim( $message . ' — repeated id(s): ' . implode( ', ', $duplicates ) ) );
+	}
+
+	/**
 	 * Asserts that no API-supplied value escaped a CSS `url()` token.
 	 *
 	 * Quoted strings are removed first, so anything left in a style attribute

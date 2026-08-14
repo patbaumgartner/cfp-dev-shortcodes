@@ -136,9 +136,16 @@ function cfp_dev_search_form() {
  * slot is absent or carries a date the API's own service cannot be trusted to
  * have made parseable — a slot is optional data, not a reason to fail the page.
  *
- * @param mixed $slot  Time slot object from the API.
+ * @param mixed $slot            Time slot object from the API.
+ * @param bool  $timing_for_page  Whether to emit the hidden timing inputs that
+ *                                describe *the* talk of this page. Only true on
+ *                                the talk detail page: their ids are
+ *                                document-wide handles, and a speaker page
+ *                                renders one block per talk, so emitting them
+ *                                there repeated every id and resolved all of
+ *                                them to whichever talk happened to be first.
  */
-function cfp_dev_render_time_slot( $slot ): string {
+function cfp_dev_render_time_slot( $slot, bool $timing_for_page = false ): string {
 	if ( ! is_object( $slot ) ) {
 		return '';
 	}
@@ -161,9 +168,11 @@ function cfp_dev_render_time_slot( $slot ): string {
 		$content .= '        <div class="cfp-room">' . esc_html( $slot->roomName ) . '</div>';
 	}
 
-	$content .= '<input type="hidden" id="cfpTimezone" value="' . esc_attr( $from->getTimezone()->getName() ) . '">';
-	$content .= '<input type="hidden" id="cfpTalkFrom" value="' . esc_attr( $from->getTimestamp() ) . '">';
-	$content .= '<input type="hidden" id="cfpTalkExpiry" value="' . esc_attr( $to->getTimestamp() ) . '">';
+	if ( $timing_for_page ) {
+		$content .= '<input type="hidden" id="cfpTimezone" value="' . esc_attr( $from->getTimezone()->getName() ) . '">';
+		$content .= '<input type="hidden" id="cfpTalkFrom" value="' . esc_attr( $from->getTimestamp() ) . '">';
+		$content .= '<input type="hidden" id="cfpTalkExpiry" value="' . esc_attr( $to->getTimestamp() ) . '">';
+	}
 
 	return $content;
 }
