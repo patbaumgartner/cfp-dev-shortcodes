@@ -100,6 +100,64 @@ final class AdminSettingsPageTest extends PluginTestCase {
 		$this->assertStringContainsString( '2025-10-06_09-00-00', $this->render() );
 	}
 
+	/**
+	 * A crawl killed mid-run leaves "running" behind for ever. The screen, the
+	 * status the admin script starts from, and the endpoint it polls all have
+	 * to agree it stopped — when they disagree the poller wins, because it
+	 * repaints the box a second after the page renders.
+	 */
+	public function test_a_crawl_that_never_finished_is_reported_as_stopped(): void {
+		$this->registerDefaultApi();
+		$this->option(
+			'cfp_dev_crawl_state',
+			[
+				'status'     => 'running',
+				'step_label' => 'Fetching talk details...',
+				'started_at' => time() - DAY_IN_SECONDS,
+			]
+		);
+
+		$this->assertSame( 'stopped', cfp_dev_crawl_display_status() );
+
+		$html = $this->render();
+		$this->assertStringContainsString( 'Stopped', $html );
+		$this->assertStringNotContainsString( '<progress', $html, 'a bar that will never move again' );
+	}
+
+	/** The endpoint the admin script polls must say the same thing. */
+	public function test_the_progress_endpoint_agrees_that_a_dead_crawl_stopped(): void {
+		$this->option(
+			'cfp_dev_crawl_state',
+			[
+				'status'     => 'running',
+				'started_at' => time() - DAY_IN_SECONDS,
+			]
+		);
+		$_POST = [ 'nonce' => 'valid-nonce-cfp_dev_offline_nonce' ];
+
+		try {
+			cfp_dev_crawl_progress_handler();
+		} catch ( \CfpDev\Tests\JsonResponseSent $sent ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+			unset( $sent );
+		}
+
+		$this->assertSame( 'stopped', \WP_Test_State::$json_responses[0]['data']['status'] );
+		$_POST = [];
+	}
+
+	/** A crawl that really is running still reports itself as running. */
+	public function test_a_live_crawl_is_still_reported_as_running(): void {
+		$this->option(
+			'cfp_dev_crawl_state',
+			[
+				'status'     => 'running',
+				'started_at' => time(),
+			]
+		);
+
+		$this->assertSame( 'running', cfp_dev_crawl_display_status() );
+	}
+
 	// ─────────────────────────────────────────────────────────────────────────
 
 	/** Renders the settings screen and returns its markup. */

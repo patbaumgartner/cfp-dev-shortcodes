@@ -366,12 +366,13 @@ function cfp_dev_plugin_options() {
 	// ─────────────────────────────────────────────────────────────────────────
 	$offline_mode    = (int) get_option( 'cfp_dev_offline_mode', 0 );
 	$crawl_state     = get_option( 'cfp_dev_crawl_state', [] );
-	$crawl_status    = $crawl_state['status'] ?? 'idle';
 	$latest_snapshot = cfp_dev_get_latest_snapshot();
 
 	// A crawl that was killed mid-run never writes a terminal state, so its
-	// status still reads "running". Past its deadline it is not.
-	$crawling = cfp_dev_crawl_in_progress();
+	// stored status still reads "running". This is the status to show, and the
+	// same one the admin script is handed and polls for.
+	$crawl_status = cfp_dev_crawl_display_status();
+	$crawling     = in_array( $crawl_status, [ 'running', 'pending' ], true );
 
 	// Auto-disable offline mode when the snapshot folder has been removed.
 	if ( 1 === $offline_mode && empty( $latest_snapshot ) && ! $crawling ) {
@@ -433,7 +434,7 @@ function cfp_dev_plugin_options() {
 		}
 	} elseif ( 'error' === $crawl_status ) {
 		echo '<p style="color:red;">' . esc_html__( 'Status:', 'cfp-dev-shortcodes' ) . ' <strong>' . esc_html__( 'Error', 'cfp-dev-shortcodes' ) . '</strong> — ' . esc_html( $crawl_state['step_label'] ?? '' ) . '</p>';
-	} elseif ( in_array( $crawl_status, [ 'running', 'pending' ], true ) ) {
+	} elseif ( 'stopped' === $crawl_status ) {
 		// Still says "running" but is past its deadline: the process was killed
 		// before it could record how it ended. Say so, rather than showing a
 		// progress bar that will never move again.
@@ -485,7 +486,7 @@ function cfp_dev_enqueue_admin_scripts( $hook ) {
 		[
 			'ajaxurl'        => admin_url( 'admin-ajax.php' ),
 			'nonce'          => wp_create_nonce( 'cfp_dev_offline_nonce' ),
-			'initial_status' => $crawl_state['status'] ?? 'idle',
+			'initial_status' => cfp_dev_crawl_display_status(),
 		]
 	);
 }
@@ -544,7 +545,11 @@ function cfp_dev_crawl_progress_handler() {
 		wp_send_json_error( [ 'message' => __( 'Insufficient permissions.', 'cfp-dev-shortcodes' ) ] );
 		return;
 	}
-	$state = get_option( 'cfp_dev_crawl_state', [] );
+	// The stored status, but with a crawl that was killed reported as stopped —
+	// otherwise the poller repaints the box with "Running" a second after the
+	// page told the operator it had stopped.
+	$state           = get_option( 'cfp_dev_crawl_state', [] );
+	$state['status'] = cfp_dev_crawl_display_status();
 	wp_send_json_success( $state );
 }
 add_action( 'wp_ajax_cfp_dev_crawl_progress', 'cfp_dev_crawl_progress_handler' );
