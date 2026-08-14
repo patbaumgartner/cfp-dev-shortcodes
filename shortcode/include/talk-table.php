@@ -50,7 +50,7 @@ function cfp_dev_talk_table_rows( $talks ) {
 	foreach ( $talks as $talk ) {
 		$title    = (string) ( $talk->title ?? '' );
 		$talk_url = $use_slugs
-			? cfp_dev_url( '/talk/' . generate_slug( $title ) )
+			? cfp_dev_url( '/talk/' . cfp_dev_generate_slug( $title ) )
 			: cfp_dev_url( '/talk?id=' . absint( $talk->id ?? 0 ) );
 
 		// The list endpoint sends a flat trackImageURL; the detail endpoint
@@ -91,7 +91,7 @@ function cfp_dev_talk_table_speakers( $talk, $use_slugs ) {
 		$first = (string) ( $speaker->firstName ?? '' );
 		$last  = (string) ( $speaker->lastName ?? '' );
 		$url   = $use_slugs
-			? cfp_dev_url( '/speaker/' . generate_slug( $first . '-' . $last ) )
+			? cfp_dev_url( '/speaker/' . cfp_dev_generate_slug( $first . '-' . $last ) )
 			: cfp_dev_url( '/speaker?id=' . absint( $speaker->id ?? 0 ) );
 
 		$content .= '<a class="cfp-a" href="' . esc_url( $url ) . '">' . esc_html( $first ) . '&nbsp;' . esc_html( $last ) . '</a>';

@@ -44,20 +44,14 @@
         <exclude-pattern>cfp-dev-wordpress-shortcodes.php</exclude-pattern>
     </rule>
 
-    <!-- Allow short prefixes used throughout this plugin -->
+    <!-- Everything this plugin declares globally carries the cfp_dev prefix -->
     <rule ref="WordPress.NamingConventions.PrefixAllGlobals">
         <properties>
             <property name="prefixes" type="array">
                 <element value="cfp_dev" />
-                <element value="cfp_" />
                 <element value="CFP_DEV" />
             </property>
         </properties>
-    </rule>
-
-    <!-- Functions in global namespace are the WordPress plugin pattern -->
-    <rule ref="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound">
-        <severity>0</severity>
     </rule>
 
     <!-- API response objects use camelCase property names (external data, cannot rename) -->
@@ -67,12 +61,6 @@
 
     <!-- Local camelCase variables are an established pattern in this codebase -->
     <rule ref="WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase">
-        <severity>0</severity>
-    </rule>
-
-    <!-- camelCase function names are an established pattern; renaming would be a breaking API
-    change -->
-    <rule ref="WordPress.NamingConventions.ValidFunctionName.FunctionNameInvalid">
         <severity>0</severity>
     </rule>
 

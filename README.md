@@ -186,7 +186,7 @@ Enable **Offline Mode** in **Settings → CFP.DEV** to crawl the entire CFP.DEV 
 
 Once active:
 
-- All `getJSON()` calls are served from the local snapshot
+- All API reads are served from the local snapshot
 - No external requests to `*.cfp.dev` or CDN hosts are made
 - A `manifest.json` is written at crawl completion with per-URL stats
 - Click **Re-crawl Now** in the admin UI to refresh the snapshot at any time

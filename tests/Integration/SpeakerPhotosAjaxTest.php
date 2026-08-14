@@ -135,13 +135,26 @@ final class SpeakerPhotosAjaxTest extends PluginTestCase {
 		$this->assertSame( [], $this->httpLog() );
 	}
 
+	public function test_the_detail_page_calls_an_action_that_is_actually_registered(): void {
+		$this->registerDefaultApi();
+		$this->queryVar( 'id', 100 );
+
+		$html = cfp_dev_speaker_details_shortcode();
+
+		$this->assertSame( 1, preg_match( '/action=([a-z_]+)/', $html, $matches ) );
+		$action = $matches[1];
+
+		$this->assertTrue( has_action( 'wp_ajax_' . $action ), 'no handler registered for ' . $action );
+		$this->assertTrue( has_action( 'wp_ajax_nopriv_' . $action ), 'anonymous visitors cannot reach ' . $action );
+	}
+
 	public function test_the_detail_page_no_longer_sends_the_speaker_name_to_the_endpoint(): void {
 		$this->registerDefaultApi();
 		$this->queryVar( 'id', 100 );
 
-		$html = cfp_speaker_details_shortcode();
+		$html = cfp_dev_speaker_details_shortcode();
 
-		$this->assertStringContainsString( 'action=get_speaker_photos', $html );
+		$this->assertStringContainsString( 'action=cfp_dev_speaker_photos', $html );
 		$this->assertStringNotContainsString( 'speaker_name', $html );
 	}
 
@@ -156,7 +169,7 @@ final class SpeakerPhotosAjaxTest extends PluginTestCase {
 		$_GET = $params;
 		ob_start();
 		try {
-			get_speaker_photos();
+			cfp_dev_speaker_photos_handler();
 		} catch ( WpDieException | JsonResponseSent $expected ) {
 			unset( $expected );
 		}

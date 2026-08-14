@@ -7,14 +7,14 @@
  * @package  CFP.DEV
  * @since    1.0.0
  */
-if ( ! function_exists( 'cfp_talks_by_tracks_shortcode' ) ) {
+if ( ! function_exists( 'cfp_dev_talks_by_tracks_shortcode' ) ) {
 
 	add_action(
 		'plugins_loaded',
 		function () {
 
 			if ( ! shortcode_exists( 'cfp_talks_by_tracks' ) ) {
-				add_shortcode( 'cfp_talks_by_tracks', 'cfp_talks_by_tracks_shortcode' );
+				add_shortcode( 'cfp_talks_by_tracks', 'cfp_dev_talks_by_tracks_shortcode' );
 			}
 		}
 	);
@@ -26,7 +26,7 @@ if ( ! function_exists( 'cfp_talks_by_tracks_shortcode' ) ) {
 	 * @return string
 	 * @since  1.0.0
 	 */
-	function cfp_talks_by_tracks_shortcode( $atts ) {
+	function cfp_dev_talks_by_tracks_shortcode( $atts ) {
 		$defaults = [
 			'all'         => false,
 			'title'       => 'Talks grouped by Track',
@@ -45,13 +45,13 @@ if ( ! function_exists( 'cfp_talks_by_tracks_shortcode' ) ) {
 
 		$ttl = cfp_dev_get_cache_ttl();
 		if ( 0 === $ttl ) {
-			return cfp_get_talks_by_tracks( $trackId, $_atts );
+			return cfp_dev_render_talks_by_tracks( $trackId, $_atts );
 		}
 
 		$cacheGroup = cfp_dev_group_cache_key( 'talks_by_tracks_cache_group_' . $trackId . cfp_dev_atts_cache_suffix( $_atts, $defaults ) );
 		$cache      = get_transient( $cacheGroup );
 		if ( false === $cache ) {
-			$content = cfp_get_talks_by_tracks( $trackId, $_atts );
+			$content = cfp_dev_render_talks_by_tracks( $trackId, $_atts );
 			set_transient( $cacheGroup, $content, $ttl );
 		} else {
 			$content = $cache;
@@ -67,11 +67,11 @@ if ( ! function_exists( 'cfp_talks_by_tracks_shortcode' ) ) {
 	 * @param array $_atts    Normalised shortcode attributes (all, title, hide_title, hide_search).
 	 * @return string
 	 */
-	function cfp_get_talks_by_tracks( $trackId, $_atts ) {
-		$tracks = getJSON( 'public/tracks' );
+	function cfp_dev_render_talks_by_tracks( $trackId, $_atts ) {
+		$tracks = cfp_dev_get_json( 'public/tracks' );
 
 		if ( empty( $tracks ) || ! is_array( $tracks ) ) {
-			return modifyCfpClasses() . '<div class="cfp-main"><section class="cfp-list">' . displayNoTracksMessage() . '</section></div>';
+			return cfp_dev_session_root_class_script() . '<div class="cfp-main"><section class="cfp-list">' . cfp_dev_render_no_tracks() . '</section></div>';
 		}
 
 		$trackDescr = '';
@@ -94,20 +94,20 @@ if ( ! function_exists( 'cfp_talks_by_tracks_shortcode' ) ) {
 		}
 
 		if ( -1 === $trackId ) {
-			$talks = getJSON( 'public/talks' );
+			$talks = cfp_dev_get_json( 'public/talks' );
 		} else {
-			$talks = getJSON( 'public/talks/track/' . absint( $trackId ) );
+			$talks = cfp_dev_get_json( 'public/talks/track/' . absint( $trackId ) );
 		}
 
-		$content  = modifyCfpClasses();
+		$content  = cfp_dev_session_root_class_script();
 		$content .= '<div class="cfp-main">';
 		$content .= '<section class="cfp-list">';
 
 		if ( ! empty( $tracks ) ) {
-			usort( $tracks, 'compareName' );
-			$content .= displayTalksByTrack( $tracks, $trackId, $_atts );
+			usort( $tracks, 'cfp_dev_compare_name' );
+			$content .= cfp_dev_render_track_filter( $tracks, $trackId, $_atts );
 		} else {
-			$content .= displayNoTracksMessage();
+			$content .= cfp_dev_render_no_tracks();
 		}
 
 		$content .= '<div class="cfp-group">';
@@ -124,7 +124,7 @@ if ( ! function_exists( 'cfp_talks_by_tracks_shortcode' ) ) {
 		$content .= '</section>';
 		$content .= '</div>';
 
-		$content .= getFooter();
+		$content .= cfp_dev_footer();
 		return $content;
 	}
 
@@ -133,7 +133,7 @@ if ( ! function_exists( 'cfp_talks_by_tracks_shortcode' ) ) {
 	 *
 	 * @return string
 	 */
-	function modifyCfpClasses() {
+	function cfp_dev_session_root_class_script() {
 		return cfp_dev_root_class_script( 'session' );
 	}
 
@@ -142,7 +142,7 @@ if ( ! function_exists( 'cfp_talks_by_tracks_shortcode' ) ) {
 	 *
 	 * @return string
 	 */
-	function displayNoTracksMessage() {
+	function cfp_dev_render_no_tracks() {
 		$content  = '<div class="dev-cfp-row">';
 		$content .= '    <div class="dev-cfp-column">';
 		$content .= '        <p>No tracks found</p>';
@@ -159,7 +159,7 @@ if ( ! function_exists( 'cfp_talks_by_tracks_shortcode' ) ) {
 	 * @param array $_atts    Normalised shortcode attributes (title, hide_title, hide_search).
 	 * @return string
 	 */
-	function displayTalksByTrack( $tracks, $trackId, $_atts = [] ) {
+	function cfp_dev_render_track_filter( $tracks, $trackId, $_atts = [] ) {
 		$title = empty( $_atts['hide_title'] ) ? (string) ( $_atts['title'] ?? 'Talks grouped by Track' ) : '';
 
 		$content  = '<div class="cfp-subject">';

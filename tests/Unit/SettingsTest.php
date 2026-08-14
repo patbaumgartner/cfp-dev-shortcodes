@@ -153,8 +153,8 @@ final class SettingsTest extends PluginTestCase {
 	}
 
 	public function test_deleting_a_talk_cache_also_drops_its_photo_cache(): void {
-		set_transient( generate_cfp_cache_key( 'talk', 7 ), 'html', 60 );
-		set_transient( generate_cfp_cache_key( 'photo', 7 ), 'html', 60 );
+		set_transient( cfp_dev_detail_cache_key( 'talk', 7 ), 'html', 60 );
+		set_transient( cfp_dev_detail_cache_key( 'photo', 7 ), 'html', 60 );
 
 		cfp_dev_handle_settings_post(
 			[
@@ -163,8 +163,8 @@ final class SettingsTest extends PluginTestCase {
 			]
 		);
 
-		$this->assertFalse( get_transient( generate_cfp_cache_key( 'talk', 7 ) ) );
-		$this->assertFalse( get_transient( generate_cfp_cache_key( 'photo', 7 ) ) );
+		$this->assertFalse( get_transient( cfp_dev_detail_cache_key( 'talk', 7 ) ) );
+		$this->assertFalse( get_transient( cfp_dev_detail_cache_key( 'photo', 7 ) ) );
 	}
 
 	public function test_disabling_offline_mode_re_renders_snapshot_backed_html(): void {

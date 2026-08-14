@@ -7,14 +7,14 @@
  * @package  CFP.DEV
  * @since    1.0.0
  */
-if ( ! function_exists( 'cfp_search_results_shortcode' ) ) {
+if ( ! function_exists( 'cfp_dev_search_results_shortcode' ) ) {
 
 	add_action(
 		'plugins_loaded',
 		function () {
 
 			if ( ! shortcode_exists( 'cfp_search_results' ) ) {
-				add_shortcode( 'cfp_search_results', 'cfp_search_results_shortcode' );
+				add_shortcode( 'cfp_search_results', 'cfp_dev_search_results_shortcode' );
 			}
 		}
 	);
@@ -28,7 +28,7 @@ if ( ! function_exists( 'cfp_search_results_shortcode' ) ) {
 	 * @return string
 	 * @since  1.0.0
 	 */
-	function cfp_search_results_shortcode() {
+	function cfp_dev_search_results_shortcode() {
 		$query = sanitize_text_field( (string) get_query_var( 'query' ) );
 
 		$heading = '' !== $query
@@ -41,7 +41,7 @@ if ( ! function_exists( 'cfp_search_results_shortcode' ) ) {
 		$content .= '	<div class="cfp-subject">';
 		$content .= '		<div class="cfp-primary">';
 		$content .= '           <div class="cfp-name">' . $heading . '</div>';
-		$content .= getSearchForm();
+		$content .= cfp_dev_search_form();
 		$content .= '		</div>';
 		$content .= '	</div>';
 		$content .= '	<div class="cfp-content">';
@@ -53,7 +53,7 @@ if ( ! function_exists( 'cfp_search_results_shortcode' ) ) {
 		$content .= '	</div>';
 		$content .= '</section>';
 		$content .= '</div>';
-		$content .= getFooter();
+		$content .= cfp_dev_footer();
 		return $content;
 	}
 
@@ -65,8 +65,8 @@ if ( ! function_exists( 'cfp_search_results_shortcode' ) ) {
 	 * @return string
 	 */
 	function cfp_dev_search_results_body( $query ) {
-		$exactSearchResult = getJSON( 'public/search?query=' . rawurlencode( $query ) );
-		$semanticResult    = searchJSON( $query );
+		$exactSearchResult = cfp_dev_get_json( 'public/search?query=' . rawurlencode( $query ) );
+		$semanticResult    = cfp_dev_search_json( $query );
 		$use_slugs         = ( 'no' === get_option( 'cfp_dev_content_by_id', 'yes' ) );
 		$content           = '';
 
@@ -84,7 +84,7 @@ if ( ! function_exists( 'cfp_search_results_shortcode' ) ) {
 				}
 				$content .= '		</div>';
 				if ( $use_slugs ) {
-					$content .= '        <a class="cfp-button" href="' . esc_url( cfp_dev_url( '/talk/' . generate_slug( (string) ( $talk->title ?? '' ) ) ) ) . '">View</a>';
+					$content .= '        <a class="cfp-button" href="' . esc_url( cfp_dev_url( '/talk/' . cfp_dev_generate_slug( (string) ( $talk->title ?? '' ) ) ) ) . '">View</a>';
 				} else {
 					$content .= '        <a class="cfp-button" href="' . esc_url( cfp_dev_url( '/talk?id=' . absint( $talk->id ?? 0 ) ) ) . '">View</a>';
 				}
@@ -116,7 +116,7 @@ if ( ! function_exists( 'cfp_search_results_shortcode' ) ) {
 				$content .= '		<div class="cfp-name">' . esc_html( (string) ( $item->title ?? '' ) ) . '</div>';
 				$content .= '		<div class="cfp-type">Similarity score = ' . esc_html( number_format( (float) ( $item->score ?? 0 ), 2 ) ) . '</div>';
 				if ( $use_slugs ) {
-					$content .= '   	<a class="cfp-button" href="' . esc_url( cfp_dev_url( '/talk/' . generate_slug( (string) ( $item->title ?? '' ) ) ) ) . '">More</a>';
+					$content .= '   	<a class="cfp-button" href="' . esc_url( cfp_dev_url( '/talk/' . cfp_dev_generate_slug( (string) ( $item->title ?? '' ) ) ) ) . '">More</a>';
 				} else {
 					$content .= '   	<a class="cfp-button" href="' . esc_url( cfp_dev_url( '/talk?id=' . absint( $item->id ?? 0 ) ) ) . '">More</a>';
 				}
@@ -143,7 +143,7 @@ if ( ! function_exists( 'cfp_search_results_shortcode' ) ) {
 	 */
 	function cfp_dev_search_speaker_card( $speaker, $use_slugs ) {
 		$url = $use_slugs
-			? cfp_dev_url( '/speaker/' . generate_slug( ( $speaker->firstName ?? '' ) . '-' . ( $speaker->lastName ?? '' ) ) )
+			? cfp_dev_url( '/speaker/' . cfp_dev_generate_slug( ( $speaker->firstName ?? '' ) . '-' . ( $speaker->lastName ?? '' ) ) )
 			: cfp_dev_url( '/speaker?id=' . absint( $speaker->id ?? 0 ) );
 
 		$content  = '		<div class="cfp-person">';

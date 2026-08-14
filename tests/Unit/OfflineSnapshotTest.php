@@ -45,7 +45,7 @@ final class OfflineSnapshotTest extends PluginTestCase {
 		$this->writeSnapshotJson( $snapshot, 'public/speakers', [ [ 'id' => 1 ] ] );
 		$this->option( 'cfp_dev_offline_mode', 1 );
 
-		$speakers = getJSON( 'public/speakers?size=500' );
+		$speakers = cfp_dev_get_json( 'public/speakers?size=500' );
 
 		$this->assertCount( 1, $speakers );
 		$this->assertSame( [], $this->httpLog(), 'offline mode must not touch the network' );
@@ -56,7 +56,7 @@ final class OfflineSnapshotTest extends PluginTestCase {
 		$this->option( 'cfp_dev_offline_mode', 1 );
 		$this->api( 'public/talks', [ [ 'id' => 1 ] ] );
 
-		$this->assertNull( getJSON( 'public/talks' ) );
+		$this->assertNull( cfp_dev_get_json( 'public/talks' ) );
 		$this->assertSame( [], $this->httpLog(), 'a snapshot miss must not silently fall back to the live API' );
 		$this->assertSame( 1, (int) get_option( 'cfp_dev_offline_mode' ) );
 	}

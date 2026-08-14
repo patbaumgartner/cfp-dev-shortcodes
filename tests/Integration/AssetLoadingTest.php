@@ -21,7 +21,7 @@ final class AssetLoadingTest extends PluginTestCase {
 	public function test_assets_are_not_loaded_on_pages_without_a_shortcode(): void {
 		$this->queriedPost( '<p>An ordinary blog post.</p>' );
 
-		cfp_ajax_load_scripts();
+		cfp_dev_enqueue_front_end_assets();
 
 		$this->assertSame( [], WP_Test_State::$enqueued );
 	}
@@ -29,7 +29,7 @@ final class AssetLoadingTest extends PluginTestCase {
 	public function test_assets_are_loaded_on_a_page_that_uses_a_shortcode(): void {
 		$this->queriedPost( 'Intro text [cfp_speakers size=20] outro' );
 
-		cfp_ajax_load_scripts();
+		cfp_dev_enqueue_front_end_assets();
 
 		$this->assertSame( [ 'site-cfp', 'cfp-dev-style' ], WP_Test_State::$enqueued );
 	}
@@ -39,7 +39,7 @@ final class AssetLoadingTest extends PluginTestCase {
 			WP_Test_State::$enqueued = [];
 			$this->queriedPost( '[' . $tag . ']' );
 
-			cfp_ajax_load_scripts();
+			cfp_dev_enqueue_front_end_assets();
 
 			$this->assertContains( 'cfp-dev-style', WP_Test_State::$enqueued, $tag . ' did not enqueue the stylesheet' );
 		}
@@ -49,7 +49,7 @@ final class AssetLoadingTest extends PluginTestCase {
 		$this->queriedPost( '<p>Shortcode lives in a widget.</p>' );
 		add_filter( 'cfp_dev_enqueue_assets', '__return_true' );
 
-		cfp_ajax_load_scripts();
+		cfp_dev_enqueue_front_end_assets();
 
 		$this->assertContains( 'cfp-dev-style', WP_Test_State::$enqueued );
 	}
@@ -79,7 +79,7 @@ final class AssetLoadingTest extends PluginTestCase {
 		$this->search( 'Modern Java in Practice A talk about Java.', [] );
 		$this->queryVar( 'id', 200 );
 
-		$html = cfp_talk_details_shortcode();
+		$html = cfp_dev_talk_details_shortcode();
 
 		preg_match_all( '#<iframe\b[^>]*>#', $html, $matches );
 		$this->assertNotEmpty( $matches[0] );

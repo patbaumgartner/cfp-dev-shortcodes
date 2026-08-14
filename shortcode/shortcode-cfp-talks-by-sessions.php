@@ -7,14 +7,14 @@
  * @package  CFP.DEV
  * @since    1.0.0
  */
-if ( ! function_exists( 'cfp_talks_by_sessions_shortcode' ) ) {
+if ( ! function_exists( 'cfp_dev_talks_by_sessions_shortcode' ) ) {
 
 	add_action(
 		'plugins_loaded',
 		function () {
 
 			if ( ! shortcode_exists( 'cfp_talks_by_sessions' ) ) {
-				add_shortcode( 'cfp_talks_by_sessions', 'cfp_talks_by_sessions_shortcode' );
+				add_shortcode( 'cfp_talks_by_sessions', 'cfp_dev_talks_by_sessions_shortcode' );
 			}
 		}
 	);
@@ -26,7 +26,7 @@ if ( ! function_exists( 'cfp_talks_by_sessions_shortcode' ) ) {
 	 * @return string
 	 * @since  1.0.0
 	 */
-	function cfp_talks_by_sessions_shortcode( $atts = [] ) {
+	function cfp_dev_talks_by_sessions_shortcode( $atts = [] ) {
 		$defaults = [
 			'title'       => 'Talks grouped by Session Types',
 			'hide_title'  => false,
@@ -43,13 +43,13 @@ if ( ! function_exists( 'cfp_talks_by_sessions_shortcode' ) ) {
 
 		$ttl = cfp_dev_get_cache_ttl();
 		if ( 0 === $ttl ) {
-			return get_talks_by_sessions( $sessionId, $_atts );
+			return cfp_dev_render_talks_by_sessions( $sessionId, $_atts );
 		}
 
 		$_cache_group = cfp_dev_group_cache_key( 'talks_by_sessions_cache_group_' . $sessionId . cfp_dev_atts_cache_suffix( $_atts, $defaults ) );
 		$cache        = get_transient( $_cache_group );
 		if ( false === $cache ) {
-			$content = get_talks_by_sessions( $sessionId, $_atts );
+			$content = cfp_dev_render_talks_by_sessions( $sessionId, $_atts );
 			set_transient( $_cache_group, $content, $ttl );
 		} else {
 			$content = $cache;
@@ -65,8 +65,8 @@ if ( ! function_exists( 'cfp_talks_by_sessions_shortcode' ) ) {
 	 * @param array $_atts      Normalised shortcode attributes (title, hide_title, hide_search).
 	 * @return string
 	 */
-	function get_talks_by_sessions( $sessionId, $_atts = [] ) {
-		$sessions = getJSON( 'public/session-types' );
+	function cfp_dev_render_talks_by_sessions( $sessionId, $_atts = [] ) {
+		$sessions = cfp_dev_get_json( 'public/session-types' );
 
 		$sessionDescr = '';
 
@@ -90,7 +90,7 @@ if ( ! function_exists( 'cfp_talks_by_sessions_shortcode' ) ) {
 		}
 
 		// Get talks by session type.
-		$talks = ! empty( $sessionId ) ? getJSON( 'public/talks/session-type/' . absint( $sessionId ) ) : null;
+		$talks = ! empty( $sessionId ) ? cfp_dev_get_json( 'public/talks/session-type/' . absint( $sessionId ) ) : null;
 
 		$content = cfp_dev_root_class_script( 'session' );
 
@@ -139,7 +139,7 @@ if ( ! function_exists( 'cfp_talks_by_sessions_shortcode' ) ) {
 		$content .= '</section>';
 		$content .= '</div>';
 
-		$content .= getFooter();
+		$content .= cfp_dev_footer();
 
 		return $content;
 	}

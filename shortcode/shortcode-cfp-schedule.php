@@ -8,14 +8,14 @@
  * @since    1.0.0
  */
 
-if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
+if ( ! function_exists( 'cfp_dev_schedule_shortcode' ) ) {
 
 	add_action(
 		'plugins_loaded',
 		function () {
 
 			if ( ! shortcode_exists( 'cfp_schedule' ) ) {
-				add_shortcode( 'cfp_schedule', 'cfp_schedule_shortcode' );
+				add_shortcode( 'cfp_schedule', 'cfp_dev_schedule_shortcode' );
 			}
 		}
 	);
@@ -27,7 +27,7 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 	 * @return string
 	 * @since  1.0.0
 	 */
-	function cfp_schedule_shortcode( $atts = [] ) {
+	function cfp_dev_schedule_shortcode( $atts = [] ) {
 		$defaults = [
 			'title'       => '', // Empty → the event name from the API.
 			'hide_title'  => false,
@@ -48,7 +48,7 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 		}
 
 		// Get the current event — its timezone and date range drive everything below.
-		$currentEvent = getJSON( 'public/event' );
+		$currentEvent = cfp_dev_get_json( 'public/event' );
 
 		if ( is_null( $currentEvent ) ) {
 			cfp_dev_log( 'schedule: failed to retrieve current event' );
@@ -70,7 +70,7 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 			return 'Event timezone is not set.';
 		}
 
-		$rooms = getJSON( 'public/rooms' );
+		$rooms = cfp_dev_get_json( 'public/rooms' );
 
 		if ( is_null( $rooms ) ) {
 			cfp_dev_log( 'schedule: failed to retrieve rooms' );
@@ -85,7 +85,7 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 			$dayName = $fromDate->format( 'l' );
 		}
 
-		$day_schedule = getJSON( 'public/schedules/' . $dayName );
+		$day_schedule = cfp_dev_get_json( 'public/schedules/' . $dayName );
 
 		if ( empty( $day_schedule ) || ! is_array( $day_schedule ) ) {
 			cfp_dev_log( 'schedule: failed to retrieve schedule for day=' . $dayName );
@@ -97,11 +97,11 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 		$ttl = cfp_dev_get_cache_ttl();
 		if ( 0 === $ttl ) {
 			cfp_dev_log( 'schedule: cache disabled, generating content for day=' . $dayName );
-			$content = generate_schedule_content( $day_schedule, $rooms, $timeZone, $fromDate, $currentEvent, $dayName, $_atts );
+			$content = cfp_dev_render_schedule( $day_schedule, $rooms, $timeZone, $fromDate, $currentEvent, $dayName, $_atts );
 		} else {
 			$cache = get_transient( $_cache_group );
 			if ( false === $cache ) {
-					$content = generate_schedule_content( $day_schedule, $rooms, $timeZone, $fromDate, $currentEvent, $dayName, $_atts );
+					$content = cfp_dev_render_schedule( $day_schedule, $rooms, $timeZone, $fromDate, $currentEvent, $dayName, $_atts );
 					set_transient( $_cache_group, $content, $ttl );
 			} else {
 				$content = $cache;
@@ -123,7 +123,7 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 	 * @param array        $_atts         Normalised shortcode attributes (title, hide_title, hide_search).
 	 * @return string
 	 */
-	function generate_schedule_content( $day_schedule, $rooms, $timeZone, $fromDate, $currentEvent, $dayName, $_atts = [] ) {
+	function cfp_dev_render_schedule( $day_schedule, $rooms, $timeZone, $fromDate, $currentEvent, $dayName, $_atts = [] ) {
 		// Tabs are per calendar day, so both ends are normalised to midnight in
 		// the event timezone: comparing the raw timestamps dropped the closing
 		// day whenever the event ended earlier in the day than it started.
@@ -163,8 +163,8 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 			// Grid start/end hours from the first and last time slot of the day.
 			$count = count( $day_schedule );
 
-			$hour_start  = getTime( $day_schedule[0]->fromDate, $timeZone, 'H' );
-			$hour_finish = getTime( $day_schedule[ $count - 1 ]->toDate, $timeZone, 'H' );
+			$hour_start  = cfp_dev_format_time( $day_schedule[0]->fromDate, $timeZone, 'H' );
+			$hour_finish = cfp_dev_format_time( $day_schedule[ $count - 1 ]->toDate, $timeZone, 'H' );
 
 			// The three grid wrappers are opened and closed as a pair so they
 			// cannot drift apart again (they used to be left unclosed).
@@ -196,7 +196,7 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 			// One column per room — the grid layout expects sessions sequentially per room.
 			foreach ( $rooms as $room ) {
 
-				$schedule_items = getJSON( 'public/schedules/' . $dayName . '/' . $room->id );
+				$schedule_items = cfp_dev_get_json( 'public/schedules/' . $dayName . '/' . $room->id );
 
 				if ( ! empty( $schedule_items ) ) {
 					$content .= '<div class="cfp-column cfp-event">';
@@ -234,7 +234,7 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 
 							if ( $hasProposal ) {
 								if ( 'no' === get_option( 'cfp_dev_content_by_id', 'yes' ) ) {
-									$talk_slug = generate_slug( $item->proposal->title );
+									$talk_slug = cfp_dev_generate_slug( $item->proposal->title );
 									$content  .= '        <a class="cfp-a" href="' . esc_url( cfp_dev_url( '/talk/' . $talk_slug ) ) . '">';
 								} else {
 									$content .= '        <a class="cfp-a" href="' . esc_url( cfp_dev_url( '/talk?id=' . absint( $item->proposal->id ) ) ) . '">';
@@ -295,7 +295,7 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 		}
 
 		$content .= '</div>';
-		$content .= getFooter();
+		$content .= cfp_dev_footer();
 		return $content;
 	}
 }
