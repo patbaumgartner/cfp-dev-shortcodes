@@ -159,17 +159,6 @@ function cfp_dev_read_snapshot_body( string $query_path ) {
 	return $body;
 }
 
-/**
- * Reads and returns decoded JSON from the offline snapshot.
- *
- * @param string $query_path  API path, e.g. 'public/speakers?size=500'.
- * @return mixed  Decoded JSON (object|array) or null on failure.
- */
-function cfp_dev_get_json_offline( string $query_path ) {
-	$body = cfp_dev_read_snapshot_body( $query_path );
-	return is_string( $body ) ? json_decode( $body ) : null;
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Crawl state management
 // ─────────────────────────────────────────────────────────────────────────────
