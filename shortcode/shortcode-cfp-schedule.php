@@ -82,7 +82,7 @@ if ( ! function_exists( 'cfp_dev_schedule_shortcode' ) ) {
 		// The event's own dates decide which days exist; an unparseable one
 		// would otherwise throw out of the shortcode and blank the whole page.
 		$from_date = cfp_dev_date( $current_event->fromDate ?? '', $time_zone );
-		$to_date   = cfp_dev_date( $current_event->toDate ?? '', $time_zone );
+		$to_date   = cfp_dev_event_end_date( $current_event, $from_date, $time_zone );
 		if ( null === $from_date || null === $to_date ) {
 			cfp_dev_log( 'schedule: event has no usable date range' );
 			return esc_html__( 'Event dates are not set.', 'cfp-dev-shortcodes' );
@@ -187,19 +187,31 @@ if ( ! function_exists( 'cfp_dev_schedule_shortcode' ) ) {
 
 			$content .= '</div>';
 
-			// Grid start/end hours from the first and last time slot of the day.
-			// The ruler labels the event's own clock, so it is built from
-			// midnight of the day being viewed *in the event timezone* — not
-			// from "today" in the site timezone, which shifted every label by
-			// the site's UTC offset and dated them to the wrong day.
-			$count      = count( $day_schedule );
-			$first_slot = cfp_dev_date( $day_schedule[0]->fromDate ?? '' );
-			$last_slot  = cfp_dev_date( $day_schedule[ $count - 1 ]->toDate ?? '' );
+			// Grid start/end hours from the earliest and latest time the day
+			// actually contains. The ruler labels the event's own clock, so it
+			// is built from midnight of the day being viewed *in the event
+			// timezone* — not from "today" in the site timezone, which shifted
+			// every label by the site's UTC offset and dated them to the wrong
+			// day. Every slot is inspected rather than only the first and last:
+			// the list is the API's order, not necessarily chronological, and a
+			// single unparseable entry at either end used to cost the grid.
+			$span = cfp_dev_schedule_day_span( $day_schedule );
 
-			if ( null !== $first_slot && null !== $last_slot ) {
-				$day_start   = $first_slot->setTimezone( $time_zone )->setTime( 0, 0 );
-				$hour_start  = (int) $first_slot->setTimezone( $time_zone )->format( 'H' );
-				$hour_finish = (int) $last_slot->setTimezone( $time_zone )->format( 'H' );
+			if ( null !== $span ) {
+				$start_local = $span['from']->setTimezone( $time_zone );
+				$end_local   = $span['to']->setTimezone( $time_zone );
+
+				$day_start  = $start_local->setTime( 0, 0 );
+				$hour_start = (int) $start_local->format( 'H' );
+
+				// Round the end *up*: the grid stops at --hour-finish, so a
+				// session running to 11:20 needs the 11:00–12:00 row to exist
+				// or it spills out of the rows the stylesheet laid down.
+				$hour_finish = (int) $end_local->format( 'H' );
+				if ( '00' !== $end_local->format( 'i' ) ) {
+					++$hour_finish;
+				}
+				$hour_finish = max( $hour_finish, $hour_start + 1 );
 
 				// The three grid wrappers are opened and closed as a pair so they
 				// cannot drift apart again (they used to be left unclosed).
@@ -262,6 +274,74 @@ if ( ! function_exists( 'cfp_dev_schedule_shortcode' ) ) {
 	}
 
 	/**
+	 * The earliest start and latest end among a day's time slots.
+	 *
+	 * @param array $day_schedule  Time slots for the day, as the API sent them.
+	 * @return array{from:DateTimeImmutable,to:DateTimeImmutable}|null  Null when no slot is usable.
+	 */
+	function cfp_dev_schedule_day_span( $day_schedule ) {
+		$from = null;
+		$to   = null;
+
+		foreach ( $day_schedule as $slot ) {
+			if ( ! is_object( $slot ) ) {
+				continue;
+			}
+
+			$slot_from = cfp_dev_date( $slot->fromDate ?? '' );
+			$slot_to   = cfp_dev_date( $slot->toDate ?? '' );
+
+			if ( null === $slot_from || null === $slot_to ) {
+				continue;
+			}
+
+			if ( null === $from || $slot_from < $from ) {
+				$from = $slot_from;
+			}
+			if ( null === $to || $slot_to > $to ) {
+				$to = $slot_to;
+			}
+		}
+
+		return ( null === $from || null === $to )
+			? null
+			: [
+				'from' => $from,
+				'to'   => $to,
+			];
+	}
+
+	/**
+	 * Height of one session in the schedule grid, in minutes.
+	 *
+	 * The stylesheet turns this into a row span through
+	 * `[data-event-duration='N']` rules in five-minute steps, so a figure it
+	 * has no rule for gets no height at all and the session vanishes from the
+	 * grid. `sessionType.duration` is optional in the API, and 0 is exactly
+	 * such a figure — as is any duration that is not a multiple of five.
+	 *
+	 * The slot's own timestamps always know how long it runs, so they answer
+	 * when the API does not, and the result is snapped to a step the
+	 * stylesheet defines.
+	 *
+	 * @param mixed             $item  Schedule item from the API.
+	 * @param DateTimeImmutable $from  Session start.
+	 * @param DateTimeImmutable $to    Session end.
+	 */
+	function cfp_dev_session_grid_duration( $item, DateTimeImmutable $from, DateTimeImmutable $to ): int {
+		$minutes = absint( $item->sessionType->duration ?? 0 );
+
+		if ( 0 === $minutes ) {
+			$minutes = (int) round( ( $to->getTimestamp() - $from->getTimestamp() ) / 60 );
+		}
+
+		// The stylesheet defines every fifth minute from 5 to 1380 (23 hours).
+		$minutes = (int) round( $minutes / 5 ) * 5;
+
+		return max( 5, min( 1380, $minutes ) );
+	}
+
+	/**
 	 * Renders one session article in a room column.
 	 *
 	 * @param object       $item       Schedule item from the API.
@@ -283,7 +363,7 @@ if ( ! function_exists( 'cfp_dev_schedule_shortcode' ) ) {
 		$overflow     = ! empty( $item->overflow );
 		$has_proposal = ! empty( $item->proposal->title ) && ! $overflow;
 		$session_type = $has_proposal ? 'cfp-session' : 'cfp-recess';
-		$duration     = absint( $item->sessionType->duration ?? 0 );
+		$duration     = cfp_dev_session_grid_duration( $item, $start_session, $end_session );
 
 		$content = '<article class="cfp-article ' . $session_type . '" data-event-start="' . esc_attr( $event_start ) . '" data-event-finish="' . esc_attr( $event_finish ) . '" data-event-duration="' . esc_attr( (string) $duration ) . '">';
 

@@ -114,6 +114,30 @@ function cfp_dev_date( $value, ?DateTimeZone $timezone = null ): ?DateTimeImmuta
 }
 
 /**
+ * The last day of an event, from its optional `toDate`.
+ *
+ * A single-day event carries only `fromDate`, so an absent end means the event
+ * ends the day it starts — the offline crawler has always read it that way,
+ * while the schedule reported "Event dates are not set." and rendered nothing.
+ * An end that is *present but unparseable* stays an error: that is a data
+ * problem worth surfacing rather than quietly halving the programme.
+ *
+ * @param mixed                  $event      Event object from the API.
+ * @param DateTimeImmutable|null $from_date  The event's start, already resolved.
+ * @param DateTimeZone|null      $timezone   Event timezone.
+ * @return DateTimeImmutable|null  Null when `toDate` is set but unusable.
+ */
+function cfp_dev_event_end_date( $event, ?DateTimeImmutable $from_date, ?DateTimeZone $timezone ): ?DateTimeImmutable {
+	$raw = $event->toDate ?? '';
+
+	if ( ! is_string( $raw ) || '' === $raw ) {
+		return $from_date;
+	}
+
+	return cfp_dev_date( $raw, $timezone );
+}
+
+/**
  * Formats a UTC time string in the given timezone.
  *
  * @param mixed        $time      UTC date/time string.

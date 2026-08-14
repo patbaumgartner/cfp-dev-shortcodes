@@ -794,11 +794,16 @@ function cfp_dev_do_crawl(): void {
 	// --- Schedules (all days × all rooms) -----------------------------------
 	cfp_dev_update_crawl_state( [ 'step_label' => __( 'Fetching schedules...', 'cfp-dev-shortcodes' ) ] );
 
+	// The day names are the ones the schedule page asks for, and that page
+	// resolves them in the event's own timezone. Deriving them in UTC here
+	// meant an event starting at 23:30 local was crawled as the previous day —
+	// the page then asked for a day the snapshot did not contain.
 	$event_days = [];
-	$from_day   = cfp_dev_date( $event->fromDate ?? '' );
+	$event_zone = cfp_dev_timezone( $event->timezone ?? '' );
+	$from_day   = cfp_dev_date( $event->fromDate ?? '', $event_zone );
 	if ( null !== $from_day ) {
 		// The end date is optional; a single-day event has only fromDate.
-		$to_day  = cfp_dev_date( $event->toDate ?? '' ) ?? $from_day;
+		$to_day  = cfp_dev_event_end_date( $event, $from_day, $event_zone ) ?? $from_day;
 		$current = $from_day->setTime( 0, 0 );
 		$end     = $to_day->setTime( 0, 0 );
 		while ( $current <= $end ) {

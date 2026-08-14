@@ -570,6 +570,99 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		];
 	}
 
+	/**
+	 * A single-day event carries only fromDate. The crawler has always read an
+	 * absent end that way; the schedule page called it "Event dates are not
+	 * set." and rendered nothing at all.
+	 */
+	public function test_schedule_renders_a_single_day_event_with_no_end_date(): void {
+		$event = Fixtures::event();
+		unset( $event['toDate'] );
+		$this->registerScheduleApi();
+		$this->api( 'public/event', $event );
+
+		$html = cfp_dev_schedule_shortcode( [] );
+
+		$this->assertHtmlBalanced( $html, '[cfp_schedule] for a one-day event' );
+		$this->assertStringContainsString( '?id=Monday', $html );
+		$this->assertStringNotContainsString( '?id=Tuesday', $html, 'a one-day event has one day' );
+	}
+
+	/**
+	 * The grid stops at --hour-finish, so a session running past the hour it
+	 * ends in spills out of the rows the stylesheet laid down. The fixture's
+	 * last session ends 11:20, which needs the ruler to reach 12:00.
+	 */
+	public function test_the_schedule_grid_reaches_past_the_last_session(): void {
+		$this->registerScheduleApi();
+
+		$html = cfp_dev_schedule_shortcode( [] );
+
+		preg_match( '/--hour-start:(\d+); --hour-finish:(\d+);/', $html, $bounds );
+
+		$this->assertSame( '9', $bounds[1] );
+		$this->assertSame( '12', $bounds[2], 'a session ending 11:20 needs the 11:00-12:00 row' );
+	}
+
+	/** The bounds come from the day, not from whichever slot the API sent first. */
+	public function test_the_schedule_grid_bounds_do_not_depend_on_api_ordering(): void {
+		$this->registerScheduleApi();
+		$this->api( 'public/schedules/Monday', array_reverse( Fixtures::daySchedule() ) );
+
+		$html = cfp_dev_schedule_shortcode( [] );
+
+		preg_match( '/--hour-start:(\d+); --hour-finish:(\d+);/', $html, $bounds );
+
+		$this->assertSame( '9', $bounds[1] );
+		$this->assertSame( '12', $bounds[2] );
+	}
+
+	/** One broken slot must not cost the whole grid its bounds. */
+	public function test_the_schedule_grid_survives_one_unusable_slot(): void {
+		$this->registerScheduleApi();
+		$slots                = Fixtures::daySchedule();
+		$slots[0]['fromDate'] = 'whenever';
+		$this->api( 'public/schedules/Monday', $slots );
+
+		$html = cfp_dev_schedule_shortcode( [] );
+
+		$this->assertStringContainsString( '--hour-start', $html, 'the readable slots still describe a day' );
+	}
+
+	/**
+	 * The stylesheet turns data-event-duration into a row span through rules in
+	 * five-minute steps, so a figure it has no rule for gets no height and the
+	 * session disappears. sessionType.duration is optional, and 0 is exactly
+	 * such a figure — the slot's own timestamps always know the answer.
+	 *
+	 * @dataProvider gridDurationProvider
+	 */
+	public function test_a_session_gets_a_height_the_stylesheet_can_render( $api_duration, string $expected ): void {
+		$this->registerScheduleApi();
+		$session = Fixtures::roomSchedule()[0];
+		if ( null === $api_duration ) {
+			unset( $session['sessionType']['duration'] );
+		} else {
+			$session['sessionType']['duration'] = $api_duration;
+		}
+		$this->api( 'public/schedules/Monday/1', [ $session ] );
+
+		$html = cfp_dev_schedule_shortcode( [] );
+
+		$this->assertStringContainsString( 'data-event-duration="' . $expected . '"', $html );
+	}
+
+	public static function gridDurationProvider(): array {
+		return [
+			// 08:30-09:20 UTC is a 50 minute session; the API's own figure wins.
+			'as sent'           => [ 50, '50' ],
+			'omitted'           => [ null, '50' ],
+			'zero'              => [ 0, '50' ],
+			// Snapped to a step the stylesheet defines.
+			'off the five-grid' => [ 47, '45' ],
+		];
+	}
+
 	/** A single broken session must not cost the reader the rest of the day. */
 	public function test_schedule_skips_only_the_sessions_with_unusable_dates(): void {
 		$this->registerScheduleApi();
