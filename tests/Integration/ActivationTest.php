@@ -148,4 +148,63 @@ final class ActivationTest extends PluginTestCase {
 			$this->assertStringStartsWith( '^', $pattern, 'every rule should be anchored at the site root' );
 		}
 	}
+
+	/**
+	 * The crawl runs from a cron event whose callback disappears with the
+	 * plugin, and the rewrite rules keep capturing /talk/ and /speaker/ URLs
+	 * that nothing renders any more. Deactivation is not uninstallation, so
+	 * settings, caches and snapshots stay.
+	 */
+	public function test_deactivating_leaves_no_scheduled_crawl_behind(): void {
+		wp_schedule_single_event( time() + 60, 'cfp_dev_do_crawl' );
+		$this->option( 'cfp_dev_key', 'dvbe25' );
+		set_transient( cfp_dev_detail_cache_key( 'talk', 200 ), 'markup', 3600 );
+
+		cfp_dev_deactivate();
+
+		$this->assertFalse( wp_next_scheduled( 'cfp_dev_do_crawl' ) );
+		$this->assertSame( 'dvbe25', get_option( 'cfp_dev_key' ), 'deactivation is not uninstallation' );
+		$this->assertNotFalse( get_transient( cfp_dev_detail_cache_key( 'talk', 200 ) ) );
+	}
+
+	/**
+	 * The sitemap lists slug URLs, so on a site addressing content by id it
+	 * would advertise a permalink form that site does not link to.
+	 *
+	 * @dataProvider sitemapModeProvider
+	 */
+	public function test_the_sitemap_provider_registers_only_in_slug_mode( string $by_id, bool $expected ): void {
+		$this->option( 'cfp_dev_content_by_id', $by_id );
+
+		$registered = [];
+		$sitemaps   = new class( $registered ) {
+			public object $registry;
+
+			public function __construct( array &$registered ) {
+				$this->registry = new class( $registered ) {
+					/** @var array<string,object> */
+					private array $seen;
+
+					public function __construct( array &$registered ) {
+						$this->seen = &$registered;
+					}
+
+					public function add_provider( string $name, object $provider ): void {
+						$this->seen[ $name ] = $provider;
+					}
+				};
+			}
+		};
+
+		cfp_dev_register_sitemap_provider( $sitemaps );
+
+		$this->assertSame( $expected, isset( $registered['cfp'] ) );
+	}
+
+	public static function sitemapModeProvider(): array {
+		return [
+			'slug mode' => [ 'no', true ],
+			'id mode'   => [ 'yes', false ],
+		];
+	}
 }
