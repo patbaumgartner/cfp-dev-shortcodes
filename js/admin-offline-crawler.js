@@ -67,6 +67,12 @@
 			}
 			html += '</p>';
 
+		} else if ('stopped' === status) {
+			// Repainting this as "Running" is how the server's own message used
+			// to be lost, a second after the page rendered.
+			html += '<p style="color:red;">Status: <strong>Stopped</strong> &mdash; ';
+			html += 'the last crawl did not finish. Use Re-crawl Now to try again.</p>';
+
 		} else {
 			// idle — keep server-rendered content
 			return;

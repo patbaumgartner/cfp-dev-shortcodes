@@ -293,6 +293,27 @@ function cfp_dev_new_snapshot_name(): string {
 }
 
 /**
+ * The crawl status to report, as opposed to the one last written.
+ *
+ * A crawl killed mid-run leaves "running" behind for ever. Everything that
+ * reports status — the settings screen, the progress endpoint the admin script
+ * polls, and the status that script starts from — has to agree such a crawl
+ * has stopped. When they disagree the poller wins, because it repaints the
+ * status box a second after the page renders.
+ *
+ * @return string  One of: idle, pending, running, done, error, stopped.
+ */
+function cfp_dev_crawl_display_status(): string {
+	$status = get_option( 'cfp_dev_crawl_state', [] )['status'] ?? 'idle';
+
+	if ( ! in_array( $status, [ 'running', 'pending' ], true ) ) {
+		return $status;
+	}
+
+	return cfp_dev_crawl_in_progress() ? $status : 'stopped';
+}
+
+/**
  * Creates a new dated snapshot directory, saves the initial crawl state, and
  * schedules the cfp_dev_do_crawl WP Cron event to fire in ~5 seconds.
  *
