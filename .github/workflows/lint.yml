@@ -38,6 +38,23 @@ jobs:
             -print0 \
           | xargs -0 -P4 -n1 php -l
 
+  js-syntax:
+    name: JavaScript syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # The plugin ships three scripts and nothing checked them: a typo in the
+      # admin bundle would reach a release and show up as a settings screen
+      # that silently does nothing. Node is preinstalled on the runner, so
+      # this costs no toolchain.
+      - name: Check syntax of all shipped scripts
+        run: |
+          for file in js/*.js; do
+            echo "Checking $file"
+            node --check "$file"
+          done
+
   phpcs:
     name: PHP_CodeSniffer (WPCS)
     runs-on: ubuntu-latest
