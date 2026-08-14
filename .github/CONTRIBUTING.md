@@ -42,6 +42,20 @@ Key rules:
 
 ---
 
+## Translatable Strings
+
+Every user-facing string goes through the `cfp-dev-shortcodes` text domain. If
+you add, change or remove one, refresh the template:
+
+```bash
+composer i18n        # needs WP-CLI
+```
+
+`composer test` fails when `languages/cfp-dev-shortcodes.pot` and the source
+disagree, so translators never silently lose a string.
+
+---
+
 ## Workflow
 
 1. Fork the repository and create a feature branch from `main`:
@@ -50,9 +64,10 @@ Key rules:
    ```
 2. Make your changes and commit with a clear message.
 3. Run `composer check` — fix any issues.
-4. Update `CHANGELOG.md` under the appropriate version heading.
-5. Update `README.md` if you changed or added shortcodes / settings.
-6. Open a pull request against `main` using the PR template.
+4. Run `composer i18n` if you touched a translatable string.
+5. Update `CHANGELOG.md` under the appropriate version heading.
+6. Update `README.md` if you changed or added shortcodes / settings.
+7. Open a pull request against `main` using the PR template.
 
 ---
 
