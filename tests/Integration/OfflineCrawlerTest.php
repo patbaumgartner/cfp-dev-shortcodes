@@ -407,6 +407,60 @@ final class OfflineCrawlerTest extends PluginTestCase {
 		$this->assertSame( $good, cfp_dev_get_latest_snapshot(), 'the working snapshot was replaced by a broken one' );
 	}
 
+	/**
+	 * The day names are the ones the schedule page asks for, and that page
+	 * resolves them in the event's own timezone. Deriving them in UTC meant an
+	 * event starting late in the local evening was crawled as the previous
+	 * day, and the page then asked for a day the snapshot did not contain.
+	 */
+	public function test_days_are_crawled_in_the_event_timezone(): void {
+		$this->registerCrawlableApi();
+		// 23:30 UTC on Monday is 01:30 on Tuesday in Europe/Brussels.
+		$this->api(
+			'public/event',
+			[
+				'id'       => 42,
+				'name'     => 'Devoxx',
+				'timezone' => 'Europe/Brussels',
+				'fromDate' => '2025-10-06T23:30:00Z',
+				'toDate'   => '2025-10-07T03:00:00Z',
+			]
+		);
+		$this->api( 'public/schedules/Tuesday', [] );
+		$this->api( 'public/schedules/Tuesday/1', [] );
+
+		cfp_dev_start_crawl();
+		$snapshot = get_option( 'cfp_dev_crawl_state' )['snapshot'];
+
+		cfp_dev_do_crawl();
+
+		$this->assertSame( 'done', get_option( 'cfp_dev_crawl_state' )['status'] );
+		$this->assertFileExists( $snapshot . '/api/public/schedules/Tuesday.json', 'the day the page will ask for' );
+		$this->assertFileDoesNotExist( $snapshot . '/api/public/schedules/Monday.json' );
+	}
+
+	/** A single-day event carries only fromDate. */
+	public function test_an_event_with_no_end_date_is_crawled_as_one_day(): void {
+		$this->registerCrawlableApi();
+		$this->api(
+			'public/event',
+			[
+				'id'       => 42,
+				'name'     => 'Devoxx',
+				'timezone' => 'Europe/Brussels',
+				'fromDate' => '2025-10-06T07:00:00Z',
+			]
+		);
+
+		cfp_dev_start_crawl();
+		$snapshot = get_option( 'cfp_dev_crawl_state' )['snapshot'];
+
+		cfp_dev_do_crawl();
+
+		$this->assertFileExists( $snapshot . '/api/public/schedules/Monday.json' );
+		$this->assertFileDoesNotExist( $snapshot . '/api/public/schedules/Tuesday.json' );
+	}
+
 	// ─────────────────────────────────────────────────────────────────────────
 
 	/** Registers every endpoint a one-speaker, one-talk, one-day event needs. */
