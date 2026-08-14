@@ -29,6 +29,7 @@ if ( ! function_exists( 'cfp_dev_talk_details_shortcode' ) ) {
 	 * @since  1.0.0
 	 */
 	function cfp_dev_talk_details_shortcode() {
+		cfp_dev_shortcode_assets();
 		$talk_slug = get_query_var( 'talk_slug' );
 		$talk_id   = absint( get_query_var( 'id' ) );
 

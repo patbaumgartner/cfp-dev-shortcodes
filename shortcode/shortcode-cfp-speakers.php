@@ -28,6 +28,7 @@ if ( ! function_exists( 'cfp_dev_speakers_shortcode' ) ) {
 	 * @since  1.0.0
 	 */
 	function cfp_dev_speakers_shortcode( $atts = [] ) {
+		cfp_dev_shortcode_assets();
 		$_atts = shortcode_atts( cfp_dev_speakers_default_atts(), $atts );
 
 		$_atts['random']      = cfp_dev_attr_bool( $_atts['random'] );

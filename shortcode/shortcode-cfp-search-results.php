@@ -29,6 +29,7 @@ if ( ! function_exists( 'cfp_dev_search_results_shortcode' ) ) {
 	 * @since  1.0.0
 	 */
 	function cfp_dev_search_results_shortcode() {
+		cfp_dev_shortcode_assets();
 		$query = sanitize_text_field( (string) get_query_var( 'query' ) );
 
 		$heading = '' !== $query

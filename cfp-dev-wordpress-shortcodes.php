@@ -221,14 +221,46 @@ function cfp_dev_page_uses_shortcodes(): bool {
 }
 
 /**
- * Enqueues the front-end script and stylesheet on pages that use a shortcode.
+ * Enqueues the front-end script and stylesheet.
+ *
+ * Safe to call more than once, and safe to call late: a style enqueued after
+ * `wp_head` has run is printed in the footer instead, which is how a shortcode
+ * rendered from a template still gets its stylesheet.
+ */
+function cfp_dev_enqueue_assets(): void {
+	wp_enqueue_script( 'site-cfp', plugin_dir_url( __FILE__ ) . 'js/site.js', [], CFP_DEV_VERSION, true );
+	wp_enqueue_style( 'cfp-dev-style', plugin_dir_url( __FILE__ ) . 'shortcode/' . CFP_DEV_CSS, [], CFP_DEV_VERSION );
+}
+
+/**
+ * Enqueues the front-end assets early, for the requests where the plugin can
+ * tell in advance that they will be needed — which puts them in `<head>`.
+ *
+ * Every shortcode also enqueues them itself when it runs, so a shortcode this
+ * cannot predict still gets styled; see cfp_dev_shortcode_assets().
  */
 function cfp_dev_enqueue_front_end_assets() {
 	if ( ! cfp_dev_page_uses_shortcodes() ) {
 		return;
 	}
-	wp_enqueue_script( 'site-cfp', plugin_dir_url( __FILE__ ) . 'js/site.js', [], CFP_DEV_VERSION, true );
-	wp_enqueue_style( 'cfp-dev-style', plugin_dir_url( __FILE__ ) . 'shortcode/' . CFP_DEV_CSS, [], CFP_DEV_VERSION );
+	cfp_dev_enqueue_assets();
 }
 
 add_action( 'wp_enqueue_scripts', 'cfp_dev_enqueue_front_end_assets' );
+
+/**
+ * Called by every shortcode as it renders, so that the assets follow the
+ * markup wherever it is produced.
+ *
+ * Detecting shortcodes ahead of time means reading the post content, and a
+ * theme is free to render them from somewhere that content never mentions — a
+ * template, a widget, a block, the front page. On those requests the early
+ * pass finds nothing and the markup arrived unstyled. Asking at render time
+ * cannot be wrong: the shortcode is running, so the page needs the assets.
+ */
+function cfp_dev_shortcode_assets(): void {
+	if ( is_admin() ) {
+		return;
+	}
+	cfp_dev_enqueue_assets();
+}
