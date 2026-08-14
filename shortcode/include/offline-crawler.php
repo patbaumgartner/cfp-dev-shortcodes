@@ -231,11 +231,84 @@ function cfp_dev_protect_snapshot_dir( string $snapshot ): void {
 }
 
 /**
+ * How long a crawl may go without finishing before it is presumed dead.
+ *
+ * cfp_dev_do_crawl() asks for 600 seconds of run time, so anything past that
+ * plus slack has been killed by the host — a fatal, an OOM, a deploy — and
+ * will never write its own terminal state.
+ */
+function cfp_dev_crawl_deadline(): int {
+	/**
+	 * Filters how long a crawl may run before it is presumed dead.
+	 *
+	 * @param int $seconds  Deadline in seconds.
+	 */
+	return max( 60, (int) apply_filters( 'cfp_dev_crawl_deadline', 15 * MINUTE_IN_SECONDS ) );
+}
+
+/**
+ * Whether a crawl is currently running.
+ *
+ * A crawl that is killed mid-run never writes a terminal state, so the status
+ * alone said "running" forever: the admin screen showed a progress bar that
+ * would never move, and enabling offline mode became a no-op because the
+ * handler declined to start a crawl while one was "already" in progress. A
+ * crawl past its deadline is therefore not in progress, whatever it last said.
+ */
+function cfp_dev_crawl_in_progress(): bool {
+	$state = get_option( 'cfp_dev_crawl_state', [] );
+
+	if ( ! in_array( $state['status'] ?? 'idle', [ 'running', 'pending' ], true ) ) {
+		return false;
+	}
+
+	$started = (int) ( $state['started_at'] ?? 0 );
+
+	// No timestamp means the crawl predates this bookkeeping; treat it as
+	// finished rather than blocking the operator for ever.
+	return $started > 0 && ( time() - $started ) < cfp_dev_crawl_deadline();
+}
+
+/**
+ * A directory name for a new snapshot: the UTC timestamp, made unique.
+ *
+ * Snapshots are ordered by name, so the name is a sortable timestamp — but
+ * that is only one per second, and a crawl started in the same second as a
+ * previous one would have written into its directory, overwriting a good
+ * snapshot's files while leaving its manifest in place. A counter keeps the
+ * ordering (a longer string with the same prefix sorts after) and the
+ * directories apart.
+ */
+function cfp_dev_new_snapshot_name(): string {
+	$stamp = gmdate( 'Y-m-d_H-i-s' );
+	$name  = $stamp;
+	$next  = 1;
+
+	while ( is_dir( cfp_dev_offline_dir() . '/' . $name ) ) {
+		++$next;
+		$name = $stamp . '-' . $next;
+	}
+
+	return $name;
+}
+
+/**
  * Creates a new dated snapshot directory, saves the initial crawl state, and
  * schedules the cfp_dev_do_crawl WP Cron event to fire in ~5 seconds.
+ *
+ * Does nothing when a crawl is already in progress: the crawl state is shared,
+ * so a second one would interleave its progress with the first and both would
+ * race to publish.
+ *
+ * @return bool  Whether a crawl was started.
  */
-function cfp_dev_start_crawl(): void {
-	$snapshot_name = gmdate( 'Y-m-d_H-i-s' );
+function cfp_dev_start_crawl(): bool {
+	if ( cfp_dev_crawl_in_progress() ) {
+		cfp_dev_log( 'crawl: not started — one is already in progress' );
+		return false;
+	}
+
+	$snapshot_name = cfp_dev_new_snapshot_name();
 	$snapshot      = cfp_dev_offline_dir() . '/' . $snapshot_name;
 
 	wp_mkdir_p( $snapshot . '/api/public' );
@@ -253,6 +326,7 @@ function cfp_dev_start_crawl(): void {
 			'snapshot'      => $snapshot,
 			'snapshot_name' => $snapshot_name,
 			'errors'        => 0,
+			'started_at'    => time(),
 			'finished_at'   => 0,
 		]
 	);
@@ -283,6 +357,7 @@ function cfp_dev_start_crawl(): void {
 	spawn_cron();
 
 	cfp_dev_log( 'crawl: scheduled — snapshot=' . $snapshot_name );
+	return true;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
