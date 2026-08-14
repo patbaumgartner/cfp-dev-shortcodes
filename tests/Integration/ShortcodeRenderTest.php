@@ -132,13 +132,36 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		$this->assertSame( 'Talk not found.', cfp_dev_talk_details_shortcode() );
 	}
 
-	public function test_talks_by_tracks_defaults_to_the_first_track(): void {
+	/**
+	 * The filter nav is ordered by track name, so "the first track" has to mean
+	 * the first tab the reader sees. Choosing it from the API's own order
+	 * highlighted one tab and listed another tab's talks.
+	 */
+	public function test_talks_by_tracks_defaults_to_the_first_track_shown(): void {
 		$this->registerDefaultApi();
-		$this->api( 'public/talks/track/10', [ Fixtures::talks()[0] ] );
+		$this->api( 'public/talks/track/11', [ Fixtures::talks()[1] ] );
 
 		$html = cfp_dev_talks_by_tracks_shortcode( [] );
 
 		$this->assertHtmlBalanced( $html, '[cfp_talks_by_tracks]' );
+
+		// Architecture sorts before Java, so it is both the first tab and the
+		// active one, and its talks are the ones listed.
+		preg_match_all( '#<a class="cfp-a ([^"]*)" href="\?id=(\d+)">([^<]+)</a>#', $html, $tabs, PREG_SET_ORDER );
+		$this->assertSame( 'Architecture', $tabs[0][3] );
+		$this->assertStringContainsString( 'cfp-active', $tabs[0][1], 'the first tab must be the active one' );
+
+		$this->assertStringContainsString( 'Architecture Without Tears', $html );
+		$this->assertStringNotContainsString( 'Modern Java in Practice', $html );
+	}
+
+	public function test_talks_by_tracks_honours_an_explicitly_selected_track(): void {
+		$this->registerDefaultApi();
+		$this->api( 'public/talks/track/10', [ Fixtures::talks()[0] ] );
+		$this->queryVar( 'id', 10 );
+
+		$html = cfp_dev_talks_by_tracks_shortcode( [] );
+
 		$this->assertStringContainsString( 'Modern Java in Practice', $html );
 		$this->assertStringContainsString( 'All things Java', $html );
 		$this->assertStringNotContainsString( 'Architecture Without Tears', $html );
@@ -312,7 +335,7 @@ final class ShortcodeRenderTest extends PluginTestCase {
 
 	public static function sparseTalkListProvider(): array {
 		return [
-			'by track'        => [ 'cfp_dev_talks_by_tracks_shortcode', 'public/talks/track/10' ],
+			'by track'        => [ 'cfp_dev_talks_by_tracks_shortcode', 'public/talks/track/11' ],
 			'by session type' => [ 'cfp_dev_talks_by_sessions_shortcode', 'public/talks/session-type/20' ],
 		];
 	}
