@@ -158,6 +158,61 @@ final class AdminSettingsPageTest extends PluginTestCase {
 		$this->assertSame( 'running', cfp_dev_crawl_display_status() );
 	}
 
+	/**
+	 * Both admin scripts write text the operator reads, and the crawler one
+	 * overwrites the server-rendered status box outright — so a string it
+	 * carries in English undoes the translation of the screen around it.
+	 * They are handed their strings from PHP instead, which also puts them in
+	 * the .pot the drift guard checks.
+	 *
+	 * @dataProvider adminScriptProvider
+	 */
+	public function test_the_admin_scripts_are_handed_their_strings( string $handle, string $js_object, array $expected ): void {
+		cfp_dev_enqueue_admin_scripts( 'settings_page_cfp-dev-settings' );
+
+		$payload = \WP_Test_State::$env['localized'][ $handle ][ $js_object ] ?? [];
+
+		$this->assertArrayHasKey( 'i18n', $payload, $handle . ' carries no strings' );
+		foreach ( $expected as $key ) {
+			$this->assertArrayHasKey( $key, $payload['i18n'] );
+			$this->assertNotSame( '', $payload['i18n'][ $key ] );
+		}
+	}
+
+	public static function adminScriptProvider(): array {
+		return [
+			'cache management' => [ 'cfp-dev-admin-cache', 'cfp_dev_ajax', [ 'deleting', 'errorWith', 'unknownError', 'requestFailed' ] ],
+			'offline crawler'  => [
+				'cfp-dev-admin-offline',
+				'cfp_dev_offline_ajax',
+				[ 'statusLabel', 'running', 'pending', 'complete', 'error', 'stopped', 'stoppedHint', 'progress', 'warnings', 'confirmCrawl', 'recrawl', 'startFailed' ],
+			],
+		];
+	}
+
+	/** The script starts from the status the screen showed, not the stored one. */
+	public function test_the_crawler_script_starts_from_the_reported_status(): void {
+		$this->option(
+			'cfp_dev_crawl_state',
+			[
+				'status'     => 'running',
+				'started_at' => time() - DAY_IN_SECONDS,
+			]
+		);
+
+		cfp_dev_enqueue_admin_scripts( 'settings_page_cfp-dev-settings' );
+
+		$payload = \WP_Test_State::$env['localized']['cfp-dev-admin-offline']['cfp_dev_offline_ajax'];
+
+		$this->assertSame( 'stopped', $payload['initial_status'], 'the script would poll a crawl that is not running' );
+	}
+
+	public function test_no_admin_script_loads_outside_the_settings_screen(): void {
+		cfp_dev_enqueue_admin_scripts( 'options-general.php' );
+
+		$this->assertSame( [], \WP_Test_State::$env['localized'] ?? [] );
+	}
+
 	// ─────────────────────────────────────────────────────────────────────────
 
 	/** Renders the settings screen and returns its markup. */

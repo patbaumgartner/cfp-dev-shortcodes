@@ -8,11 +8,16 @@
  *   - Updating the #cfp-crawl-status box in real time.
  *   - Wiring the "Re-crawl Now" button.
  *   - Reloading the page when a crawl completes so the checkbox reflects the new state.
+ *
+ * This box is server-rendered first and then repainted here, so both sides
+ * report the same status and use the same strings; see
+ * cfp_dev_crawl_display_status() and cfp_dev_enqueue_admin_scripts().
  */
 (function ($) {
 	'use strict';
 
 	var poller = null;
+	var i18n = cfp_dev_offline_ajax.i18n || {};
 
 	// -------------------------------------------------------------------------
 	// Helpers
@@ -20,6 +25,24 @@
 
 	function escHtml(str) {
 		return $('<div>').text(String(str)).html();
+	}
+
+	/** Fills %s / %1$s-style placeholders in a translated string. */
+	function format(template, values) {
+		var text = String(template);
+		values.forEach(function (value, index) {
+			text = text.split('%' + (index + 1) + '$s').join(value);
+		});
+		return text.replace('%s', values[0]).split('%%').join('%');
+	}
+
+	function statusLine(label, detail, colour) {
+		var style = colour ? ' style="color:' + colour + ';"' : '';
+		var html = '<p' + style + '>' + escHtml(i18n.statusLabel) + ' <strong>' + escHtml(label) + '</strong>';
+		if (detail) {
+			html += ' &mdash; ' + escHtml(detail);
+		}
+		return html + '</p>';
 	}
 
 	function updateStatusBox(state) {
@@ -32,46 +55,37 @@
 		var status = state.status || 'idle';
 
 		if ('running' === status || 'pending' === status) {
-			html += '<p>Status: <strong>' + escHtml('running' === status ? 'Running' : 'Starting\u2026') + '</strong>';
-			if (state.step_label) {
-				html += ' &mdash; ' + escHtml(state.step_label);
-			}
-			html += '</p>';
+			html += statusLine('running' === status ? i18n.running : i18n.pending, state.step_label);
 
 			if (state.items_total > 0) {
 				var pct = Math.round((state.items_done / state.items_total) * 100);
 				html += '<progress value="' + escHtml(state.items_done) + '" max="' + escHtml(state.items_total) + '"></progress> ';
-				html += '<span>' + escHtml(pct + '% (' + state.items_done + '\u202f/\u202f' + state.items_total + ')') + '</span>';
+				html += '<span>' + escHtml(format(i18n.progress, [pct, state.items_done, state.items_total])) + '</span>';
 			}
 
 			if (state.errors > 0) {
-				html += '<p style="color:orange;">' + escHtml(state.errors + ' error(s) so far') + '</p>';
+				html += '<p style="color:orange;">' + escHtml(format(i18n.errorsSoFar, [state.errors])) + '</p>';
 			}
 
 		} else if ('done' === status) {
-			html += '<p>Status: <strong>Complete</strong></p>';
+			html += statusLine(i18n.complete);
 			if (state.snapshot_name) {
-				html += '<p>Active snapshot: <code>' + escHtml(state.snapshot_name) + '</code></p>';
+				html += '<p>' + escHtml(i18n.activeSnapshot) + ' <code>' + escHtml(state.snapshot_name) + '</code></p>';
 			}
 			if (state.finished_at) {
-				html += '<p>Finished: ' + escHtml(new Date(state.finished_at * 1000).toLocaleString()) + '</p>';
+				html += '<p>' + escHtml(i18n.finished) + ' ' + escHtml(new Date(state.finished_at * 1000).toLocaleString()) + '</p>';
 			}
 			if (state.errors > 0) {
-				html += '<p style="color:orange;">Warnings: ' + escHtml(state.errors) + ' item(s) had errors (see manifest.json).</p>';
+				html += '<p style="color:orange;">' + escHtml(format(i18n.warnings, [state.errors])) + '</p>';
 			}
 
 		} else if ('error' === status) {
-			html += '<p style="color:red;">Status: <strong>Error</strong>';
-			if (state.step_label) {
-				html += ' &mdash; ' + escHtml(state.step_label);
-			}
-			html += '</p>';
+			html += statusLine(i18n.error, state.step_label, 'red');
 
 		} else if ('stopped' === status) {
 			// Repainting this as "Running" is how the server's own message used
 			// to be lost, a second after the page rendered.
-			html += '<p style="color:red;">Status: <strong>Stopped</strong> &mdash; ';
-			html += 'the last crawl did not finish. Use Re-crawl Now to try again.</p>';
+			html += statusLine(i18n.stopped, i18n.stoppedHint, 'red');
 
 		} else {
 			// idle — keep server-rendered content
@@ -140,12 +154,12 @@
 
 		// Re-crawl Now button.
 		$(document).on('click', '#cfp-recrawl-btn', function () {
-			if (!window.confirm('Start a new crawl? This will fetch all API data and images from the live API and create a new snapshot.')) {
+			if (!window.confirm(i18n.confirmCrawl)) {
 				return;
 			}
 
 			var $btn = $(this);
-			$btn.prop('disabled', true).text('Starting\u2026');
+			$btn.prop('disabled', true).text(i18n.starting);
 
 			$.post(
 				cfp_dev_offline_ajax.ajaxurl,
@@ -154,18 +168,18 @@
 					nonce: cfp_dev_offline_ajax.nonce,
 				},
 				function (response) {
-					$btn.prop('disabled', false).text('Re-crawl Now');
+					$btn.prop('disabled', false).text(i18n.recrawl);
 
 					if (response.success) {
 						startPolling();
 					} else {
-						var msg = (response.data && response.data.message) ? response.data.message : 'Unknown error.';
-						window.alert('Failed to start crawl: ' + msg);
+						var msg = (response.data && response.data.message) ? response.data.message : i18n.unknownError;
+						window.alert(format(i18n.startFailed, [msg]));
 					}
 				}
 			).fail(function () {
-				$btn.prop('disabled', false).text('Re-crawl Now');
-				window.alert('Request failed. Please try again.');
+				$btn.prop('disabled', false).text(i18n.recrawl);
+				window.alert(i18n.requestFailed);
 			});
 		});
 	});
