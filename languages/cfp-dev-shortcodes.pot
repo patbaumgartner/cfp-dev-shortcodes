@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-14T16:09:26+00:00\n"
+"POT-Creation-Date: 2026-08-14T16:25:31+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
@@ -391,67 +391,73 @@ msgstr ""
 msgid "Crawl scheduled, waiting for background job..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:614
+#: shortcode/include/offline-crawler.php:653
 msgid "Snapshot directory missing. Please start a new crawl."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:631
+#: shortcode/include/offline-crawler.php:670
 msgid "Fetching event metadata..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:644
+#: shortcode/include/offline-crawler.php:683
 msgid "Fetching speakers list..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:651
+#: shortcode/include/offline-crawler.php:690
 msgid "Fetching speaker details..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:666
+#: shortcode/include/offline-crawler.php:705
 msgid "Fetching speaker photo albums..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:679
+#: shortcode/include/offline-crawler.php:718
 msgid "Fetching talks list..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:690
+#: shortcode/include/offline-crawler.php:729
 msgid "Fetching talk details..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:708
+#: shortcode/include/offline-crawler.php:747
 msgid "Fetching talks by track & session type..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:721
+#: shortcode/include/offline-crawler.php:760
 msgid "Fetching schedules..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:753
+#: shortcode/include/offline-crawler.php:792
 msgid "Collecting image URLs from saved JSON..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:791
+#: shortcode/include/offline-crawler.php:830
 msgid "Downloading images..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:848
+#: shortcode/include/offline-crawler.php:887
 msgid "Rewriting image URLs in JSON files..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:881
+#: shortcode/include/offline-crawler.php:920
 msgid "Finalizing snapshot..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:893
+#: shortcode/include/offline-crawler.php:939
 msgid "Crawl produced no talks or speakers — offline mode was left off. Check the CFP.DEV key and that the API is reachable."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:921
+#. translators: %s: number of endpoints that could not be captured.
+#: shortcode/include/offline-crawler.php:942
+#, php-format
+msgid "Crawl could not capture %s required endpoint(s) — offline mode was left off and the previous snapshot is untouched. See the log for which."
+msgstr ""
+
+#: shortcode/include/offline-crawler.php:977
 msgid "Could not write manifest.json — offline mode was left off. Check filesystem permissions on wp-content/uploads."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:945
+#: shortcode/include/offline-crawler.php:1001
 msgid "Crawl complete! Offline mode is now active."
 msgstr ""
 

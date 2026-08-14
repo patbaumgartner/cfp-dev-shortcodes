@@ -79,11 +79,17 @@ function cfp_dev_get_latest_snapshot(): string {
 }
 
 /**
- * Deletes all but the newest $keep completed snapshots.
- * Prevents unbounded disk growth — every re-crawl creates a full new snapshot
- * (all JSON + all images).
+ * Deletes the snapshots that are no longer worth keeping.
  *
- * @param int $keep  Number of snapshots to retain (newest first).
+ * Retention counts *completed* snapshots — the ones a read can actually be
+ * served from. Counting every timestamped directory meant two abandoned crawls
+ * could push the last working snapshot out of the window and delete it, which
+ * is the opposite of what retention is for.
+ *
+ * Abandoned directories are dropped too, but only those older than the newest
+ * completed snapshot: anything newer may be a crawl still writing.
+ *
+ * @param int $keep  Number of completed snapshots to retain (newest first).
  */
 function cfp_dev_prune_snapshots( int $keep = 2 ): void {
 	$base = cfp_dev_offline_dir();
@@ -91,16 +97,34 @@ function cfp_dev_prune_snapshots( int $keep = 2 ): void {
 		return;
 	}
 	$dirs = glob( $base . '/[0-9]*', GLOB_ONLYDIR );
-	if ( empty( $dirs ) || count( $dirs ) <= $keep ) {
+	if ( empty( $dirs ) ) {
 		return;
 	}
-	rsort( $dirs ); // newest first
+	rsort( $dirs ); // Newest first — the name is a sortable timestamp.
+
+	$complete = [];
+	$partial  = [];
+	foreach ( $dirs as $dir ) {
+		if ( file_exists( $dir . '/manifest.json' ) ) {
+			$complete[] = $dir;
+		} else {
+			$partial[] = $dir;
+		}
+	}
+
+	$newest    = $complete[0] ?? '';
+	$abandoned = array_filter( $partial, static fn( string $dir ): bool => '' !== $newest && $dir < $newest );
+
+	$removable = array_merge( array_slice( $complete, $keep ), $abandoned );
+	if ( empty( $removable ) ) {
+		return;
+	}
 
 	require_once ABSPATH . 'wp-admin/includes/file.php';
 	WP_Filesystem();
 	global $wp_filesystem;
 
-	foreach ( array_slice( $dirs, $keep ) as $old_dir ) {
+	foreach ( $removable as $old_dir ) {
 		if ( $wp_filesystem && $wp_filesystem->delete( $old_dir, true ) ) {
 			cfp_dev_log( 'crawl: pruned old snapshot ' . basename( $old_dir ) );
 		} else {
@@ -304,6 +328,23 @@ function cfp_dev_snapshot_file_path( string $query_path, string $snapshot_dir ):
 }
 
 /**
+ * A fresh error tally for one crawl.
+ *
+ * `total` is what the operator sees and what the manifest records: every
+ * failure, images included. `required` counts only the failures that make the
+ * snapshot unfit to serve — a missing image degrades a page, a missing
+ * endpoint removes one.
+ *
+ * @return array{total:int,required:int}
+ */
+function cfp_dev_new_error_tally(): array {
+	return [
+		'total'    => 0,
+		'required' => 0,
+	];
+}
+
+/**
  * Fetches one API endpoint and saves the raw response body as a JSON file
  * inside the snapshot directory.
  *
@@ -313,25 +354,19 @@ function cfp_dev_snapshot_file_path( string $query_path, string $snapshot_dir ):
  * @param string $query_path   API path, e.g. 'public/speakers?size=9999'.
  * @param string $snapshot_dir Absolute path to the snapshot root.
  * @param array  $fetch_log    Log array, passed by reference.
- * @param int    $error_count  Error counter, passed by reference.
+ * @param array  $tally        Error tally, passed by reference (see cfp_dev_new_error_tally()).
  * @param int    $timeout      HTTP timeout in seconds (default 30; use lower for optional endpoints like albums).
- * @param bool   $optional     When true, failures are logged but do not increment $error_count (used for albums where no content is normal).
+ * @param bool   $optional     When true, failures are logged and counted but do not make the snapshot unfit
+ *                             (used for albums, where having no content is normal).
  * @return mixed               Decoded JSON or null on failure.
  */
-function cfp_dev_fetch_and_save( string $query_path, string $snapshot_dir, array &$fetch_log, int &$error_count, int $timeout = 30, bool $optional = false ) {
+function cfp_dev_fetch_and_save( string $query_path, string $snapshot_dir, array &$fetch_log, array &$tally, int $timeout = 30, bool $optional = false ) {
 	// Snapshot *reads* are containment-checked; writes must be too. Every id in
 	// a query path comes from the upstream API, so a hostile or compromised CFP
 	// instance would otherwise choose where the response body lands on disk.
 	$file_path = cfp_dev_snapshot_file_path( $query_path, $snapshot_dir );
 	if ( null === $file_path ) {
-		if ( ! $optional ) {
-			++$error_count;
-		}
-		$fetch_log[] = [
-			'url'    => $query_path,
-			'status' => 'error',
-			'msg'    => 'rejected unsafe query path',
-		];
+		cfp_dev_record_fetch_failure( $tally, $fetch_log, $optional, $query_path, 'rejected unsafe query path' );
 		cfp_dev_log( 'crawl: rejected unsafe query path — ' . $query_path );
 		return null;
 	}
@@ -352,14 +387,7 @@ function cfp_dev_fetch_and_save( string $query_path, string $snapshot_dir, array
 	);
 
 	if ( is_wp_error( $response ) ) {
-		if ( ! $optional ) {
-			++$error_count;
-		}
-		$fetch_log[] = [
-			'url'    => $url,
-			'status' => 'error',
-			'msg'    => $response->get_error_message(),
-		];
+		cfp_dev_record_fetch_failure( $tally, $fetch_log, $optional, $url, $response->get_error_message() );
 		cfp_dev_log( 'crawl: fetch error for ' . $query_path . ' — ' . $response->get_error_message() );
 		return null;
 	}
@@ -377,7 +405,7 @@ function cfp_dev_fetch_and_save( string $query_path, string $snapshot_dir, array
 	if ( 204 === $code ) {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- local snapshot file
 		if ( false === file_put_contents( $file_path, '[]' ) ) {
-			++$error_count;
+			cfp_dev_record_fetch_failure( $tally, $fetch_log, $optional, $url, 'write failed' );
 			cfp_dev_log( 'crawl: failed to write ' . $file_path );
 			return null;
 		}
@@ -386,10 +414,18 @@ function cfp_dev_fetch_and_save( string $query_path, string $snapshot_dir, array
 	}
 
 	if ( 200 !== $code ) {
-		if ( ! $optional ) {
-			++$error_count;
-		}
-			cfp_dev_log( 'crawl: HTTP ' . $code . ' for ' . $query_path );
+		cfp_dev_record_fetch_failure( $tally, $fetch_log, $optional, $url, 'HTTP ' . $code );
+		cfp_dev_log( 'crawl: HTTP ' . $code . ' for ' . $query_path );
+		return null;
+	}
+
+	// A 200 is not a promise of JSON. A captive portal, a proxy error page or a
+	// truncated response would otherwise be stored as though it were data, and
+	// the failure would only surface later, from the snapshot, on a live page.
+	$decoded = json_decode( $body );
+	if ( JSON_ERROR_NONE !== json_last_error() ) {
+		cfp_dev_record_fetch_failure( $tally, $fetch_log, $optional, $url, 'response was not JSON: ' . json_last_error_msg() );
+		cfp_dev_log( 'crawl: non-JSON body for ' . $query_path . ' — ' . json_last_error_msg() );
 		return null;
 	}
 
@@ -397,12 +433,34 @@ function cfp_dev_fetch_and_save( string $query_path, string $snapshot_dir, array
 	// a gap in the snapshot that only surfaces once offline mode is serving it.
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- writing raw API response to local uploads dir
 	if ( false === file_put_contents( $file_path, $body ) ) {
-		++$error_count;
+		cfp_dev_record_fetch_failure( $tally, $fetch_log, $optional, $url, 'write failed' );
 		cfp_dev_log( 'crawl: failed to write ' . $file_path );
 		return null;
 	}
 
-	return json_decode( $body );
+	return $decoded;
+}
+
+/**
+ * Records one failed endpoint fetch in the tally and the log.
+ *
+ * @param array  $tally      Error tally, passed by reference.
+ * @param array  $fetch_log  Log array, passed by reference.
+ * @param bool   $optional   Whether this endpoint is allowed to be missing.
+ * @param string $url        URL or query path the failure relates to.
+ * @param string $message    Human-readable reason.
+ */
+function cfp_dev_record_fetch_failure( array &$tally, array &$fetch_log, bool $optional, string $url, string $message ): void {
+	++$tally['total'];
+	if ( ! $optional ) {
+		++$tally['required'];
+	}
+
+	$fetch_log[] = [
+		'url'    => $url,
+		'status' => 'error',
+		'msg'    => $message,
+	];
 }
 
 /** Image extensions a snapshot file is allowed to carry. */
@@ -488,6 +546,11 @@ function cfp_dev_rewrite_image_urls( $data, array $keys, array $map ) {
  * instance would otherwise turn every crawl into a server-side request
  * generator pointed at the host's internal network — with the response body
  * published under a predictable uploads URL.
+ *
+ * A failed image is not a failed snapshot: the crawl keeps the original CDN
+ * URL for it (see step 3), so the page still renders — it just costs one
+ * external request. These failures are counted for the operator, not against
+ * the snapshot's fitness to serve.
  *
  * @param string $url          External image URL.
  * @param string $dest_path    Absolute destination file path.
@@ -618,7 +681,7 @@ function cfp_dev_do_crawl(): void {
 	}
 
 	$snapshot_name = basename( $snapshot );
-	$error_count   = 0;
+	$tally         = cfp_dev_new_error_tally();
 	$fetch_log     = [];
 
 	// =========================================================================
@@ -635,14 +698,14 @@ function cfp_dev_do_crawl(): void {
 		]
 	);
 
-	$event         = cfp_dev_fetch_and_save( 'public/event', $snapshot, $fetch_log, $error_count );
-	$tracks        = cfp_dev_fetch_and_save( 'public/tracks', $snapshot, $fetch_log, $error_count );
-	$session_types = cfp_dev_fetch_and_save( 'public/session-types', $snapshot, $fetch_log, $error_count );
-	$rooms         = cfp_dev_fetch_and_save( 'public/rooms', $snapshot, $fetch_log, $error_count );
+	$event         = cfp_dev_fetch_and_save( 'public/event', $snapshot, $fetch_log, $tally );
+	$tracks        = cfp_dev_fetch_and_save( 'public/tracks', $snapshot, $fetch_log, $tally );
+	$session_types = cfp_dev_fetch_and_save( 'public/session-types', $snapshot, $fetch_log, $tally );
+	$rooms         = cfp_dev_fetch_and_save( 'public/rooms', $snapshot, $fetch_log, $tally );
 
 	// --- Speakers -----------------------------------------------------------
 	cfp_dev_update_crawl_state( [ 'step_label' => __( 'Fetching speakers list...', 'cfp-dev-shortcodes' ) ] );
-	$speakers    = cfp_dev_fetch_and_save( 'public/speakers?size=9999', $snapshot, $fetch_log, $error_count );
+	$speakers    = cfp_dev_fetch_and_save( 'public/speakers?size=9999', $snapshot, $fetch_log, $tally );
 	$speaker_ids = cfp_dev_collect_ids( $speakers );
 
 	$total_speakers = count( $speaker_ids );
@@ -656,7 +719,7 @@ function cfp_dev_do_crawl(): void {
 
 	$done = 0;
 	foreach ( $speaker_ids as $i => $sid ) {
-		cfp_dev_fetch_and_save( 'public/speakers/' . $sid, $snapshot, $fetch_log, $error_count );
+		cfp_dev_fetch_and_save( 'public/speakers/' . $sid, $snapshot, $fetch_log, $tally );
 		++$done;
 		if ( 0 === $i % 5 || $i === $total_speakers - 1 ) {
 			cfp_dev_update_crawl_state( [ 'items_done' => $done ] );
@@ -666,7 +729,7 @@ function cfp_dev_do_crawl(): void {
 	cfp_dev_update_crawl_state( [ 'step_label' => __( 'Fetching speaker photo albums...', 'cfp-dev-shortcodes' ) ] );
 	foreach ( $speaker_ids as $i => $sid ) {
 		// 10 s timeout, optional: speakers without a Flickr album return nothing and would hang for 30 s each.
-		cfp_dev_fetch_and_save( 'public/album/' . $sid, $snapshot, $fetch_log, $error_count, 10, true );
+		cfp_dev_fetch_and_save( 'public/album/' . $sid, $snapshot, $fetch_log, $tally, 10, true );
 		++$done;
 		if ( 0 === $i % 5 || $i === $total_speakers - 1 ) {
 			cfp_dev_update_crawl_state( [ 'items_done' => $done ] );
@@ -681,7 +744,7 @@ function cfp_dev_do_crawl(): void {
 			'items_total' => 0,
 		]
 	);
-	$talks    = cfp_dev_fetch_and_save( 'public/talks', $snapshot, $fetch_log, $error_count );
+	$talks    = cfp_dev_fetch_and_save( 'public/talks', $snapshot, $fetch_log, $tally );
 	$talk_ids = cfp_dev_collect_ids( $talks );
 
 	$total_talks = count( $talk_ids );
@@ -695,7 +758,7 @@ function cfp_dev_do_crawl(): void {
 
 	$done = 0;
 	foreach ( $talk_ids as $i => $tid ) {
-		cfp_dev_fetch_and_save( 'public/talks/' . $tid, $snapshot, $fetch_log, $error_count );
+		cfp_dev_fetch_and_save( 'public/talks/' . $tid, $snapshot, $fetch_log, $tally );
 		++$done;
 		if ( 0 === $i % 5 || $i === $total_talks - 1 ) {
 			cfp_dev_update_crawl_state( [ 'items_done' => $done ] );
@@ -711,10 +774,10 @@ function cfp_dev_do_crawl(): void {
 		]
 	);
 	foreach ( cfp_dev_collect_ids( $tracks ) as $track_id ) {
-		cfp_dev_fetch_and_save( 'public/talks/track/' . $track_id, $snapshot, $fetch_log, $error_count );
+		cfp_dev_fetch_and_save( 'public/talks/track/' . $track_id, $snapshot, $fetch_log, $tally );
 	}
 	foreach ( cfp_dev_collect_ids( $session_types ) as $session_type_id ) {
-		cfp_dev_fetch_and_save( 'public/talks/session-type/' . $session_type_id, $snapshot, $fetch_log, $error_count );
+		cfp_dev_fetch_and_save( 'public/talks/session-type/' . $session_type_id, $snapshot, $fetch_log, $tally );
 	}
 
 	// --- Schedules (all days × all rooms) -----------------------------------
@@ -736,13 +799,13 @@ function cfp_dev_do_crawl(): void {
 	$room_ids = cfp_dev_collect_ids( $rooms );
 
 	foreach ( $event_days as $day ) {
-		cfp_dev_fetch_and_save( 'public/schedules/' . $day, $snapshot, $fetch_log, $error_count );
+		cfp_dev_fetch_and_save( 'public/schedules/' . $day, $snapshot, $fetch_log, $tally );
 		foreach ( $room_ids as $rid ) {
-			cfp_dev_fetch_and_save( 'public/schedules/' . $day . '/' . $rid, $snapshot, $fetch_log, $error_count );
+			cfp_dev_fetch_and_save( 'public/schedules/' . $day . '/' . $rid, $snapshot, $fetch_log, $tally );
 		}
 	}
 
-	cfp_dev_update_crawl_state( [ 'errors' => $error_count ] );
+	cfp_dev_update_crawl_state( [ 'errors' => $tally['total'] ] );
 
 	// =========================================================================
 	// STEP 2 — Collect all external image URLs from every saved JSON file.
@@ -809,7 +872,7 @@ function cfp_dev_do_crawl(): void {
 			];
 			$available   = true;
 		} else {
-			$available = cfp_dev_download_image( $ext_url, $dest, $fetch_log, $error_count );
+			$available = cfp_dev_download_image( $ext_url, $dest, $fetch_log, $tally['total'] );
 		}
 
 		/*
@@ -827,7 +890,7 @@ function cfp_dev_do_crawl(): void {
 			cfp_dev_update_crawl_state(
 				[
 					'items_done' => $done,
-					'errors'     => $error_count,
+					'errors'     => $tally['total'],
 				]
 			);
 		}
@@ -835,7 +898,7 @@ function cfp_dev_do_crawl(): void {
 	cfp_dev_update_crawl_state(
 		[
 			'items_done' => $done,
-			'errors'     => $error_count,
+			'errors'     => $tally['total'],
 		]
 	);
 
@@ -882,20 +945,37 @@ function cfp_dev_do_crawl(): void {
 		]
 	);
 
-	// A snapshot with no talks and no speakers is not a snapshot — it is the
-	// record of a crawl that failed (no API key, API unreachable, disk full).
-	// Writing manifest.json would mark it "complete", and activating offline
-	// mode would then serve that emptiness as the site's content.
-	if ( empty( $speaker_ids ) && empty( $talk_ids ) ) {
+	// Offline mode promises the site works with no external requests, so a
+	// snapshot is only fit to serve when everything it needs is in it. An
+	// endpoint that failed, or answered with something that was not JSON, is a
+	// page that would be broken for as long as the snapshot stayed active —
+	// and writing manifest.json is what makes it active. Images are exempt:
+	// step 3 keeps the original CDN URL for any it could not localise, so the
+	// page still renders.
+	//
+	// A crawl that captures no talks and no speakers is caught by the same
+	// rule, but stated separately because it is the case an operator hits
+	// first: no CFP.DEV key, or the wrong one.
+	$captured_nothing = empty( $speaker_ids ) && empty( $talk_ids );
+
+	if ( $tally['required'] > 0 || $captured_nothing ) {
+		$reason = $captured_nothing
+			? __( 'Crawl produced no talks or speakers — offline mode was left off. Check the CFP.DEV key and that the API is reachable.', 'cfp-dev-shortcodes' )
+			: sprintf(
+				/* translators: %s: number of endpoints that could not be captured. */
+				__( 'Crawl could not capture %s required endpoint(s) — offline mode was left off and the previous snapshot is untouched. See the log for which.', 'cfp-dev-shortcodes' ),
+				number_format_i18n( $tally['required'] )
+			);
+
 		cfp_dev_update_crawl_state(
 			[
 				'status'      => 'error',
-				'step_label'  => __( 'Crawl produced no talks or speakers — offline mode was left off. Check the CFP.DEV key and that the API is reachable.', 'cfp-dev-shortcodes' ),
-				'errors'      => $error_count,
+				'step_label'  => $reason,
+				'errors'      => $tally['total'],
 				'finished_at' => time(),
 			]
 		);
-		cfp_dev_log( 'crawl: aborted — snapshot empty, offline mode not activated (errors=' . $error_count . ')' );
+		cfp_dev_log( 'crawl: aborted — snapshot incomplete, offline mode not activated (required=' . $tally['required'] . ', total=' . $tally['total'] . ')' );
 		return;
 	}
 
@@ -906,7 +986,7 @@ function cfp_dev_do_crawl(): void {
 			'speakers' => count( $speaker_ids ),
 			'talks'    => count( $talk_ids ),
 			'images'   => count( $image_url_map ),
-			'errors'   => $error_count,
+			'errors'   => $tally['total'],
 		],
 		'log'           => $fetch_log,
 	];
@@ -919,7 +999,7 @@ function cfp_dev_do_crawl(): void {
 			[
 				'status'      => 'error',
 				'step_label'  => __( 'Could not write manifest.json — offline mode was left off. Check filesystem permissions on wp-content/uploads.', 'cfp-dev-shortcodes' ),
-				'errors'      => $error_count + 1,
+				'errors'      => $tally['total'] + 1,
 				'finished_at' => time(),
 			]
 		);
@@ -943,10 +1023,10 @@ function cfp_dev_do_crawl(): void {
 			'status'      => 'done',
 			'step'        => 5,
 			'step_label'  => __( 'Crawl complete! Offline mode is now active.', 'cfp-dev-shortcodes' ),
-			'errors'      => $error_count,
+			'errors'      => $tally['total'],
 			'finished_at' => time(),
 		]
 	);
 
-	cfp_dev_log( 'crawl: complete — snapshot=' . $snapshot_name . ', speakers=' . count( $speaker_ids ) . ', talks=' . count( $talk_ids ) . ', images=' . count( $image_url_map ) . ', errors=' . $error_count );
+	cfp_dev_log( 'crawl: complete — snapshot=' . $snapshot_name . ', speakers=' . count( $speaker_ids ) . ', talks=' . count( $talk_ids ) . ', images=' . count( $image_url_map ) . ', errors=' . $tally['total'] );
 }

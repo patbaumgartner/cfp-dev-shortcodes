@@ -36,51 +36,70 @@ final class OfflineCrawlerTest extends PluginTestCase {
 	public function test_a_fetched_endpoint_is_saved_under_its_path_without_the_query_string(): void {
 		$snapshot = $this->makeSnapshotDir();
 		$log      = [];
-		$errors   = 0;
+		$tally    = cfp_dev_new_error_tally();
 		$this->api( 'public/speakers?size=9999', [ [ 'id' => 1 ] ] );
 
-		$decoded = cfp_dev_fetch_and_save( 'public/speakers?size=9999', $snapshot, $log, $errors );
+		$decoded = cfp_dev_fetch_and_save( 'public/speakers?size=9999', $snapshot, $log, $tally );
 
 		$this->assertSame( 1, $decoded[0]->id );
 		$this->assertFileExists( $snapshot . '/api/public/speakers.json' );
-		$this->assertSame( 0, $errors );
+		$this->assertSame( cfp_dev_new_error_tally(), $tally );
 		$this->assertSame( 200, $log[0]['status'] );
 	}
 
 	public function test_an_empty_endpoint_is_saved_as_an_empty_array(): void {
 		$snapshot = $this->makeSnapshotDir();
 		$log      = [];
-		$errors   = 0;
+		$tally    = cfp_dev_new_error_tally();
 		$this->api( 'public/schedules/Monday/9', '', 204 );
 
 		// A room with no sessions is valid; offline reads must return [] rather
 		// than null, which callers treat as "endpoint unavailable".
-		$this->assertSame( [], cfp_dev_fetch_and_save( 'public/schedules/Monday/9', $snapshot, $log, $errors ) );
+		$this->assertSame( [], cfp_dev_fetch_and_save( 'public/schedules/Monday/9', $snapshot, $log, $tally ) );
 		$this->assertSame( '[]', file_get_contents( $snapshot . '/api/public/schedules/Monday/9.json' ) );
-		$this->assertSame( 0, $errors );
+		$this->assertSame( cfp_dev_new_error_tally(), $tally );
 	}
 
 	public function test_a_failed_endpoint_is_counted_and_writes_no_file(): void {
 		$snapshot = $this->makeSnapshotDir();
 		$log      = [];
-		$errors   = 0;
+		$tally    = cfp_dev_new_error_tally();
 		$this->api( 'public/tracks', null, 500 );
 
-		$this->assertNull( cfp_dev_fetch_and_save( 'public/tracks', $snapshot, $log, $errors ) );
-		$this->assertSame( 1, $errors );
+		$this->assertNull( cfp_dev_fetch_and_save( 'public/tracks', $snapshot, $log, $tally ) );
+		$this->assertSame( 1, $tally['required'], 'a missing endpoint makes the snapshot unfit to serve' );
+		$this->assertSame( 1, $tally['total'] );
 		$this->assertFileDoesNotExist( $snapshot . '/api/public/tracks.json' );
 	}
 
-	public function test_an_optional_endpoint_failure_is_logged_but_not_counted(): void {
+	/**
+	 * A 200 is not a promise of JSON. Storing a proxy error page or a truncated
+	 * response as though it were data hides the failure until offline mode is
+	 * serving it, on a live page.
+	 */
+	public function test_a_two_hundred_that_is_not_json_writes_no_file(): void {
 		$snapshot = $this->makeSnapshotDir();
 		$log      = [];
-		$errors   = 0;
+		$tally    = cfp_dev_new_error_tally();
+		$this->api( 'public/tracks', '<html>Gateway Timeout</html>' );
+
+		$this->assertNull( cfp_dev_fetch_and_save( 'public/tracks', $snapshot, $log, $tally ) );
+		$this->assertSame( 1, $tally['required'] );
+		$this->assertFileDoesNotExist( $snapshot . '/api/public/tracks.json' );
+	}
+
+	public function test_an_optional_endpoint_failure_is_counted_but_does_not_spoil_the_snapshot(): void {
+		$snapshot = $this->makeSnapshotDir();
+		$log      = [];
+		$tally    = cfp_dev_new_error_tally();
 		$this->api( 'public/album/7', null, 404 );
 
-		// Most speakers have no photo album; that is normal, not an error.
-		cfp_dev_fetch_and_save( 'public/album/7', $snapshot, $log, $errors, 10, true );
+		// Most speakers have no photo album; that is normal, not a reason to
+		// throw the whole crawl away.
+		cfp_dev_fetch_and_save( 'public/album/7', $snapshot, $log, $tally, 10, true );
 
-		$this->assertSame( 0, $errors );
+		$this->assertSame( 0, $tally['required'] );
+		$this->assertSame( 1, $tally['total'] );
 		$this->assertNotEmpty( $log );
 	}
 
@@ -306,16 +325,69 @@ final class OfflineCrawlerTest extends PluginTestCase {
 		$this->assertSame( basename( cfp_dev_get_latest_snapshot() ), max( $remaining ) );
 	}
 
-	public function test_a_failing_endpoint_is_reported_without_aborting_the_crawl(): void {
+	/**
+	 * Offline mode promises the site works with no external requests, so a
+	 * snapshot missing an endpoint is a snapshot that would serve a broken
+	 * page for as long as it stayed active. This used to finish as "done" and
+	 * switch offline mode on with, in this case, no rooms — which is the whole
+	 * schedule.
+	 */
+	public function test_a_missing_required_endpoint_leaves_offline_mode_off(): void {
 		$this->registerCrawlableApi();
 		$this->api( 'public/rooms', null, 503 );
+		cfp_dev_start_crawl();
+		$snapshot = get_option( 'cfp_dev_crawl_state' )['snapshot'];
+
+		cfp_dev_do_crawl();
+
+		$state = get_option( 'cfp_dev_crawl_state' );
+		$this->assertSame( 'error', $state['status'] );
+		$this->assertStringContainsString( 'required endpoint', $state['step_label'] );
+		$this->assertSame( 0, (int) get_option( 'cfp_dev_offline_mode' ) );
+		$this->assertFileDoesNotExist( $snapshot . '/manifest.json' );
+	}
+
+	/** Same rule for a 200 carrying something that is not JSON. */
+	public function test_a_non_json_response_leaves_offline_mode_off(): void {
+		$this->registerCrawlableApi();
+		$this->api( 'public/tracks', '<html>Gateway Timeout</html>' );
+		cfp_dev_start_crawl();
+
+		cfp_dev_do_crawl();
+
+		$this->assertSame( 'error', get_option( 'cfp_dev_crawl_state' )['status'] );
+		$this->assertSame( 0, (int) get_option( 'cfp_dev_offline_mode' ) );
+	}
+
+	/** An album nobody has, or an image behind a 500, is not a broken snapshot. */
+	public function test_optional_failures_still_produce_a_usable_snapshot(): void {
+		$this->registerCrawlableApi();
+		$this->api( 'public/album/100', null, 404 );
+		$this->image( self::IMAGE_URL, '', 'text/html', 500 );
 		cfp_dev_start_crawl();
 
 		cfp_dev_do_crawl();
 
 		$state = get_option( 'cfp_dev_crawl_state' );
 		$this->assertSame( 'done', $state['status'] );
-		$this->assertGreaterThan( 0, $state['errors'] );
+		$this->assertGreaterThan( 0, $state['errors'], 'the operator should still see what failed' );
+		$this->assertSame( 1, (int) get_option( 'cfp_dev_offline_mode' ) );
+	}
+
+	/** A broken crawl must not cost the operator the snapshot they were serving. */
+	public function test_a_failed_crawl_leaves_the_previous_snapshot_serving(): void {
+		$this->registerCrawlableApi();
+		cfp_dev_start_crawl();
+		cfp_dev_do_crawl();
+		$good = cfp_dev_get_latest_snapshot();
+		$this->assertNotSame( '', $good );
+
+		// A second crawl, this time against a failing API.
+		$this->api( 'public/rooms', null, 503 );
+		cfp_dev_start_crawl();
+		cfp_dev_do_crawl();
+
+		$this->assertSame( $good, cfp_dev_get_latest_snapshot(), 'the working snapshot was replaced by a broken one' );
 	}
 
 	// ─────────────────────────────────────────────────────────────────────────
@@ -324,11 +396,11 @@ final class OfflineCrawlerTest extends PluginTestCase {
 	public function test_a_traversing_query_path_writes_nothing(): void {
 		$snapshot = $this->makeSnapshotDir();
 		$log      = [];
-		$errors   = 0;
+		$tally    = cfp_dev_new_error_tally();
 
 		// Ids come from the upstream API, so they choose part of the write path.
-		$this->assertNull( cfp_dev_fetch_and_save( 'public/speakers/../../../evil', $snapshot, $log, $errors ) );
-		$this->assertSame( 1, $errors );
+		$this->assertNull( cfp_dev_fetch_and_save( 'public/speakers/../../../evil', $snapshot, $log, $tally ) );
+		$this->assertSame( 1, $tally['required'] );
 		$this->assertSame( [], $this->httpLog(), 'a rejected path must not be requested either' );
 		$this->assertFileDoesNotExist( dirname( $snapshot ) . '/evil.json' );
 	}
@@ -336,10 +408,10 @@ final class OfflineCrawlerTest extends PluginTestCase {
 	public function test_an_absolute_query_path_writes_nothing(): void {
 		$snapshot = $this->makeSnapshotDir();
 		$log      = [];
-		$errors   = 0;
+		$tally    = cfp_dev_new_error_tally();
 
-		$this->assertNull( cfp_dev_fetch_and_save( '/etc/passwd', $snapshot, $log, $errors ) );
-		$this->assertSame( 1, $errors );
+		$this->assertNull( cfp_dev_fetch_and_save( '/etc/passwd', $snapshot, $log, $tally ) );
+		$this->assertSame( 1, $tally['required'] );
 	}
 
 	public function test_a_crawl_that_captures_nothing_leaves_offline_mode_off(): void {
