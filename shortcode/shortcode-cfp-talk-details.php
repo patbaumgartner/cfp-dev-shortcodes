@@ -165,7 +165,9 @@ if ( ! function_exists( 'cfp_dev_talk_details_shortcode' ) ) {
 		$slots = (array) $talk->timeSlots;
 		$slot  = end( $slots );
 
-		return cfp_dev_render_time_slot( $slot );
+		// This page is about one talk, so it is the one that carries the hidden
+		// timing inputs a theme can read.
+		return cfp_dev_render_time_slot( $slot, true );
 	}
 
 	/**

@@ -125,6 +125,19 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		$this->assertStringNotContainsString( 'cfp-podcast', $html );
 	}
 
+	public function test_talk_details_publishes_the_talk_timing_for_themes(): void {
+		$this->registerDefaultApi();
+		$this->search( 'Modern Java in Practice A talk about Java.', [] );
+		$this->queryVar( 'id', 200 );
+
+		$html = cfp_dev_talk_details_shortcode();
+
+		// 2025-10-06T08:30:00Z … 09:20:00Z, in the event's own timezone.
+		$this->assertStringContainsString( 'id="cfpTimezone" value="Europe/Brussels"', $html );
+		$this->assertStringContainsString( 'id="cfpTalkFrom" value="1759739400"', $html );
+		$this->assertStringContainsString( 'id="cfpTalkExpiry" value="1759742400"', $html );
+	}
+
 	public function test_talk_details_reports_an_unknown_talk(): void {
 		$this->queryVar( 'id', 999 );
 		$this->api( 'public/talks/999', null, 404 );
@@ -318,6 +331,54 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		$this->assertHtmlBalanced( $html );
 		$this->assertNoCssBreakout( $html );
 		$this->assertStringContainsString( 'Ilya Šumailov', $html );
+	}
+
+	/**
+	 * The time-slot block carries fixed element ids for themes that localise
+	 * the displayed times. A speaker page renders one block per scheduled
+	 * talk, so those ids appeared once per talk and getElementById() resolved
+	 * every one of them to the first talk's times.
+	 */
+	public function test_a_speaker_with_two_scheduled_talks_repeats_no_element_id(): void {
+		$this->registerDefaultApi();
+		$speaker                = Fixtures::speakerDetail( 100 );
+		$speaker['proposals'][] = [
+			'id'    => 201,
+			'title' => 'Architecture Without Tears',
+			'track' => [
+				'id'   => 11,
+				'name' => 'Architecture',
+			],
+		];
+		$this->api( 'public/speakers/100', $speaker );
+
+		// Both talks are scheduled, so both render a time-slot block.
+		$second              = Fixtures::talkDetail( 201 );
+		$second['timeSlots'] = Fixtures::talkDetail( 200 )['timeSlots'];
+		$this->api( 'public/talks/201', $second );
+
+		$this->queryVar( 'id', 100 );
+
+		$html = cfp_dev_speaker_details_shortcode();
+
+		$this->assertSame( 2, substr_count( $html, 'class="cfp-datetime"' ), 'both talks must show their slot' );
+		$this->assertUniqueElementIds( $html, '[cfp_speaker_details] with two scheduled talks' );
+	}
+
+	/** The same guarantee for every page a visitor can land on. */
+	public function test_every_shortcode_page_uses_each_element_id_once(): void {
+		$this->registerDefaultApi();
+		$this->registerScheduleApi();
+		$this->search( 'x', [] );
+		$this->search( 'Modern Java in Practice A talk about Java.', [] );
+		$this->queryVar( 'id', 200 );
+
+		$this->assertUniqueElementIds( cfp_dev_talk_details_shortcode(), '[cfp_talk_details]' );
+		$this->assertUniqueElementIds( cfp_dev_talks_by_tracks_shortcode( [] ), '[cfp_talks_by_tracks]' );
+		$this->assertUniqueElementIds( cfp_dev_talks_by_sessions_shortcode( [] ), '[cfp_talks_by_sessions]' );
+		$this->assertUniqueElementIds( cfp_dev_speakers_shortcode( [] ), '[cfp_speakers]' );
+		$this->assertUniqueElementIds( cfp_dev_schedule_shortcode( [] ), '[cfp_schedule]' );
+		$this->assertUniqueElementIds( cfp_dev_search_results_shortcode(), '[cfp_search_results]' );
 	}
 
 	/**
