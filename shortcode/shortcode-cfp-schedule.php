@@ -173,7 +173,7 @@ if ( ! function_exists( 'cfp_dev_schedule_shortcode' ) ) {
 
 			// Day-tab navigation bar.
 			$content .= '	<div class="cfp-secondary">';
-			$content .= '		<nav class="cfp-tab">';
+			$content .= '		<nav class="cfp-tab" aria-label="' . esc_attr__( 'Conference days', 'cfp-dev-shortcodes' ) . '">';
 			while ( $day_cursor <= $last_day ) {
 				$is_active  = ( $day_cursor->format( 'l' ) === $day_name ) ? 'cfp-active' : '';
 				$content   .= '		<a class="cfp-a ' . $is_active . '" href="' . esc_url( '?id=' . $day_cursor->format( 'l' ) ) . '">' .

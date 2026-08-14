@@ -133,7 +133,7 @@ if ( ! function_exists( 'cfp_dev_talks_by_tracks_shortcode' ) ) {
 
 		$content  = '<div class="cfp-subject">';
 		$content .= cfp_dev_page_header( $title, '', empty( $_atts['hide_search'] ) );
-		$content .= '    <nav class="cfp-filter">';
+		$content .= '    <nav class="cfp-filter" aria-label="' . esc_attr__( 'Tracks', 'cfp-dev-shortcodes' ) . '">';
 		foreach ( $tracks as $track ) {
 			$is_active = ( absint( $track->id ?? 0 ) === (int) $track_id ) ? 'cfp-active' : '';
 			$content  .= '<a class="cfp-a ' . $is_active . '" href="' . esc_url( '?id=' . absint( $track->id ?? 0 ) ) . '">';
