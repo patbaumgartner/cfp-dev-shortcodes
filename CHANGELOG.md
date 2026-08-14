@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased]
+## [4.7.0] — 2026-08-14
 
 ### Accessibility
 - **Neither theme met WCAG AA, and the light one failed almost everywhere.** One stylesheet serves both themes, and two greys were written into it as literals: `#a7a7a7` reads at 7.0:1 on the dark background and 2.3:1 on the light one, `#484848` is exactly the reverse (8.8:1 and 1.8:1). Between them they coloured the table column headers, every search placeholder, the session type on a talk page and the schedule's favourite count — each unreadable in one of the two themes. The light accent was too pale for either job it had: 3.3:1 as link and company text, 3.5:1 as a button background under white text. The schedule's "Mobile Schedule" button then forced `color:white` inline over a stylesheet that had already chosen a working colour, giving white on amber at 2.0:1 — the worst ratio on any page. All seven pages now pass in both themes
