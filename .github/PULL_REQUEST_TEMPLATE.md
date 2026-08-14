@@ -26,6 +26,8 @@ Fixes # <!-- issue number, if applicable -->
 - [ ] My code follows the [WordPress Coding Standards](https://developer.wordpress.org/coding-standards/wordpress-coding-standards/)
 - [ ] I have run `composer check` and fixed all issues
 - [ ] I have added or updated tests for behavioural changes
+- [ ] I have run `composer i18n` if I added, changed or removed a translatable string
+      (the test suite fails when the template and the source disagree)
 - [ ] I have updated `CHANGELOG.md` with a summary of my changes
 - [ ] I have updated `README.md` if the change adds or modifies shortcodes / settings
 - [ ] New shortcode attributes / settings are documented

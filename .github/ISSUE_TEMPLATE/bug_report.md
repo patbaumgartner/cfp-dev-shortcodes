@@ -28,8 +28,9 @@ What actually happened (error messages, wrong output, etc.).
 
 | Field | Value |
 |-------|-------|
-| Plugin Version | e.g. 4.1.0 |
+| Plugin Version | e.g. 4.6.0 |
 | WordPress Version | e.g. 6.8 |
+| Offline Mode | on / off |
 | PHP Version | e.g. 8.2 |
 | CFP.DEV Key / Event | e.g. dvbe25 |
 | Browser (if front-end) | e.g. Firefox 126 |
