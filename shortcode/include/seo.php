@@ -203,7 +203,7 @@ function cfp_dev_page_meta() {
  * @return array{title:string,description:string,url:string,image:string,og_type:string}|null
  */
 function cfp_dev_resolve_page_meta() {
-	if ( ! is_page( [ 'talk', 'speaker', 'speakers', 'schedule', 'talks-by-tracks', 'talks-by-sessions', 'search-results' ] ) ) {
+	if ( ! is_page( cfp_dev_page_slugs() ) ) {
 		return null;
 	}
 

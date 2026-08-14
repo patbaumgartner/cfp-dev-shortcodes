@@ -34,6 +34,37 @@ final class AssetLoadingTest extends PluginTestCase {
 		$this->assertSame( [ 'site-cfp', 'cfp-dev-style' ], WP_Test_State::$enqueued );
 	}
 
+	/**
+	 * A theme may render the shortcode from a template and leave the page
+	 * content empty — several do. has_shortcode() cannot see that, so the
+	 * assets silently stopped loading and the plugin's pages, which exist for
+	 * no other purpose, rendered unstyled on those sites.
+	 *
+	 * @dataProvider pluginPageProvider
+	 */
+	public function test_the_plugins_own_pages_load_the_assets_however_the_theme_renders_them( string $slug ): void {
+		$this->queriedPost( '' );
+		$this->onPage( $slug );
+
+		cfp_dev_enqueue_front_end_assets();
+
+		$this->assertSame( [ 'site-cfp', 'cfp-dev-style' ], WP_Test_State::$enqueued, $slug . ' rendered without its stylesheet' );
+	}
+
+	public static function pluginPageProvider(): array {
+		return array_map( static fn( string $slug ): array => [ $slug ], cfp_dev_page_slugs() );
+	}
+
+	/** A page the plugin does not own still has to say so in its content. */
+	public function test_an_unrelated_empty_page_still_loads_nothing(): void {
+		$this->queriedPost( '' );
+		$this->onPage( 'about' );
+
+		cfp_dev_enqueue_front_end_assets();
+
+		$this->assertSame( [], WP_Test_State::$enqueued );
+	}
+
 	public function test_the_front_end_script_is_registered_without_jquery_and_version_busted(): void {
 		$this->queriedPost( '[cfp_speakers]' );
 
