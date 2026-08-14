@@ -1114,7 +1114,7 @@ header.cfp-header nav.cfp-nav a.cfp-a.cfp-active::after {
 	--cfp-background-tertiary: #dbdbdb;
 	--cfp-text-primary: #1d1d1d;
 	--cfp-text-secondary: white;
-	--cfp-text-muted: #6a6a6a;
+	--cfp-text-muted: #484848;
 	--cfp-accept-primary: #176c94;
 	--cfp-border-primary: #dbdbdb;
   }
@@ -1141,7 +1141,7 @@ html.cfp-html.cfp-theme\:light {
   --cfp-background-tertiary: #dbdbdb;
   --cfp-text-primary: #1d1d1d;
   --cfp-text-secondary: white;
-  --cfp-text-muted: #6a6a6a;
+  --cfp-text-muted: #484848;
   --cfp-accept-primary: #176c94;
   --cfp-border-primary: #dbdbdb;
 }
