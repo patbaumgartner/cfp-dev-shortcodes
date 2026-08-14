@@ -239,6 +239,32 @@ final class HeadMetaTest extends PluginTestCase {
 		$this->assertSame( 404, \WP_Test_State::$env['status_header'] );
 	}
 
+	/**
+	 * The canonical must name a URL the site is configured to serve. In id
+	 * mode — which multisite installs are required to use — it advertised a
+	 * slug URL the operator had turned off, and that is the URL a search
+	 * engine indexes.
+	 *
+	 * @dataProvider canonicalModeProvider
+	 */
+	public function test_the_canonical_follows_the_configured_permalink_mode( string $by_id, string $page, string $expected ): void {
+		$this->registerDefaultApi();
+		$this->option( 'cfp_dev_content_by_id', $by_id );
+		$this->onPage( $page );
+		$this->queryVar( 'id', 'talk' === $page ? 200 : 100 );
+
+		$this->assertSame( $expected, cfp_dev_page_meta()['url'] );
+	}
+
+	public static function canonicalModeProvider(): array {
+		return [
+			'talk by slug'    => [ 'no', 'talk', 'https://example.test/talk/modern-java-in-practice/' ],
+			'talk by id'      => [ 'yes', 'talk', 'https://example.test/talk?id=200' ],
+			'speaker by slug' => [ 'no', 'speaker', 'https://example.test/speaker/jane-doe/' ],
+			'speaker by id'   => [ 'yes', 'speaker', 'https://example.test/speaker?id=100' ],
+		];
+	}
+
 	public function test_sitemap_lists_every_talk_and_speaker_url_once(): void {
 		$this->registerDefaultApi();
 
