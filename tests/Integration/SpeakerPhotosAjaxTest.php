@@ -147,8 +147,12 @@ final class SpeakerPhotosAjaxTest extends PluginTestCase {
 
 	// ─────────────────────────────────────────────────────────────────────────
 
-	/** Invokes the AJAX handler and returns whatever it echoed. */
+	/** Invokes the AJAX handler as a fresh HTTP request and returns its output. */
 	private function request( array $params ): string {
+		// Each call stands for a separate PHP process, so the request-scoped
+		// API memo must not leak between them.
+		cfp_dev_flush_request_cache();
+
 		$_GET = $params;
 		ob_start();
 		try {

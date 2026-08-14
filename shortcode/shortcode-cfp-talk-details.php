@@ -185,7 +185,10 @@ if ( ! function_exists( 'cfp_talk_details_shortcode' ) ) {
 		$content = '';
 		if ( ! empty( $talk->timeSlots ) && is_array( $talk->timeSlots ) && count( $talk->timeSlots ) > 0 ) {
 
-			$slot = array_pop( $talk->timeSlots );
+			// end() on a local copy: array_pop() would consume the slots on the
+			// shared, memoised talk object.
+			$slots = (array) $talk->timeSlots;
+			$slot  = end( $slots );
 
 			if ( ! empty( $slot->fromDate ) && ! empty( $slot->toDate ) ) {
 				try {

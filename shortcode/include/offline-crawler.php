@@ -114,15 +114,15 @@ function cfp_dev_prune_snapshots( int $keep = 2 ): void {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Reads and returns decoded JSON from the offline snapshot for the given API query path.
+ * Reads the raw JSON body for an API query path from the offline snapshot.
  *
  * The query string is stripped before the file lookup so that
  * `public/speakers?size=500` resolves to `{snapshot}/api/public/speakers.json`.
  *
  * @param string $queryPath  API path, e.g. 'public/speakers?size=500' or 'public/schedules/Tuesday'.
- * @return mixed  Decoded JSON (object|array) or null on failure.
+ * @return string|null  Raw JSON body, or null when unavailable or malformed.
  */
-function cfp_dev_get_json_offline( string $queryPath ) {
+function cfp_dev_read_snapshot_body( string $queryPath ) {
 	$snapshot = cfp_dev_get_latest_snapshot();
 	if ( empty( $snapshot ) ) {
 		cfp_dev_log( 'offline: no completed snapshot available for ' . $queryPath );
@@ -134,7 +134,7 @@ function cfp_dev_get_json_offline( string $queryPath ) {
 	$file_path = $snapshot . '/api/' . $file_rel . '.json';
 
 	if ( ! file_exists( $file_path ) ) {
-			cfp_dev_log( 'offline: snapshot file not found — ' . $file_rel . '.json' );
+		cfp_dev_log( 'offline: snapshot file not found — ' . $file_rel . '.json' );
 		return null;
 	}
 
@@ -143,20 +143,31 @@ function cfp_dev_get_json_offline( string $queryPath ) {
 	$real_base = realpath( $snapshot . '/api' );
 	$real_file = realpath( $file_path );
 	if ( false === $real_base || false === $real_file || ! str_starts_with( $real_file, $real_base . DIRECTORY_SEPARATOR ) ) {
-			cfp_dev_log( 'offline: rejected path outside snapshot — ' . $queryPath );
+		cfp_dev_log( 'offline: rejected path outside snapshot — ' . $queryPath );
 		return null;
 	}
 
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local snapshot file
-	$body    = file_get_contents( $real_file );
-	$decoded = json_decode( $body );
+	$body = file_get_contents( $real_file );
 
-	if ( json_last_error() !== JSON_ERROR_NONE ) {
-			cfp_dev_log( 'offline: JSON decode error for ' . $file_rel . ' — ' . json_last_error_msg() );
+	json_decode( (string) $body );
+	if ( JSON_ERROR_NONE !== json_last_error() ) {
+		cfp_dev_log( 'offline: JSON decode error for ' . $file_rel . ' — ' . json_last_error_msg() );
 		return null;
 	}
 
-	return $decoded;
+	return $body;
+}
+
+/**
+ * Reads and returns decoded JSON from the offline snapshot.
+ *
+ * @param string $queryPath  API path, e.g. 'public/speakers?size=500'.
+ * @return mixed  Decoded JSON (object|array) or null on failure.
+ */
+function cfp_dev_get_json_offline( string $queryPath ) {
+	$body = cfp_dev_read_snapshot_body( $queryPath );
+	return is_string( $body ) ? json_decode( $body ) : null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -880,6 +880,11 @@ function compareName( $x, $y ) {
  * Fetches and decodes JSON from the CFP.DEV API — or from the local snapshot
  * when offline mode is active. Rejects path traversal in the query path.
  *
+ * Responses are memoised for the rest of the request: rendering one page can
+ * ask for the same endpoint from the shortcode, the head metadata, the
+ * canonical URL and the sitemap. Each caller is handed a freshly decoded
+ * object graph, so one caller cannot disturb another's copy.
+ *
  * @param string $queryPath  Relative API path, e.g. 'public/speakers?size=500'.
  * @return mixed  Decoded JSON (object|array) or null on failure.
  */
@@ -891,6 +896,35 @@ function getJSON( $queryPath ) {
 		return null;
 	}
 
+	$body = cfp_dev_request_cache_get(
+		'api:' . $queryPath,
+		static function () use ( $queryPath ) {
+			return cfp_dev_fetch_json_body( $queryPath );
+		}
+	);
+
+	if ( ! is_string( $body ) ) {
+		return null;
+	}
+
+	$decoded = json_decode( $body );
+
+	if ( JSON_ERROR_NONE !== json_last_error() ) {
+		cfp_dev_log( 'getJSON: JSON decode error for ' . $queryPath . ' — ' . json_last_error_msg() );
+		return null;
+	}
+
+	return $decoded;
+}
+
+/**
+ * Returns the raw JSON body for an API path, from the offline snapshot when
+ * offline mode is active and from the live API otherwise.
+ *
+ * @param string $queryPath  Relative API path (already validated).
+ * @return string|null  Raw JSON body, or null when the lookup failed.
+ */
+function cfp_dev_fetch_json_body( $queryPath ) {
 	// Offline mode: serve from local snapshot instead of the live API.
 	if ( get_option( 'cfp_dev_offline_mode', 0 ) ) {
 		if ( '' !== cfp_dev_get_latest_snapshot() ) {
@@ -898,7 +932,7 @@ function getJSON( $queryPath ) {
 			// resource is not in the snapshot (unknown id, uncrawlable endpoint
 			// like public/search): treat it as "not found" rather than falling
 			// back to the live API and silently leaving offline mode.
-			return cfp_dev_get_json_offline( $queryPath );
+			return cfp_dev_read_snapshot_body( $queryPath );
 		}
 		// No completed snapshot at all — fall back to live API and disable offline mode.
 		cfp_dev_log( 'getJSON: no offline snapshot available, falling back to live API and disabling offline mode.' );
@@ -906,10 +940,13 @@ function getJSON( $queryPath ) {
 		clearCache();
 	}
 
-	$query_url = cfp_dev_api_base() . $queryPath;
+	if ( '' === cfp_dev_get_key() ) {
+		cfp_dev_log( 'getJSON: no CFP.DEV key configured, skipping ' . $queryPath );
+		return null;
+	}
 
 	$response = wp_remote_get(
-		$query_url,
+		cfp_dev_api_base() . $queryPath,
 		[
 			'timeout' => 30,
 			'headers' => [
@@ -930,16 +967,8 @@ function getJSON( $queryPath ) {
 		return null;
 	}
 
-	$body    = wp_remote_retrieve_body( $response );
-	$decoded = json_decode( $body );
-
-	if ( json_last_error() !== JSON_ERROR_NONE ) {
-		cfp_dev_log( 'getJSON: JSON decode error for ' . $queryPath . ' — ' . json_last_error_msg() );
-		return null;
-	}
-
 	cfp_dev_log( 'getJSON: OK ' . $queryPath );
-	return $decoded;
+	return wp_remote_retrieve_body( $response );
 }
 
 /**
