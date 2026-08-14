@@ -24,7 +24,7 @@
 - **Agentic browsing (WebMCP)** — the search form exposes declarative WebMCP tool metadata so AI agents can invoke the programme search as a structured tool
 - **Caching** — WordPress transient-based cache with configurable TTL (none, 1 h, 1 day, 1 week, 1 month); each API endpoint is fetched at most once per request
 - **Theming** — light / dark theme with optional user toggle, applied before first paint
-- **Lightweight** — no jQuery, and the stylesheet and script load only on pages that actually use a shortcode
+- **Lightweight** — no jQuery on the front end, and the stylesheet and script load only on pages that actually use a shortcode
 - **Admin UI** — API key, event settings, per-item cache management, offline crawl progress
 - **Translatable** — every user-facing string is localisable; a `.pot` template ships in `languages/`
 - **Accessible** — labelled search, keyboard-operable theme toggle, named social links
@@ -194,7 +194,18 @@ Once active:
 - No external requests to `*.cfp.dev` or CDN hosts are made
 - A `manifest.json` is written at crawl completion with per-URL stats
 - Click **Re-crawl Now** in the admin UI to refresh the snapshot at any time
-- Only the two newest snapshots are kept — older ones are pruned automatically after each successful crawl
+- Only the two newest **completed** snapshots are kept — older ones, and any
+  abandoned crawl they supersede, are pruned after each successful crawl
+
+A crawl only publishes a snapshot it captured in full. If any endpoint the site
+needs fails, or answers with something that is not JSON, the crawl stops,
+reports what happened, and leaves offline mode — and the snapshot already being
+served — exactly as they were. Images are the exception: one that cannot be
+downloaded keeps pointing at the CDN, so the page still renders.
+
+An SVG is never downloaded into a snapshot. Snapshots live under
+`wp-content/uploads` and are served from your own origin, and an SVG is a
+document that can carry script, so those URLs are left pointing at the CDN too.
 
 ---
 
@@ -234,6 +245,9 @@ add_filter( 'cfp_dev_enqueue_assets', function ( $enqueue ) {
 | Filter | Arguments | Purpose |
 |--------|-----------|---------|
 | `cfp_dev_enqueue_assets` | `bool $enqueue`, `WP_Post\|null $post` | Whether to load the plugin's CSS and JS on this request |
+| `cfp_dev_video_embed_hosts` | `string[] $hosts` | Hostnames whose videos may be framed on a talk page. A talk's `videoURL` comes from the API, and an `<iframe src>` runs the framed origin's code in the visitor's browser, so anything not on this list is not embedded |
+| `cfp_dev_api_timeout` | `int $timeout`, `string $query_path` | HTTP timeout per API request. Defaults to 30 s, 10 s in the admin, and 8 s for search — whose results are never cached, so every request waits in full on a public URL |
+| `cfp_dev_crawl_deadline` | `int $seconds` | How long an offline crawl may run before it is presumed dead and the operator is allowed to start another. Defaults to 15 minutes |
 
 ### Head metadata
 
@@ -260,10 +274,11 @@ Every plugin page gets server-rendered head metadata built from the actual CFP.D
 
 - Real `<title>` and meta description per page — talk/speaker detail pages use the talk title / speaker name and abstract/bio
 - Open Graph and Twitter Card tags for rich link previews
-- Slug-aware `rel="canonical"` on talk/speaker detail pages
+- `rel="canonical"` on talk/speaker detail pages, in whichever permalink form **Permalinks with Id** is set to — the canonical always names a URL the site actually serves
 - JSON-LD structured data: `Event` on talk pages, `Person` on speaker pages
 - Talk and speaker detail URLs are listed in `wp-sitemap.xml` (slug mode, WP 5.5+)
 - Search-results pages are marked `noindex,follow`
+- A talk or speaker URL that cannot be resolved answers `404` only when the API said the entity is gone. While the API is unreachable it answers `503` with `Retry-After` instead, so an outage is not mistaken for a deletion and does not cost the whole programme its search rankings
 
 All lookups use the cached, offline-aware API helpers, so metadata keeps working in offline mode without extra API round-trips.
 
@@ -327,6 +342,9 @@ That stand-in backs options, transients, query vars and HTTP with plain arrays,
 which makes side effects directly assertable: tests can state that a given page
 issued exactly one API request, that an option was migrated, or that a shortcode
 produced balanced HTML.
+
+Tests run in a random order, and the hooks a test registers are dropped before
+the next one, so no test can pass because of what another left behind.
 
 ```
 tests/
