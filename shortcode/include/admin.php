@@ -462,6 +462,11 @@ function cfp_dev_plugin_options() {
  * Enqueues the admin scripts (cache management, offline crawler) on the
  * plugin settings page only.
  *
+ * Both scripts write text the operator reads, so they are handed their strings
+ * already translated rather than carrying English of their own — the settings
+ * screen is otherwise translated down to its last label, and the crawler
+ * script in particular *overwrites* the server-rendered status box.
+ *
  * @param string $hook  Current admin page hook.
  */
 function cfp_dev_enqueue_admin_scripts( $hook ) {
@@ -475,10 +480,17 @@ function cfp_dev_enqueue_admin_scripts( $hook ) {
 		[
 			'ajaxurl' => admin_url( 'admin-ajax.php' ),
 			'nonce'   => wp_create_nonce( 'cfp_dev_delete_cache' ),
+			'i18n'    => [
+				'deleting'      => __( 'Deleting...', 'cfp-dev-shortcodes' ),
+				'deleteCache'   => __( 'Delete Cache', 'cfp-dev-shortcodes' ),
+				/* translators: %s: error message. */
+				'errorWith'     => __( 'Error: %s', 'cfp-dev-shortcodes' ),
+				'unknownError'  => __( 'Unknown error', 'cfp-dev-shortcodes' ),
+				'requestFailed' => __( 'Request failed. Please try again.', 'cfp-dev-shortcodes' ),
+			],
 		]
 	);
 
-	$crawl_state = get_option( 'cfp_dev_crawl_state', [] );
 	wp_enqueue_script( 'cfp-dev-admin-offline', plugins_url( 'js/admin-offline-crawler.js', CFP_DEV_PLUGIN_FILE ), [ 'jquery' ], CFP_DEV_VERSION, true );
 	wp_localize_script(
 		'cfp-dev-admin-offline',
@@ -487,6 +499,30 @@ function cfp_dev_enqueue_admin_scripts( $hook ) {
 			'ajaxurl'        => admin_url( 'admin-ajax.php' ),
 			'nonce'          => wp_create_nonce( 'cfp_dev_offline_nonce' ),
 			'initial_status' => cfp_dev_crawl_display_status(),
+			'i18n'           => [
+				'statusLabel'    => __( 'Status:', 'cfp-dev-shortcodes' ),
+				'running'        => __( 'Running', 'cfp-dev-shortcodes' ),
+				'pending'        => __( 'Pending', 'cfp-dev-shortcodes' ),
+				'complete'       => __( 'Complete', 'cfp-dev-shortcodes' ),
+				'error'          => __( 'Error', 'cfp-dev-shortcodes' ),
+				'stopped'        => __( 'Stopped', 'cfp-dev-shortcodes' ),
+				'stoppedHint'    => __( 'the last crawl did not finish. Use Re-crawl Now to try again.', 'cfp-dev-shortcodes' ),
+				'activeSnapshot' => __( 'Active snapshot:', 'cfp-dev-shortcodes' ),
+				'finished'       => __( 'Finished:', 'cfp-dev-shortcodes' ),
+				/* translators: 1: percentage, 2: items done, 3: items total. */
+				'progress'       => __( '%1$s%% (%2$s / %3$s)', 'cfp-dev-shortcodes' ),
+				/* translators: %s: number of items with errors. */
+				'warnings'       => __( 'Warnings: %s item(s) had errors (see manifest.json).', 'cfp-dev-shortcodes' ),
+				/* translators: %s: number of errors so far. */
+				'errorsSoFar'    => __( '%s error(s) so far', 'cfp-dev-shortcodes' ),
+				'confirmCrawl'   => __( 'Start a new crawl? This will fetch all API data and images from the live API and create a new snapshot.', 'cfp-dev-shortcodes' ),
+				'starting'       => __( 'Starting...', 'cfp-dev-shortcodes' ),
+				'recrawl'        => __( 'Re-crawl Now', 'cfp-dev-shortcodes' ),
+				/* translators: %s: error message. */
+				'startFailed'    => __( 'Failed to start crawl: %s', 'cfp-dev-shortcodes' ),
+				'unknownError'   => __( 'Unknown error.', 'cfp-dev-shortcodes' ),
+				'requestFailed'  => __( 'Request failed. Please try again.', 'cfp-dev-shortcodes' ),
+			],
 		]
 	);
 }
