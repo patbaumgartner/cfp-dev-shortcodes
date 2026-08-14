@@ -378,7 +378,7 @@ if ( ! function_exists( 'cfp_dev_speaker_details_shortcode' ) ) {
 			if ( empty( $photo->thumbnailUrl ) ) {
 				continue;
 			}
-			$content .= '<a href="' . esc_url( 'https://www.flickr.com/photos/bejug/' . $photo->photoId . '/in/album-' . $photo->albumId . '/' ) . '" target="_blank" rel="noopener noreferrer">';
+			$content .= '<a href="' . esc_url( 'https://www.flickr.com/photos/bejug/' . absint( $photo->photoId ?? 0 ) . '/in/album-' . absint( $photo->albumId ?? 0 ) . '/' ) . '" target="_blank" rel="noopener noreferrer">';
 			$content .= '<img class="cfp-picture" src="' . esc_url( $photo->thumbnailUrl ) . '" alt="' . esc_attr( $speaker_image_alt ) . '" loading="lazy">';
 			$content .= '</a>';
 		}

@@ -74,12 +74,12 @@ if ( ! function_exists( 'cfp_dev_talks_by_tracks_shortcode' ) ) {
 				$track_id = -1;
 			} else {
 				// Default to the first track.
-				$track_id    = $tracks[0]->id;
+				$track_id    = absint( $tracks[0]->id ?? 0 );
 				$track_descr = $tracks[0]->description ?? '';
 			}
 		} else {
 			foreach ( $tracks as $track ) {
-				if ( (int) $track->id === (int) $track_id ) {
+				if ( absint( $track->id ?? 0 ) === (int) $track_id ) {
 					$track_descr = $track->description ?? '';
 					break;
 				}
@@ -159,9 +159,9 @@ if ( ! function_exists( 'cfp_dev_talks_by_tracks_shortcode' ) ) {
 		$content .= cfp_dev_page_header( $title, '', empty( $_atts['hide_search'] ) );
 		$content .= '    <nav class="cfp-filter">';
 		foreach ( $tracks as $track ) {
-			$is_active = ( (int) $track->id === (int) $track_id ) ? 'cfp-active' : '';
-			$content  .= '<a class="cfp-a ' . $is_active . '" href="' . esc_url( '?id=' . absint( $track->id ) ) . '">';
-			$content  .= esc_html( $track->name ) . '</a>';
+			$is_active = ( absint( $track->id ?? 0 ) === (int) $track_id ) ? 'cfp-active' : '';
+			$content  .= '<a class="cfp-a ' . $is_active . '" href="' . esc_url( '?id=' . absint( $track->id ?? 0 ) ) . '">';
+			$content  .= esc_html( (string) ( $track->name ?? '' ) ) . '</a>';
 		}
 		$content .= '    </nav>';
 		$content .= '</div>';

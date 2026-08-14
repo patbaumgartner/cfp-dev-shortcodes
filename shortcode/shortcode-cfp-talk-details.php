@@ -106,8 +106,9 @@ if ( ! function_exists( 'cfp_dev_talk_details_shortcode' ) ) {
 		$content = '        <div class="cfp-category">';
 		if ( ! empty( $talk->tags ) ) {
 			foreach ( $talk->tags as $tag ) {
+				$tag_name = (string) ( $tag->name ?? '' );
 				$content .= '<span class="cfp-span">';
-				$content .= '	<a href="' . esc_url( cfp_dev_url( '/search-results/?query=' . rawurlencode( $tag->name ) ) ) . '">' . esc_html( ucwords( $tag->name ) ) . '</a>';
+				$content .= '	<a href="' . esc_url( cfp_dev_url( '/search-results/?query=' . rawurlencode( $tag_name ) ) ) . '">' . esc_html( ucwords( $tag_name ) ) . '</a>';
 				$content .= '</span>';
 			}
 		}
