@@ -222,7 +222,10 @@ function cfp_dev_resolve_page_meta() {
 			/* translators: 1: talk title, 2: event name. */
 			'title'       => sprintf( __( '%1$s - %2$s', 'cfp-dev-shortcodes' ), $title, $event_name ),
 			'description' => $description,
-			'url'         => home_url( cfp_dev_url( '/talk/' . cfp_dev_generate_slug( $talk->title ) ) ),
+			// Through the permalink helper, not a hardcoded slug path: the
+			// canonical must name a URL the site is actually configured to
+			// serve, and "Permalinks with Id" is the setting that decides.
+			'url'         => home_url( cfp_dev_talk_url( $talk ) ),
 			'image'       => cfp_dev_usable_image( $talk->trackImageURL ?? '' ),
 			'og_type'     => 'article',
 		];
@@ -245,7 +248,7 @@ function cfp_dev_resolve_page_meta() {
 			/* translators: 1: speaker name, 2: event name. */
 			'title'       => sprintf( __( '%1$s - %2$s', 'cfp-dev-shortcodes' ), $name, $event_name ),
 			'description' => $description,
-			'url'         => home_url( cfp_dev_url( '/speaker/' . cfp_dev_generate_slug( $speaker->firstName . '-' . ( $speaker->lastName ?? '' ) ) ) ),
+			'url'         => home_url( cfp_dev_speaker_url( $speaker ) ),
 			'image'       => cfp_dev_usable_image( $speaker->imageUrl ?? '' ),
 			'og_type'     => 'profile',
 		];
