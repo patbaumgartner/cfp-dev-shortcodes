@@ -313,7 +313,7 @@ if ( ! function_exists( 'cfp_speaker_details_shortcode' ) ) {
 			$content .= '    <div class="cfp-video">';
 			$content .= '        <div class="cfp-picture"></div>';
 			$content .= '        <iframe width="560" height="315" style="z-index: 9999999;" src="' . esc_url( $talk->videoURL ) .
-				'" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
+				'" title="' . esc_attr( 'Video: ' . (string) ( $talk->title ?? '' ) ) . '" loading="lazy" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
 			$content .= '        <div class="cfp-player"></div>';
 			$content .= '    </div>';
 		}

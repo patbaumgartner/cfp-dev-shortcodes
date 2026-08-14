@@ -774,6 +774,27 @@ function _set_cron_array( $cron ) {
 // Sitemaps
 // ─────────────────────────────────────────────────────────────────────────
 
+/** Minimal stand-in for the WP_Post the queried object provides. */
+class WP_Post { // phpcs:ignore
+	/** @var string */
+	public $post_content;
+
+	/** @var string */
+	public $post_type = 'page';
+
+	public function __construct( $post_content = '' ) {
+		$this->post_content = (string) $post_content;
+	}
+}
+
+function __return_true() { // phpcs:ignore
+	return true;
+}
+
+function __return_false() { // phpcs:ignore
+	return false;
+}
+
 abstract class WP_Sitemaps_Provider { // phpcs:ignore
 	/** @var string */
 	public $name = '';

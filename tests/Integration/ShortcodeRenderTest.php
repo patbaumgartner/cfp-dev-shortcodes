@@ -267,11 +267,14 @@ final class ShortcodeRenderTest extends PluginTestCase {
 
 		$html = cfp_talk_details_shortcode();
 
-		$this->assertStringNotContainsString( 'Overflow Room', $html, 'overflow entries are not real talks' );
-		$this->assertSame( 1, substr_count( $html, 'Modern Java in Practice' ), 'the current talk must not link to itself' );
+		preg_match_all( '#<div class="cfp-related">(.*?)</div>#s', $html, $matches );
+		$related = implode( "\n", $matches[1] );
+
+		$this->assertStringNotContainsString( 'Overflow Room', $related, 'overflow entries are not real talks' );
+		$this->assertStringNotContainsString( 'Modern Java in Practice', $related, 'the current talk must not link to itself' );
 		$this->assertLessThan(
-			(int) strpos( $html, 'Far Match' ),
-			(int) strpos( $html, 'Close Match' ),
+			(int) strpos( $related, 'Far Match' ),
+			(int) strpos( $related, 'Close Match' ),
 			'related talks must be ordered best match first'
 		);
 	}

@@ -1,29 +1,48 @@
 /**
  * CFP.DEV Shortcodes — Front-end
  *
- * Light/dark theme switching: applies the theme stored in localStorage on
- * load and updates the root cfp-theme:* class when a footer toggle is clicked.
+ * Light/dark theme switching. The stored preference is applied before first
+ * paint by the inline script each shortcode emits; this file only handles the
+ * footer toggle, so it needs no library and no DOM-ready wait.
  */
 'use strict';
 
-// jQuery(fn) already waits for DOM ready — no nested ready needed.
-jQuery(function ($) {
+(function () {
+	var STORAGE_KEY = 'cfp-theme';
 
-	const savedTheme = localStorage.getItem('cfp-theme');
-	if (savedTheme) {
-		$('html').attr('class', function (i, c) {
-			return c.replace(/cfp-theme:\w+/g, `cfp-theme:${savedTheme}`);
-		});
+	function applyTheme(theme) {
+		var root = document.documentElement;
+		root.className = root.className.replace(/cfp-theme:\w+/g, 'cfp-theme:' + theme);
 	}
 
-	$(document).on('click', '.cfp-theme a', function () {
-		const themeKey = $(this).data('theme-key');
+	function storeTheme(theme) {
+		try {
+			window.localStorage.setItem(STORAGE_KEY, theme);
+			return true;
+		} catch (error) {
+			// Storage is unavailable (private mode, blocked cookies). The theme
+			// still applies to this page view, it just will not be remembered.
+			return false;
+		}
+	}
 
-		$('html').attr('class', function (i, c) {
-			return c.replace(/cfp-theme:\w+/g, `cfp-theme:${themeKey}`);
-		});
+	document.addEventListener('click', function (event) {
+		var target = event.target;
+		if (!(target instanceof Element)) {
+			return;
+		}
 
-		localStorage.setItem('cfp-theme', themeKey);
+		var toggle = target.closest('.cfp-theme a[data-theme-key]');
+		if (!toggle) {
+			return;
+		}
+
+		var theme = toggle.getAttribute('data-theme-key');
+		if ('light' !== theme && 'dark' !== theme) {
+			return;
+		}
+
+		applyTheme(theme);
+		storeTheme(theme);
 	});
-
-});
+}());
