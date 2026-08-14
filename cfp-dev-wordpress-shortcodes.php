@@ -163,20 +163,46 @@ function cfp_dev_shortcode_tags(): array {
 	];
 }
 
+/** The slugs of the pages this plugin creates and owns. */
+function cfp_dev_page_slugs(): array {
+	return [
+		'speakers',
+		'speaker',
+		'talk',
+		'schedule',
+		'talks-by-tracks',
+		'talks-by-sessions',
+		'search-results',
+	];
+}
+
 /**
  * Whether the current request renders a page that uses a plugin shortcode.
  *
  * The stylesheet is large and the script is only useful on plugin pages, so
- * they are not loaded across the rest of the site. Shortcodes rendered from
- * somewhere other than the post content (a widget, a template part) are not
- * detectable here — themes can force the assets on with the
- * `cfp_dev_enqueue_assets` filter.
+ * they are not loaded across the rest of the site. Two things can say a page
+ * needs them: the shortcode being present in the post content, and the request
+ * being for one of the plugin's own pages.
+ *
+ * The second test is not redundant. Those pages exist to host the shortcodes,
+ * but a theme is free to render them from a template instead of the page
+ * content — and several do, leaving the content empty. `has_shortcode()`
+ * cannot see that, so on those sites the assets silently stopped loading and
+ * the pages rendered unstyled.
+ *
+ * Anything rendered from somewhere else entirely — a widget, a page builder,
+ * a template part on a page the plugin does not own — is still undetectable;
+ * themes can force the assets on with the `cfp_dev_enqueue_assets` filter.
  */
 function cfp_dev_page_uses_shortcodes(): bool {
 	$post = is_admin() ? null : get_post();
 	$uses = false;
 
-	if ( $post instanceof WP_Post ) {
+	if ( ! is_admin() && is_page( cfp_dev_page_slugs() ) ) {
+		$uses = true;
+	}
+
+	if ( ! $uses && $post instanceof WP_Post ) {
 		foreach ( cfp_dev_shortcode_tags() as $tag ) {
 			if ( has_shortcode( $post->post_content, $tag ) ) {
 				$uses = true;
