@@ -88,14 +88,15 @@ function cfp_dev_tracks_meta_description( $event_name ) {
 	if ( is_array( $tracks ) && ! empty( $tracks ) ) {
 		if ( $track_id ) {
 			foreach ( $tracks as $track ) {
-				if ( absint( $track->id ) === $track_id ) {
+				if ( absint( $track->id ?? 0 ) === $track_id ) {
+					$track_name  = wp_strip_all_tags( (string) ( $track->name ?? '' ) );
 					$track_descr = cfp_dev_meta_excerpt( $track->description ?? '', 110 );
 					if ( '' !== $track_descr ) {
 						/* translators: 1: track name, 2: event name, 3: track description. */
-						$description = sprintf( __( '%1$s talks at %2$s — %3$s', 'cfp-dev-shortcodes' ), wp_strip_all_tags( $track->name ), $event_name, $track_descr );
+						$description = sprintf( __( '%1$s talks at %2$s — %3$s', 'cfp-dev-shortcodes' ), $track_name, $event_name, $track_descr );
 					} else {
 						/* translators: 1: track name, 2: event name. */
-						$description = sprintf( __( '%1$s talks at %2$s.', 'cfp-dev-shortcodes' ), wp_strip_all_tags( $track->name ), $event_name );
+						$description = sprintf( __( '%1$s talks at %2$s.', 'cfp-dev-shortcodes' ), $track_name, $event_name );
 					}
 					break;
 				}
@@ -103,7 +104,7 @@ function cfp_dev_tracks_meta_description( $event_name ) {
 		} else {
 			$names       = array_map(
 				static function ( $track ) {
-					return wp_strip_all_tags( $track->name );
+					return wp_strip_all_tags( (string) ( $track->name ?? '' ) );
 				},
 				$tracks
 			);
@@ -147,14 +148,15 @@ function cfp_dev_sessions_meta_description( $event_name ) {
 	if ( is_array( $sessions ) && ! empty( $sessions ) ) {
 		if ( $session_id ) {
 			foreach ( $sessions as $session ) {
-				if ( absint( $session->id ) === $session_id ) {
+				if ( absint( $session->id ?? 0 ) === $session_id ) {
+					$session_name  = wp_strip_all_tags( (string) ( $session->name ?? '' ) );
 					$session_descr = cfp_dev_meta_excerpt( $session->description ?? '', 110 );
 					if ( '' !== $session_descr ) {
 						/* translators: 1: session type name, 2: event name, 3: session type description. */
-						$description = sprintf( __( '%1$s sessions at %2$s — %3$s', 'cfp-dev-shortcodes' ), wp_strip_all_tags( $session->name ), $event_name, $session_descr );
+						$description = sprintf( __( '%1$s sessions at %2$s — %3$s', 'cfp-dev-shortcodes' ), $session_name, $event_name, $session_descr );
 					} else {
 						/* translators: 1: session type name, 2: event name. */
-						$description = sprintf( __( '%1$s sessions at %2$s.', 'cfp-dev-shortcodes' ), wp_strip_all_tags( $session->name ), $event_name );
+						$description = sprintf( __( '%1$s sessions at %2$s.', 'cfp-dev-shortcodes' ), $session_name, $event_name );
 					}
 					break;
 				}
@@ -163,7 +165,7 @@ function cfp_dev_sessions_meta_description( $event_name ) {
 			$names = [];
 			foreach ( $sessions as $session ) {
 				if ( empty( $session->pause ) ) {
-					$names[] = wp_strip_all_tags( $session->name );
+					$names[] = wp_strip_all_tags( (string) ( $session->name ?? '' ) );
 				}
 			}
 			// Events may define several session types with the same display
@@ -228,7 +230,7 @@ function cfp_dev_resolve_page_meta() {
 
 	if ( $entity && 'speaker' === $entity['type'] ) {
 		$speaker     = $entity['data'];
-		$name        = trim( $speaker->firstName . ' ' . $speaker->lastName );
+		$name        = trim( $speaker->firstName . ' ' . ( $speaker->lastName ?? '' ) );
 		$description = cfp_dev_meta_excerpt( $speaker->bio ?? '' );
 		if ( '' === $description ) {
 			if ( ! empty( $speaker->company ) ) {
@@ -243,7 +245,7 @@ function cfp_dev_resolve_page_meta() {
 			/* translators: 1: speaker name, 2: event name. */
 			'title'       => sprintf( __( '%1$s - %2$s', 'cfp-dev-shortcodes' ), $name, $event_name ),
 			'description' => $description,
-			'url'         => home_url( cfp_dev_url( '/speaker/' . cfp_dev_generate_slug( $speaker->firstName . '-' . $speaker->lastName ) ) ),
+			'url'         => home_url( cfp_dev_url( '/speaker/' . cfp_dev_generate_slug( $speaker->firstName . '-' . ( $speaker->lastName ?? '' ) ) ) ),
 			'image'       => cfp_dev_usable_image( $speaker->imageUrl ?? '' ),
 			'og_type'     => 'profile',
 		];
@@ -375,7 +377,7 @@ function cfp_dev_output_jsonld() {
 		$schema  = [
 			'@context' => 'https://schema.org',
 			'@type'    => 'Person',
-			'name'     => trim( $speaker->firstName . ' ' . $speaker->lastName ),
+			'name'     => trim( $speaker->firstName . ' ' . ( $speaker->lastName ?? '' ) ),
 			'url'      => $meta['url'],
 		];
 		if ( ! empty( $speaker->company ) ) {
@@ -520,7 +522,7 @@ function cfp_dev_resolve_sitemap_urls() {
 	if ( is_array( $speakers ) ) {
 		foreach ( $speakers as $speaker ) {
 			if ( ! empty( $speaker->firstName ) ) {
-				$entries[ '/speaker/' . cfp_dev_generate_slug( $speaker->firstName . '-' . $speaker->lastName ) ] = true;
+				$entries[ '/speaker/' . cfp_dev_generate_slug( $speaker->firstName . '-' . ( $speaker->lastName ?? '' ) ) ] = true;
 			}
 		}
 	}

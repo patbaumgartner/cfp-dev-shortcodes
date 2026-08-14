@@ -51,18 +51,23 @@ function cfp_dev_option_choice( $value, array $allowed, string $fallback ): stri
 }
 
 /**
- * usort() comparator: orders speakers by last name, accent-insensitively
- * (transliterated to ASCII so e.g. Šumailov sorts under S).
+ * Collation key for a name: transliterated to ASCII so that e.g. Šumailov
+ * sorts under S rather than after Z.
+ *
+ * @param mixed $value  Name as the API sent it, possibly absent.
  */
-function cfp_dev_compare_last_name( $x, $y ) {
-	return iconv( 'utf-8', 'ascii//TRANSLIT', $x->lastName ) <=> iconv( 'utf-8', 'ascii//TRANSLIT', $y->lastName );
+function cfp_dev_sort_key( $value ): string {
+	return (string) iconv( 'utf-8', 'ascii//TRANSLIT', (string) $value );
 }
 
-/**
- * usort() comparator: orders objects by their name property, accent-insensitively.
- */
+/** usort() comparator: orders speakers by last name, accent-insensitively. */
+function cfp_dev_compare_last_name( $x, $y ) {
+	return cfp_dev_sort_key( $x->lastName ?? '' ) <=> cfp_dev_sort_key( $y->lastName ?? '' );
+}
+
+/** usort() comparator: orders objects by their name property, accent-insensitively. */
 function cfp_dev_compare_name( $x, $y ) {
-	return iconv( 'utf-8', 'ascii//TRANSLIT', $x->name ) <=> iconv( 'utf-8', 'ascii//TRANSLIT', $y->name );
+	return cfp_dev_sort_key( $x->name ?? '' ) <=> cfp_dev_sort_key( $y->name ?? '' );
 }
 
 /**
