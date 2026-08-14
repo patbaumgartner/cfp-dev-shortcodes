@@ -153,6 +153,20 @@ final class OfflineCrawlerTest extends PluginTestCase {
 		$this->assertTrue( WP_Test_State::$env['cron_spawned'] );
 	}
 
+	/**
+	 * `doing_cron` is WordPress' own site-wide lock, not this plugin's.
+	 * Deleting it to force a spawn also lets every unrelated cron job start
+	 * again alongside the ones already running.
+	 */
+	public function test_starting_a_crawl_leaves_the_site_cron_lock_alone(): void {
+		set_transient( 'doing_cron', '1755000000.0', 60 );
+
+		cfp_dev_start_crawl();
+
+		$this->assertNotFalse( get_transient( 'doing_cron' ), 'the shared cron lock was deleted' );
+		$this->assertSame( 'cfp_dev_do_crawl', WP_Test_State::$env['scheduled'][0]['hook'] );
+	}
+
 	public function test_a_crawl_without_its_snapshot_directory_reports_an_error(): void {
 		$this->option(
 			'cfp_dev_crawl_state',

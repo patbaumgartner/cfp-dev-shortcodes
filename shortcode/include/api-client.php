@@ -89,10 +89,16 @@ function cfp_dev_fetch_json_body( $query_path ) {
 			// back to the live API and silently leaving offline mode.
 			return cfp_dev_read_snapshot_body( $query_path );
 		}
-		// No completed snapshot at all — fall back to live API and disable offline mode.
-		cfp_dev_log( 'cfp_dev_get_json: no offline snapshot available, falling back to live API and disabling offline mode.' );
-		update_option( 'cfp_dev_offline_mode', 0 );
-		cfp_dev_clear_cache();
+		/*
+		 * No completed snapshot at all — serve live so the site keeps working.
+		 *
+		 * The setting is deliberately left alone. Turning it off here meant an
+		 * anonymous page view rewrote site configuration and bumped the cache
+		 * version, discarding every cached page — from a read path, on every
+		 * racing request, for a condition the admin screen already detects and
+		 * reports. The operator's choice survives until they change it.
+		 */
+		cfp_dev_log( 'cfp_dev_get_json: offline mode is on but no snapshot exists — serving live for ' . $query_path );
 	}
 
 	if ( '' === cfp_dev_get_key() ) {

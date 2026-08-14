@@ -260,12 +260,13 @@ function cfp_dev_start_crawl(): void {
 		_set_cron_array( $cron );
 	}
 
-	// spawn_cron() returns early (without spawning) when a fresh doing_cron
-	// transient is already present from a previous failed attempt.  Delete any
-	// stale lock first so the spawn always proceeds.
-	delete_transient( 'doing_cron' );
-
-	// Trigger wp-cron immediately so it doesn't wait for the next HTTP request.
+	// Ask WordPress to run cron now rather than on the next page view. If it
+	// declines because a run is already in flight, the event stays queued and
+	// the next tick picks it up — the crawl state reads "pending" until then.
+	//
+	// The `doing_cron` transient it checks is WordPress' own site-wide lock,
+	// not this plugin's: deleting it to force a spawn would also let unrelated
+	// cron jobs run concurrently with the ones already executing.
 	spawn_cron();
 
 	cfp_dev_log( 'crawl: scheduled — snapshot=' . $snapshot_name );

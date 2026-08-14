@@ -337,7 +337,7 @@ if ( ! function_exists( 'cfp_dev_speaker_details_shortcode' ) ) {
 			? trim( $speaker->firstName . ' ' . ( $speaker->lastName ?? '' ) )
 			: '';
 
-		$photos  = '' !== $speaker_name ? cfp_dev_get_json_with_retry( 'public/album/' . $speaker_id ) : null;
+		$photos  = '' !== $speaker_name ? cfp_dev_get_json( 'public/album/' . $speaker_id ) : null;
 		$content = empty( $photos )
 			? '<p>' . esc_html__( 'No photos found', 'cfp-dev-shortcodes' ) . '</p>'
 			: cfp_dev_render_photo_gallery( $photos, $speaker_name );
@@ -356,28 +356,6 @@ if ( ! function_exists( 'cfp_dev_speaker_details_shortcode' ) ) {
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- plugin-generated HTML, escaped at build time
 		echo $content;
 		wp_die();
-	}
-
-	/**
-	 * cfp_dev_get_json() with a bounded retry — the album endpoint is occasionally flaky.
-	 *
-	 * @param string $query_path    Relative API path.
-	 * @param int    $max_attempts  Maximum number of attempts (brief pause between).
-	 * @return mixed  Decoded JSON or null when all attempts fail.
-	 */
-	function cfp_dev_get_json_with_retry( $query_path, $max_attempts = 2 ) {
-		for ( $attempt = 1; $attempt <= $max_attempts; $attempt++ ) {
-			$result = cfp_dev_get_json( $query_path );
-			if ( ! empty( $result ) ) {
-				return $result;
-			}
-			if ( $attempt < $max_attempts ) {
-				// Brief pause only — sleep()ing seconds here would pin a PHP-FPM
-				// worker per anonymous request (trivial DoS amplifier).
-				usleep( 250000 );
-			}
-		}
-		return null;
 	}
 
 	/**
