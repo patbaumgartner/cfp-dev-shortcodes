@@ -293,17 +293,22 @@ function cfp_dev_plugin_options() {
 			<tbody>';
 
 		foreach ( $speakers as $speaker ) {
-			$transient_key = cfp_dev_detail_cache_key( 'speaker', $speaker->id );
+			// Every field here is read straight off an API record, and a record
+			// that omits one must not turn this screen into a page of warnings —
+			// it is where an administrator goes when something is already wrong.
+			$speaker_id    = absint( $speaker->id ?? 0 );
+			$speaker_name  = trim( ( $speaker->firstName ?? '' ) . ' ' . ( $speaker->lastName ?? '' ) );
+			$transient_key = cfp_dev_detail_cache_key( 'speaker', $speaker_id );
 			if ( get_transient( $transient_key ) !== false ) {
 				$speaker_caches_exist = true;
-				echo '<tr id="speaker-row-' . esc_attr( $speaker->id ) . '">
-					<td>' . esc_html( $speaker->id ) . '</td>
-					<td>' . esc_html( $speaker->firstName . ' ' . $speaker->lastName ) . '</td>
+				echo '<tr id="speaker-row-' . esc_attr( (string) $speaker_id ) . '">
+					<td>' . esc_html( (string) $speaker_id ) . '</td>
+					<td>' . esc_html( $speaker_name ) . '</td>
 					<td>
 						<form method="post" action="" class="delete-cache-form">';
 				wp_nonce_field( 'cfp_dev_options', 'cfp_dev_nonce' );
 				echo '<input type="hidden" name="delete_cache" value="speaker">
-							<input type="hidden" name="cache_id" value="' . esc_attr( $speaker->id ) . '">
+							<input type="hidden" name="cache_id" value="' . esc_attr( (string) $speaker_id ) . '">
 							<input type="submit" class="button button-small delete-cache-button" value="' . esc_attr__( 'Delete Cache', 'cfp-dev-shortcodes' ) . '">
 						</form>
 					</td>
@@ -329,17 +334,18 @@ function cfp_dev_plugin_options() {
 				<tbody>';
 
 		foreach ( $talks as $talk ) {
-			$transient_key = cfp_dev_detail_cache_key( 'talk', $talk->id );
+			$talk_id       = absint( $talk->id ?? 0 );
+			$transient_key = cfp_dev_detail_cache_key( 'talk', $talk_id );
 			if ( get_transient( $transient_key ) !== false ) {
 				$talk_caches_exist = true;
 				echo '<tr>
-						<td>' . esc_html( $talk->id ) . '</td>
-						<td>' . esc_html( $talk->title ) . '</td>
+						<td>' . esc_html( (string) $talk_id ) . '</td>
+						<td>' . esc_html( (string) ( $talk->title ?? '' ) ) . '</td>
 						<td>
 							<form method="post" action="">';
 				wp_nonce_field( 'cfp_dev_options', 'cfp_dev_nonce' );
 				echo '<input type="hidden" name="delete_cache" value="talk">
-								<input type="hidden" name="cache_id" value="' . esc_attr( $talk->id ) . '">
+								<input type="hidden" name="cache_id" value="' . esc_attr( (string) $talk_id ) . '">
 								<input type="submit" class="button button-small" value="' . esc_attr__( 'Delete Cache', 'cfp-dev-shortcodes' ) . '">
 							</form>
 						</td>

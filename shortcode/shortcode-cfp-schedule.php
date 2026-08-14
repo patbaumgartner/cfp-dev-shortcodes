@@ -167,7 +167,7 @@ if ( ! function_exists( 'cfp_dev_schedule_shortcode' ) ) {
 			$content .= '    <div class="cfp-subject">';
 
 			$title    = empty( $_atts['hide_title'] )
-				? ( ! empty( $_atts['title'] ) ? $_atts['title'] : $current_event->name )
+				? ( ! empty( $_atts['title'] ) ? $_atts['title'] : ( $current_event->name ?? '' ) )
 				: '';
 			$content .= cfp_dev_page_header( (string) $title, '', empty( $_atts['hide_search'] ) );
 
