@@ -189,7 +189,13 @@ final class SettingsTest extends PluginTestCase {
 	}
 
 	public function test_a_second_enable_does_not_start_a_competing_crawl(): void {
-		$this->option( 'cfp_dev_crawl_state', [ 'status' => 'running' ] );
+		$this->option(
+			'cfp_dev_crawl_state',
+			[
+				'status'     => 'running',
+				'started_at' => time(),
+			]
+		);
 
 		cfp_dev_handle_settings_post(
 			[
@@ -199,6 +205,40 @@ final class SettingsTest extends PluginTestCase {
 		);
 
 		$this->assertSame( [], WP_Test_State::$env['scheduled'] ?? [] );
+	}
+
+	/**
+	 * A crawl killed mid-run — a fatal, an OOM, a deploy — never writes a
+	 * terminal state, so its status reads "running" for ever. That made
+	 * enabling offline mode a no-op the operator could not recover from
+	 * through the checkbox.
+	 */
+	public function test_a_crawl_that_never_finished_stops_blocking_new_ones(): void {
+		$this->option(
+			'cfp_dev_crawl_state',
+			[
+				'status'     => 'running',
+				'started_at' => time() - DAY_IN_SECONDS,
+			]
+		);
+
+		$this->assertFalse( cfp_dev_crawl_in_progress() );
+
+		cfp_dev_handle_settings_post(
+			[
+				'cfp_dev_offline_mode_save' => '1',
+				'cfp_dev_offline_mode'      => '1',
+			]
+		);
+
+		$this->assertSame( 'cfp_dev_do_crawl', WP_Test_State::$env['scheduled'][0]['hook'] );
+	}
+
+	/** A state written before this bookkeeping existed must not block either. */
+	public function test_a_crawl_state_without_a_start_time_does_not_block(): void {
+		$this->option( 'cfp_dev_crawl_state', [ 'status' => 'running' ] );
+
+		$this->assertFalse( cfp_dev_crawl_in_progress() );
 	}
 
 	public function test_updating_the_plugin_invalidates_cached_markup(): void {

@@ -107,9 +107,8 @@ function cfp_dev_handle_cache_deletion( array $post ): string {
  * @param bool $enable  Whether the checkbox was submitted as checked.
  */
 function cfp_dev_handle_offline_mode( bool $enable ): void {
-	$was_enabled  = 1 === (int) get_option( 'cfp_dev_offline_mode', 0 );
-	$crawl_status = get_option( 'cfp_dev_crawl_state', [] )['status'] ?? 'idle';
-	$crawling     = in_array( $crawl_status, [ 'running', 'pending' ], true );
+	$was_enabled = 1 === (int) get_option( 'cfp_dev_offline_mode', 0 );
+	$crawling    = cfp_dev_crawl_in_progress();
 
 	if ( ! $enable ) {
 		update_option( 'cfp_dev_offline_mode', 0 );
@@ -370,15 +369,19 @@ function cfp_dev_plugin_options() {
 	$crawl_status    = $crawl_state['status'] ?? 'idle';
 	$latest_snapshot = cfp_dev_get_latest_snapshot();
 
+	// A crawl that was killed mid-run never writes a terminal state, so its
+	// status still reads "running". Past its deadline it is not.
+	$crawling = cfp_dev_crawl_in_progress();
+
 	// Auto-disable offline mode when the snapshot folder has been removed.
-	if ( 1 === $offline_mode && empty( $latest_snapshot ) && ! in_array( $crawl_status, [ 'running', 'pending' ], true ) ) {
+	if ( 1 === $offline_mode && empty( $latest_snapshot ) && ! $crawling ) {
 		update_option( 'cfp_dev_offline_mode', 0 );
 		$offline_mode = 0;
 	}
 
 	// Keep the checkbox checked while a crawl is in progress — offline mode
 	// only flips to 1 when the crawl finishes, but the user intent is already set.
-	if ( 0 === $offline_mode && in_array( $crawl_status, [ 'running', 'pending' ], true ) ) {
+	if ( 0 === $offline_mode && $crawling ) {
 		$offline_mode = 1;
 	}
 
@@ -407,7 +410,7 @@ function cfp_dev_plugin_options() {
 	echo '<h4>' . esc_html__( 'Snapshot Status', 'cfp-dev-shortcodes' ) . '</h4>';
 	echo '<div id="cfp-crawl-status">';
 
-	if ( 'running' === $crawl_status || 'pending' === $crawl_status ) {
+	if ( $crawling ) {
 		echo '<p>' . esc_html__( 'Status:', 'cfp-dev-shortcodes' ) . ' <strong>' . esc_html( 'running' === $crawl_status ? __( 'Running', 'cfp-dev-shortcodes' ) : __( 'Pending', 'cfp-dev-shortcodes' ) ) . '</strong> — ' . esc_html( $crawl_state['step_label'] ?? '' ) . '</p>';
 		if ( ! empty( $crawl_state['items_total'] ) && $crawl_state['items_total'] > 0 ) {
 			$pct = intval( $crawl_state['items_done'] / $crawl_state['items_total'] * 100 );
@@ -430,6 +433,12 @@ function cfp_dev_plugin_options() {
 		}
 	} elseif ( 'error' === $crawl_status ) {
 		echo '<p style="color:red;">' . esc_html__( 'Status:', 'cfp-dev-shortcodes' ) . ' <strong>' . esc_html__( 'Error', 'cfp-dev-shortcodes' ) . '</strong> — ' . esc_html( $crawl_state['step_label'] ?? '' ) . '</p>';
+	} elseif ( in_array( $crawl_status, [ 'running', 'pending' ], true ) ) {
+		// Still says "running" but is past its deadline: the process was killed
+		// before it could record how it ended. Say so, rather than showing a
+		// progress bar that will never move again.
+		echo '<p style="color:red;">' . esc_html__( 'Status:', 'cfp-dev-shortcodes' ) . ' <strong>' . esc_html__( 'Stopped', 'cfp-dev-shortcodes' ) . '</strong> — '
+			. esc_html__( 'the last crawl did not finish. Use Re-crawl Now to try again.', 'cfp-dev-shortcodes' ) . '</p>';
 	} elseif ( ! empty( $latest_snapshot ) ) {
 		echo '<p>' . esc_html__( 'Last snapshot:', 'cfp-dev-shortcodes' ) . ' <code>' . esc_html( basename( $latest_snapshot ) ) . '</code></p>';
 	} else {
@@ -552,7 +561,10 @@ function cfp_dev_start_crawl_ajax_handler() {
 		wp_send_json_error( [ 'message' => __( 'Insufficient permissions.', 'cfp-dev-shortcodes' ) ] );
 		return;
 	}
-	cfp_dev_start_crawl();
+	if ( ! cfp_dev_start_crawl() ) {
+		wp_send_json_error( [ 'message' => __( 'A crawl is already running. Wait for it to finish.', 'cfp-dev-shortcodes' ) ] );
+		return;
+	}
 	wp_send_json_success( [ 'message' => __( 'Crawl started.', 'cfp-dev-shortcodes' ) ] );
 }
 add_action( 'wp_ajax_cfp_dev_start_crawl_ajax', 'cfp_dev_start_crawl_ajax_handler' );

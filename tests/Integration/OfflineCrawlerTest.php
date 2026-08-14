@@ -178,7 +178,7 @@ final class OfflineCrawlerTest extends PluginTestCase {
 	// ─────────────────────────────────────────────────────────────────────────
 
 	public function test_starting_a_crawl_creates_a_snapshot_and_schedules_the_job(): void {
-		cfp_dev_start_crawl();
+		$this->assertTrue( cfp_dev_start_crawl() );
 
 		$state = get_option( 'cfp_dev_crawl_state' );
 
@@ -187,6 +187,18 @@ final class OfflineCrawlerTest extends PluginTestCase {
 		$this->assertDirectoryExists( $state['snapshot'] . '/images' );
 		$this->assertSame( 'cfp_dev_do_crawl', WP_Test_State::$env['scheduled'][0]['hook'] );
 		$this->assertTrue( WP_Test_State::$env['cron_spawned'] );
+	}
+
+	/**
+	 * The crawl state is shared, so a second crawl would interleave its
+	 * progress with the first and both would race to publish a snapshot.
+	 */
+	public function test_a_second_crawl_is_refused_while_one_is_running(): void {
+		cfp_dev_start_crawl();
+		$first = get_option( 'cfp_dev_crawl_state' )['snapshot'];
+
+		$this->assertFalse( cfp_dev_start_crawl() );
+		$this->assertSame( $first, get_option( 'cfp_dev_crawl_state' )['snapshot'] );
 	}
 
 	/**
@@ -402,9 +414,30 @@ final class OfflineCrawlerTest extends PluginTestCase {
 		// A second crawl, this time against a failing API.
 		$this->api( 'public/rooms', null, 503 );
 		cfp_dev_start_crawl();
+		$this->assertNotSame( $good, get_option( 'cfp_dev_crawl_state' )['snapshot'], 'the new crawl reused the good snapshot directory' );
 		cfp_dev_do_crawl();
 
 		$this->assertSame( $good, cfp_dev_get_latest_snapshot(), 'the working snapshot was replaced by a broken one' );
+		$this->assertFileExists( $good . '/manifest.json' );
+	}
+
+	/**
+	 * Snapshot directories are named by the second, so a crawl started in the
+	 * same second as the last one wrote into its directory — overwriting a
+	 * good snapshot's files while leaving its manifest in place, which marks
+	 * the wreckage as complete.
+	 */
+	public function test_two_crawls_in_the_same_second_get_their_own_directories(): void {
+		$this->registerCrawlableApi();
+		cfp_dev_start_crawl();
+		$first = get_option( 'cfp_dev_crawl_state' )['snapshot'];
+		cfp_dev_do_crawl();
+
+		cfp_dev_start_crawl();
+		$second = get_option( 'cfp_dev_crawl_state' )['snapshot'];
+
+		$this->assertNotSame( $first, $second );
+		$this->assertGreaterThan( basename( $first ), basename( $second ), 'the newer snapshot must still sort last' );
 	}
 
 	/**
