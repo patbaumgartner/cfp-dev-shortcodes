@@ -1,10 +1,11 @@
 # CFP.DEV WordPress Shortcodes Plugin
 
 [![PHP Lint](https://github.com/patbaumgartner/cfp-dev-shortcodes/actions/workflows/lint.yml/badge.svg)](https://github.com/patbaumgartner/cfp-dev-shortcodes/actions/workflows/lint.yml)
+[![Tests](https://github.com/patbaumgartner/cfp-dev-shortcodes/actions/workflows/tests.yml/badge.svg)](https://github.com/patbaumgartner/cfp-dev-shortcodes/actions/workflows/tests.yml)
 [![PHP Version](https://img.shields.io/badge/PHP-%3E%3D8.0-8892BF?logo=php)](https://php.net)
 [![WordPress](https://img.shields.io/badge/WordPress-6.0%2B-21759B?logo=wordpress)](https://wordpress.org)
 [![License: GPL v2+](https://img.shields.io/badge/License-GPL%20v2%2B-blue.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
-[![Stable Tag](https://img.shields.io/badge/stable-4.4.3-brightgreen)](https://github.com/patbaumgartner/cfp-dev-shortcodes/releases)
+[![Stable Tag](https://img.shields.io/badge/stable-4.5.0-brightgreen)](https://github.com/patbaumgartner/cfp-dev-shortcodes/releases)
 
 > WordPress shortcodes plugin for [CFP.DEV](https://cfp.dev) — display speakers, talks, schedules, and search results from your CFP.DEV instance directly on your WordPress site (Devoxx, VoxxedDays, and more).
 
@@ -21,8 +22,9 @@
 - **Offline mode** — crawls all API endpoints and CDN images into a local snapshot; serves everything locally with zero external requests
 - **SEO head metadata** — server-rendered `<title>`, meta description, Open Graph / Twitter tags, slug-aware canonicals, JSON-LD (`Event` / `Person`), and an XML sitemap for talk/speaker URLs
 - **Agentic browsing (WebMCP)** — the search form exposes declarative WebMCP tool metadata so AI agents can invoke the programme search as a structured tool
-- **Caching** — WordPress transient-based cache with configurable TTL (none, 1 h, 1 day, 1 week, 1 month)
-- **Theming** — light / dark theme with optional user toggle
+- **Caching** — WordPress transient-based cache with configurable TTL (none, 1 h, 1 day, 1 week, 1 month); each API endpoint is fetched at most once per request
+- **Theming** — light / dark theme with optional user toggle, applied before first paint
+- **Lightweight** — no jQuery, and the stylesheet and script load only on pages that actually use a shortcode
 - **Admin UI** — API key, event settings, per-item cache management, offline crawl progress
 
 ---
@@ -205,6 +207,49 @@ superseded entries simply expire.
 > per cache period, not on every page view. Set **Cache Duration** to
 > *No Cache* for a fresh shuffle on each request.
 
+Within a single request each API endpoint is fetched at most once, so a page
+that shows the same talk in its body, its `<title>`, its canonical URL and its
+JSON-LD costs one API call, not four.
+
+---
+
+## Theme Integration
+
+### Front-end assets
+
+The stylesheet and script are enqueued only on pages whose content actually
+contains one of the plugin's shortcodes — the rest of your site pays nothing.
+
+If your theme renders a shortcode from somewhere the plugin cannot see (a
+widget, a template part, a page builder), force the assets on:
+
+```php
+add_filter( 'cfp_dev_enqueue_assets', function ( $enqueue ) {
+    return $enqueue || is_front_page();
+} );
+```
+
+| Filter | Arguments | Purpose |
+|--------|-----------|---------|
+| `cfp_dev_enqueue_assets` | `bool $enqueue`, `WP_Post\|null $post` | Whether to load the plugin's CSS and JS on this request |
+
+### Head metadata
+
+If your theme (or an SEO plugin) renders its own meta tags, call
+`add_theme_support( 'cfp-dev-head-meta' )`. The plugin then contributes only the
+document title, canonical URL and JSON-LD, and you can render the rest yourself
+from `cfp_dev_page_meta()`:
+
+```php
+$meta = cfp_dev_page_meta(); // null on pages the plugin does not own
+if ( $meta ) {
+    printf( '<meta name="description" content="%s">', esc_attr( $meta['description'] ) );
+}
+```
+
+`cfp_dev_page_meta()` returns `title`, `description`, `url`, `image` and
+`og_type`.
+
 ---
 
 ## SEO & Head Metadata
@@ -220,7 +265,7 @@ Every plugin page gets server-rendered head metadata built from the actual CFP.D
 
 All lookups use the cached, offline-aware API helpers, so metadata keeps working in offline mode without extra API round-trips.
 
-**Theme opt-in:** if your theme renders its own meta tags, call `add_theme_support( 'cfp-dev-head-meta' )` and use the `cfp_dev_page_meta()` helper to fetch the plugin's page metadata and render the tags yourself — this avoids duplicate meta tags.
+**Theme opt-in:** see [Theme Integration](#theme-integration) to render the tags yourself and avoid duplicates.
 
 ---
 
@@ -257,16 +302,49 @@ cd cfp-dev-shortcodes
 composer install
 ```
 
-### Lint
+### Lint and test
 
 ```bash
 composer lint         # PHP_CodeSniffer (WordPress Coding Standards)
 composer lint-fix     # phpcbf auto-fix
+composer test         # PHPUnit
+composer check        # both
 ```
+
+### Test suite
+
+The suite runs against a small in-memory stand-in for WordPress
+(`tests/stubs/wordpress.php`) rather than a real installation, so it needs no
+database, no web server and no `wp-content` — `composer install && composer test`
+is the whole setup, and the full run takes well under a second.
+
+That stand-in backs options, transients, query vars and HTTP with plain arrays,
+which makes side effects directly assertable: tests can state that a given page
+issued exactly one API request, that an option was migrated, or that a shortcode
+produced balanced HTML.
+
+```
+tests/
+  bootstrap.php            boots the stand-in, then the plugin
+  stubs/wordpress.php      the WordPress functions the plugin uses
+  Support/                 base test case, fixtures shaped like real API responses
+  Unit/                    helpers, API client, settings, SEO, offline mode, structure
+  Integration/             end-to-end rendering of every shortcode
+```
+
+Fixtures deliberately include the awkward cases: a non-ASCII speaker name, a
+speaker with no company or bio, a talk with no time slot, and an image URL that
+tries to break out of a CSS `url()` value.
 
 ### CI
 
-GitHub Actions runs PHP syntax check (`php -l`) and PHPCS on every push and pull request to `main`.
+GitHub Actions runs on every push and pull request to `main`:
+
+| Workflow | What it does |
+|----------|--------------|
+| `lint.yml` | `php -l` on PHP 8.0 (the declared minimum) and 8.4, plus PHPCS |
+| `tests.yml` | PHPUnit on PHP 8.1, 8.2, 8.3 and 8.4 |
+| `release.yml` | On a `v*` tag: verifies the plugin header, `CFP_DEV_VERSION` and the CHANGELOG all match the tag, builds the ZIP, and fails if dev files leak into it |
 
 ---
 

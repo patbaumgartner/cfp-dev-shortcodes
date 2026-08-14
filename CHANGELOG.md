@@ -6,6 +6,48 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.5.0] — 2026-08-14
+
+### Security
+- **Cache poisoning in the public photo endpoint**: `get_speaker_photos` took the speaker's display name from the query string, rendered it into the gallery's `alt` text, and cached that markup keyed by speaker id alone — so any visitor could choose the alt text every later visitor of that speaker's page received. The name is now resolved from the API and the parameter is gone from the URL the detail page builds (which also fixes a double-encoding bug that rendered "Jane Doe" as `Jane%2520Doe`)
+- **Unauthenticated request amplification**: the same endpoint only cached successful lookups, so with Cache Duration set to *No Cache* every anonymous request re-queried the album endpoint — twice, because of the built-in retry. Empty results are now cached for at least five minutes regardless of the setting, while real galleries keep honouring it
+- **CSS injection through API image URLs**: speaker photos and track images are rendered as inline `background-image: url(...)` with the URL unquoted. `esc_url()` preserves `(`, `)` and `;`, so a URL ending in `);background:red;` closed the `url()` token and appended its own declarations. All eleven sites now quote the value
+- **Unvalidated settings**: every select and text field was stored verbatim. Choice fields (Default Theme, Permalinks with Id, Show Rooms) are now checked against an allow-list, and the URL Path Prefix — which is interpolated into rewrite-rule *regular expressions*, where a `.` or `(` silently changes which URLs match — is reduced to slash-separated slugs
+
+### Fixed
+- **Unbalanced markup broke the surrounding page.** `[cfp_schedule]` opened `.cfp-area`, `.cfp-scroll` and `.cfp-scope` and never closed them, and `[cfp_search_results]` without a `?query=` emitted three closing tags with nothing to close — which closed the *theme's* wrappers instead
+- `/search-results/` without a query now renders the normal page shell with the search form instead of a bare "No search query provided" line, so it is a usable landing page
+- **The schedule's time ruler was drawn in the wrong timezone and on the wrong day**: it was anchored to today at midnight UTC and formatted in the *site's* timezone, while the grid's hours came from the *event's* timezone. On any site not running on UTC every label was offset — a Brussels conference viewed from a New York site started its ruler at 05:00 instead of 09:00 — and the `datetime` attribute always claimed today's date regardless of which conference day was open
+- The schedule day tabs dropped the closing day when the event ended earlier in the day than it started, because both ends were compared as raw timestamps rather than calendar days
+- Talks with no speakers, and talks/speakers missing a title, track, audience level or bio, produced `Undefined property` notices, `foreach` over null, and a `wp_kses_post(null)` deprecation that becomes a fatal error in PHP 9
+- Saving settings only invalidated rendered HTML when the key, event name or cache duration changed — toggling Show Rooms or Permalinks with Id left stale markup in place until the cache expired
+- Updating the plugin no longer serves the previous version's cached HTML: the plugin records the version it last ran as and invalidates cached markup when that changes
+- `enable_theme_switch` was an unprefixed option name that any other plugin could also be using, and the uninstaller deleted it. It is now `cfp_dev_enable_theme_switch`, migrated transparently on first read
+- Theme switching flashed the default theme on every page load before the stored preference was applied from the footer script; the preference is now applied before first paint
+
+### Changed
+- **All global functions and hooks are prefixed.** The plugin declared `getJSON()`, `getFooter()`, `getVideo()`, `getTime()`, `clearCache()`, `generate_slug()`, `get_speaker_by_id()` and ~45 more unprefixed functions — unconditionally, so any theme or plugin declaring the same name took the site down with a fatal error on load. The AJAX action `get_speaker_photos` had the same problem. Everything now carries the `cfp_dev_` prefix. **Shortcode tags are unchanged** — they live in user content
+- The `[cfp_talks_by_tracks]` and `[cfp_talks_by_sessions]` talk tables were two drifted copies of the same markup; both now render through one shared module
+- Plugin header declares `Requires at least: 6.0` and `Requires PHP: 8.0`, which WordPress checks before installing or updating
+- Stylesheet renamed `cfp_dev_v4_4.css` → `cfp_dev_v4_5.css`, following the minor version
+
+### Performance
+- **Each API endpoint is fetched once per request.** A talk detail page fetched the same talk for the shortcode, the head metadata, the canonical URL and the JSON-LD; a speaker page fetched a talk per proposal; the settings screen re-fetched the full speaker and talk lists on every load. Each was a blocking request with a 30 second timeout
+- Front-end assets (a ~5,000-line stylesheet plus a script) were enqueued on **every page of the site**. They now load only where a shortcode is actually used, with a `cfp_dev_enqueue_assets` filter for shortcodes rendered from widgets or template parts
+- `site.js` no longer needs jQuery — rewritten in ~40 lines of plain DOM code
+- No requests are made at all when no CFP.DEV key is configured, which matters right after activation
+- YouTube embeds and gallery thumbnails load lazily
+
+### Accessibility
+- YouTube and Spotify embeds carry a `title` attribute; an untitled iframe is unlabelled for screen readers (WCAG 4.1.2)
+
+### Added
+- **A test suite.** 164 tests covering slug generation and round-tripping, the API client (success, HTTP error, malformed JSON, path-traversal rejection), offline snapshots (discovery, containment, pruning), the settings handler, the SEO layer, and end-to-end rendering of every shortcode — including HTML well-formedness, CSS-containment and prefix-hygiene assertions. It runs against a small in-memory WordPress stand-in, so it needs no WordPress install and finishes in well under a second
+- CI runs the suite on PHP 8.1–8.4 and syntax-checks on 8.0 (the declared minimum) and 8.4
+- The release workflow verifies the plugin header, `CFP_DEV_VERSION` and the CHANGELOG all agree with the tag, and fails if test or dev files leak into the ZIP
+
+---
+
 ## [4.4.3] — 2026-08-08
 
 ### Fixed
