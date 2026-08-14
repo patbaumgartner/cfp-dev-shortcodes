@@ -353,6 +353,42 @@ function cfp_dev_collect_image_urls( array $data, array $keys, array &$map ): vo
 }
 
 /**
+ * Replaces external image URLs with their local equivalents in a decoded JSON
+ * value, walking objects and arrays.
+ *
+ * This runs on the decoded structure rather than the raw text: a textual
+ * search-and-replace only matches when the API's JSON encoding of the URL is
+ * byte-identical to the collected string, so escaped forward slashes (or one
+ * URL being a prefix of another) would leave images pointing at the CDN —
+ * silently defeating offline mode, which promises no external requests.
+ *
+ * @param mixed $data  Decoded JSON value (object, array or scalar).
+ * @param array $keys  Image field names to rewrite.
+ * @param array $map   [ externalUrl => localUrl ].
+ * @return mixed  The value with image URLs replaced.
+ */
+function cfp_dev_rewrite_image_urls( $data, array $keys, array $map ) {
+	if ( is_array( $data ) ) {
+		foreach ( $data as $index => $value ) {
+			$data[ $index ] = cfp_dev_rewrite_image_urls( $value, $keys, $map );
+		}
+		return $data;
+	}
+
+	if ( $data instanceof stdClass ) {
+		foreach ( get_object_vars( $data ) as $field => $value ) {
+			if ( in_array( $field, $keys, true ) && is_string( $value ) && isset( $map[ $value ] ) ) {
+				$data->$field = $map[ $value ];
+				continue;
+			}
+			$data->$field = cfp_dev_rewrite_image_urls( $value, $keys, $map );
+		}
+	}
+
+	return $data;
+}
+
+/**
  * Downloads a single image URL to a local file path using wp_remote_get.
  *
  * @param string $url          External image URL.
@@ -684,16 +720,20 @@ function cfp_dev_do_crawl(): void {
 		]
 	);
 
-	$done              = 0;
-	$ext_url_strings   = array_keys( $image_url_rewrite );
-	$local_url_strings = array_values( $image_url_rewrite );
+	$done = 0;
 
 	foreach ( $json_files as $json_file ) {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local snapshot file
-		$content = file_get_contents( $json_file );
-		$content = str_replace( $ext_url_strings, $local_url_strings, $content );
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- local snapshot file
-		file_put_contents( $json_file, $content );
+		$decoded = json_decode( (string) file_get_contents( $json_file ) );
+
+		if ( JSON_ERROR_NONE === json_last_error() ) {
+			$rewritten = wp_json_encode( cfp_dev_rewrite_image_urls( $decoded, $image_keys, $image_url_rewrite ) );
+			if ( is_string( $rewritten ) ) {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- local snapshot file
+				file_put_contents( $json_file, $rewritten );
+			}
+		}
+
 		++$done;
 		if ( 0 === $done % 10 ) {
 			cfp_dev_update_crawl_state( [ 'items_done' => $done ] );
