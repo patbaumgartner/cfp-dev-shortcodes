@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: lint-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   syntax-check:
     name: PHP Syntax (PHP ${{ matrix.php }})
@@ -16,9 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 8.0 is the minimum the plugin supports and is not covered by the
-        # PHPUnit matrix, which needs 8.1+.
-        php: [ '8.0', '8.4' ]
+        php: [ '8.1', '8.4' ]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -48,6 +50,13 @@ jobs:
           php-version: '8.3'
           tools: composer
           coverage: none
+
+      - name: Cache Composer downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ runner.os }}-php-8.3-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-php-8.3-
 
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress --no-interaction

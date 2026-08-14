@@ -19,12 +19,13 @@ Fixes # <!-- issue number, if applicable -->
 
 - [ ] Tested locally against a live CFP.DEV instance
 - [ ] Tested with offline mode enabled
-- [ ] Ran `composer lint` — zero errors/warnings
+- [ ] Ran `composer check` — zero lint errors/warnings and passing tests
 
 ## Checklist
 
 - [ ] My code follows the [WordPress Coding Standards](https://developer.wordpress.org/coding-standards/wordpress-coding-standards/)
-- [ ] I have run `composer lint` and fixed all issues
-- [ ] I have updated `ChangeLog.md` with a summary of my changes
+- [ ] I have run `composer check` and fixed all issues
+- [ ] I have added or updated tests for behavioural changes
+- [ ] I have updated `CHANGELOG.md` with a summary of my changes
 - [ ] I have updated `README.md` if the change adds or modifies shortcodes / settings
 - [ ] New shortcode attributes / settings are documented
