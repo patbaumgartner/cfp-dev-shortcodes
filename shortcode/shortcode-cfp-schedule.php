@@ -182,7 +182,7 @@ if ( ! function_exists( 'cfp_dev_schedule_shortcode' ) ) {
 				$day_cursor = $day_cursor->modify( '+1 day' );
 			}
 			$content .= '		</nav>';
-			$content .= '		<a class="cfp-button" style="color:white" href="' . esc_url( 'https://mobile.devoxx.com/events/' . cfp_dev_get_key() . '/schedule' ) . '">' . esc_html__( 'Mobile Schedule', 'cfp-dev-shortcodes' ) . '</a>';
+			$content .= '		<a class="cfp-button" href="' . esc_url( 'https://mobile.devoxx.com/events/' . cfp_dev_get_key() . '/schedule' ) . '">' . esc_html__( 'Mobile Schedule', 'cfp-dev-shortcodes' ) . '</a>';
 			$content .= '	</div>';
 
 			$content .= '</div>';

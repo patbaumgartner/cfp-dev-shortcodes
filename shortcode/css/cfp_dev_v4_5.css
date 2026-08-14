@@ -224,7 +224,7 @@ nav.cfp-filter {
 nav.cfp-filter::before {
   display: block;
   width: 100%;
-  color: #a7a7a7;
+  color: var(--cfp-text-muted);
   content: 'Filter';
   font-size: clamp(10px, calc(((100vw - 460px) / 884) * (12 - 10) + (10 * 1px)), 12px);
   font-weight: 400;
@@ -299,7 +299,7 @@ nav.cfp-pagination .cfp-count {
 }
 
 nav.cfp-pagination .cfp-count span.cfp-span {
-  color: #484848;
+  color: var(--cfp-text-muted);
   font-feature-settings: 'tnum';
   font-size: clamp(12px, calc(((100vw - 460px) / 884) * (14 - 12) + (12 * 1px)), 14px);
   font-weight: 400;
@@ -427,12 +427,12 @@ form.cfp-search input.cfp-input {
 }
 
 form.cfp-search input.cfp-input::-moz-placeholder {
-  color: #a7a7a7;
+  color: var(--cfp-text-muted);
   text-transform: uppercase;
 }
 
 form.cfp-search input.cfp-input::placeholder {
-  color: #a7a7a7;
+  color: var(--cfp-text-muted);
   text-transform: uppercase;
 }
 
@@ -652,7 +652,7 @@ nav.cfp-tab {
   padding: 0;
   border: 0;
   background: none;
-  color: #a7a7a7;
+  color: var(--cfp-text-muted);
   font-family: inherit;
   font-size: clamp(8px, calc(((100vw - 460px) / 884) * (10 - 8) + (8 * 1px)), 10px);
   font-weight: 400;
@@ -965,7 +965,7 @@ footer.cfp-footer .cfp-legal {
 }
 
 footer.cfp-footer .cfp-legal .cfp-item {
-  color: #484848;
+  color: var(--cfp-text-muted);
   font-size: clamp(8px, calc(((100vw - 460px) / 884) * (10 - 8) + (8 * 1px)), 10px);
   font-weight: 400;
   letter-spacing: 0.0125em;
@@ -1028,7 +1028,7 @@ header.cfp-header nav.cfp-nav {
 header.cfp-header nav.cfp-nav a.cfp-a {
   position: relative;
   display: block;
-  color: #a7a7a7;
+  color: var(--cfp-text-muted);
   font-weight: 400;
   text-transform: uppercase;
   opacity: 1;
@@ -1093,7 +1093,8 @@ header.cfp-header nav.cfp-nav a.cfp-a.cfp-active::after {
 	--cfp-background-tertiary: #dbdbdb;
 	--cfp-text-primary: #1d1d1d;
 	--cfp-text-secondary: white;
-	--cfp-accept-primary: #2493c7;
+	--cfp-text-muted: #6a6a6a;
+	--cfp-accept-primary: #176c94;
 	--cfp-border-primary: #dbdbdb;
   }
 }
@@ -1106,6 +1107,7 @@ header.cfp-header nav.cfp-nav a.cfp-a.cfp-active::after {
 	--cfp-background-tertiary: #484848;
 	--cfp-text-primary: white;
 	--cfp-text-secondary: #484848;
+	--cfp-text-muted: #a7a7a7;
 	--cfp-accept-primary: #ffa500;
 	--cfp-border-primary: #484848;
   }
@@ -1118,7 +1120,8 @@ html.cfp-html.cfp-theme\:light {
   --cfp-background-tertiary: #dbdbdb;
   --cfp-text-primary: #1d1d1d;
   --cfp-text-secondary: white;
-  --cfp-accept-primary: #2493c7;
+  --cfp-text-muted: #6a6a6a;
+  --cfp-accept-primary: #176c94;
   --cfp-border-primary: #dbdbdb;
 }
 
@@ -1129,6 +1132,7 @@ html.cfp-html.cfp-theme\:dark {
   --cfp-background-tertiary: #484848;
   --cfp-text-primary: white;
   --cfp-text-secondary: #484848;
+  --cfp-text-muted: #a7a7a7;
   --cfp-accept-primary: #ffa500;
   --cfp-border-primary: #484848;
 }
@@ -1168,7 +1172,7 @@ section.cfp-access nav.cfp-nav {
   align-items: center;
   flex-direction: column;
   gap: 1em 0;
-  color: #a7a7a7;
+  color: var(--cfp-text-muted);
   font-size: clamp(10px, calc(((100vw - 460px) / 884) * (12 - 10) + (10 * 1px)), 12px);
   pointer-events: none;
 }
@@ -1244,7 +1248,7 @@ form.cfp-form input.cfp-input+label.cfp-label {
 
 form.cfp-form input.cfp-input:not(:focus):-moz-placeholder-shown+label.cfp-label {
   top: 50%;
-  color: #a7a7a7;
+  color: var(--cfp-text-muted);
   font-size: clamp(10px, calc(((100vw - 460px) / 884) * (12 - 10) + (10 * 1px)), 12px);
   letter-spacing: unset;
   transform: translateY(-50%);
@@ -1252,7 +1256,7 @@ form.cfp-form input.cfp-input:not(:focus):-moz-placeholder-shown+label.cfp-label
 
 form.cfp-form input.cfp-input:not(:focus):placeholder-shown+label.cfp-label {
   top: 50%;
-  color: #a7a7a7;
+  color: var(--cfp-text-muted);
   font-size: clamp(10px, calc(((100vw - 460px) / 884) * (12 - 10) + (10 * 1px)), 12px);
   letter-spacing: unset;
   transform: translateY(-50%);
@@ -1408,7 +1412,7 @@ section.cfp-list .cfp-field .cfp-datetime time.cfp-time:not(:first-child)::befor
 }
 
 section.cfp-list .cfp-row.cfp-headline .cfp-field {
-  color: #484848;
+  color: var(--cfp-text-muted);
   font-size: clamp(12px, calc(((100vw - 460px) / 884) * (14 - 12) + (12 * 1px)), 14px);
   font-weight: 400;
   letter-spacing: 0.025em;
@@ -4074,7 +4078,7 @@ section.cfp-search .cfp-foreword .cfp-name {
 section.cfp-search .cfp-foreword .cfp-type {
   margin-top: calc(var(--cfp-gutter) * 0.5);
   grid-area: type;
-  color: #a7a7a7;
+  color: var(--cfp-text-muted);
   font-size: clamp(10px, calc(((100vw - 460px) / 884) * (12 - 10) + (10 * 1px)), 12px);
   letter-spacing: 0.025em;
   text-transform: uppercase;
@@ -4196,7 +4200,7 @@ section.cfp-session .cfp-foreword .cfp-name {
 
 section.cfp-session .cfp-foreword .cfp-type {
   margin-top: var(--cfp-gutter);
-  color: #a7a7a7;
+  color: var(--cfp-text-muted);
   font-size: clamp(14px, calc(((100vw - 460px) / 884) * (16 - 14) + (14 * 1px)), 16px);
   font-weight: 400;
   letter-spacing: 0.025em;

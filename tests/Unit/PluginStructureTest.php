@@ -262,6 +262,46 @@ final class PluginStructureTest extends PluginTestCase {
 	}
 
 	/** Every module listed for loading must exist and parse. */
+	/**
+	 * Both themes share one stylesheet, so a colour written as a literal is a
+	 * colour chosen for whichever theme the author had on screen. Two of them
+	 * were: a light grey readable only on the dark background, and a dark grey
+	 * readable only on the light one — each unreadable in the other theme, and
+	 * between them they covered the table column headers, every placeholder,
+	 * and the session type on a talk page.
+	 *
+	 * @dataProvider themedColourProvider
+	 */
+	public function test_no_text_colour_is_hardcoded_for_one_theme( string $colour ): void {
+		$this->assertStringNotContainsString(
+			'color: ' . $colour,
+			$this->stylesheet(),
+			$colour . ' is only readable in one theme; use var(--cfp-text-muted)'
+		);
+	}
+
+	public static function themedColourProvider(): array {
+		return [
+			'dark-theme grey'  => [ '#a7a7a7' ],
+			'light-theme grey' => [ '#484848' ],
+		];
+	}
+
+	/** Every theme block has to define what the shared rules reference. */
+	public function test_every_theme_defines_the_muted_text_colour(): void {
+		$stylesheet = $this->stylesheet();
+
+		$this->assertSame(
+			substr_count( $stylesheet, '--cfp-text-primary:' ),
+			substr_count( $stylesheet, '--cfp-text-muted:' ),
+			'a theme that leaves --cfp-text-muted undefined renders that text as the browser default'
+		);
+	}
+
+	private function stylesheet(): string {
+		return (string) file_get_contents( CFP_DEV_DIR . '/shortcode/' . CFP_DEV_CSS );
+	}
+
 	public function test_the_plugin_header_version_matches_the_version_constant(): void {
 		$header = (string) file_get_contents( dirname( __DIR__, 2 ) . '/cfp-dev-wordpress-shortcodes.php' );
 
