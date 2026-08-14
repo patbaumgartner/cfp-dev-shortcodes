@@ -700,7 +700,13 @@ function trailingslashit( $path ) {
 	return rtrim( (string) $path, '/\\' ) . '/';
 }
 
-function add_query_arg( $args, $url = '' ) {
+function add_query_arg( $args, $url = '', $url_when_keyed = null ) {
+	// WordPress accepts both add_query_arg( array, $url ) and the
+	// add_query_arg( $key, $value, $url ) form.
+	if ( ! is_array( $args ) ) {
+		$args = [ $args => $url ];
+		$url  = (string) $url_when_keyed;
+	}
 	$separator = str_contains( $url, '?' ) ? '&' : '?';
 	return $url . $separator . http_build_query( $args );
 }

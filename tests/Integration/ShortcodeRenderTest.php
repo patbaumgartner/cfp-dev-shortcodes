@@ -572,6 +572,56 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		$this->assertSame( [], $this->httpLog(), 'an empty list is a real answer and should be served from cache' );
 	}
 
+	/**
+	 * An <iframe src> is not a link: the framed origin runs its own code in
+	 * the visitor's browser, and this URL comes straight from the API — with
+	 * autoplay and encrypted-media already granted by the allow attribute.
+	 *
+	 * @dataProvider videoUrlProvider
+	 */
+	public function test_only_video_from_a_supported_host_is_embedded( string $url, bool $embedded ): void {
+		$talk             = Fixtures::talkDetail( 200 );
+		$talk['videoURL'] = $url;
+		$this->api( 'public/talks/200', $talk );
+		$this->queryVar( 'id', 200 );
+
+		$html = cfp_dev_talk_details_shortcode();
+
+		// The podcast embed is always present on this fixture, so assert on the
+		// video iframe specifically rather than on any iframe.
+		if ( $embedded ) {
+			$this->assertStringContainsString( 'title="Video:', $html );
+			$this->assertStringContainsString( $url, $html );
+		} else {
+			$this->assertStringNotContainsString( 'title="Video:', $html, 'framed a video from ' . $url );
+			$this->assertStringNotContainsString( $url, $html );
+		}
+	}
+
+	public static function videoUrlProvider(): array {
+		return [
+			'youtube'          => [ 'https://www.youtube.com/embed/abc123', true ],
+			'youtube-nocookie' => [ 'https://www.youtube-nocookie.com/embed/abc123', true ],
+			'vimeo'            => [ 'https://player.vimeo.com/video/123', true ],
+			'foreign host'     => [ 'https://evil.test/embed/abc123', false ],
+			'lookalike host'   => [ 'https://youtube.com.evil.test/embed/x', false ],
+			'javascript uri'   => [ 'javascript:alert(1)', false ],
+		];
+	}
+
+	/** The same rule the podcast embed has always had, now shared. */
+	public function test_a_podcast_url_with_a_query_string_keeps_resolving(): void {
+		$talk               = Fixtures::talkDetail( 200 );
+		$talk['podcastURL'] = 'https://open.spotify.com/embed/episode/xyz?theme=0';
+		$this->api( 'public/talks/200', $talk );
+		$this->queryVar( 'id', 200 );
+
+		$html = cfp_dev_talk_details_shortcode();
+
+		$this->assertStringContainsString( 'utm_source=WordPress', $html );
+		$this->assertStringNotContainsString( 'xyz?theme=0?utm_source', $html, 'a second ? was appended' );
+	}
+
 	public function test_shortcodes_are_registered_on_plugins_loaded(): void {
 		foreach (
 			[
