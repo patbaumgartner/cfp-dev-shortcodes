@@ -903,15 +903,52 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		$this->assertHeadingOutline( cfp_dev_search_results_shortcode(), '[cfp_search_results]' );
 	}
 
-	/** A hidden title must not leave the page with no heading at all. */
-	public function test_hiding_the_title_still_heads_the_entries(): void {
+	/**
+	 * A theme that renders its own page title leaves the plugin's hidden, and
+	 * the cards then have to take level 2 themselves — a live site showed the
+	 * outline stepping from the theme's h1 straight to level 3.
+	 */
+	public function test_hiding_the_title_moves_the_entries_up_a_level(): void {
 		$this->registerDefaultApi();
 		$this->api( 'public/speakers?size=300', Fixtures::speakers() );
 
-		$html = cfp_dev_speakers_shortcode( [ 'hide_title' => 'yes' ] );
+		$shown  = cfp_dev_speakers_shortcode( [] );
+		$hidden = cfp_dev_speakers_shortcode( [ 'hide_title' => 'yes' ] );
 
-		$this->assertStringNotContainsString( 'aria-level="2"', $html );
-		$this->assertStringContainsString( 'aria-level="3"', $html );
+		$this->assertStringContainsString( 'aria-level="2"', $shown, 'the page title heads the list' );
+		$this->assertStringContainsString( 'aria-level="3"', $shown, 'and the cards sit under it' );
+
+		$this->assertStringNotContainsString( 'aria-level="3"', $hidden, 'nothing is left at level 2 to sit under' );
+		$this->assertStringContainsString( 'aria-level="2"', $hidden );
+		$this->assertHeadingOutline( $hidden, '[cfp_speakers hide_title]' );
+	}
+
+	/**
+	 * An unnamed navigation landmark collides with every other one on the
+	 * page, and a theme always has at least one of its own.
+	 *
+	 * @dataProvider navigationLandmarkProvider
+	 */
+	public function test_every_navigation_landmark_is_named( string $shortcode, string $label ): void {
+		$this->registerDefaultApi();
+		$this->registerScheduleApi();
+
+		$html = $shortcode( [] );
+
+		preg_match_all( '#<nav\b[^>]*>#', $html, $matches );
+		$this->assertNotSame( [], $matches[0], 'expected a navigation landmark to inspect' );
+		foreach ( $matches[0] as $nav ) {
+			$this->assertStringContainsString( 'aria-label=', $nav, 'unnamed landmark: ' . $nav );
+		}
+		$this->assertStringContainsString( 'aria-label="' . $label . '"', $html );
+	}
+
+	public static function navigationLandmarkProvider(): array {
+		return [
+			'tracks'        => [ 'cfp_dev_talks_by_tracks_shortcode', 'Tracks' ],
+			'session types' => [ 'cfp_dev_talks_by_sessions_shortcode', 'Session types' ],
+			'schedule days' => [ 'cfp_dev_schedule_shortcode', 'Conference days' ],
+		];
 	}
 
 	public function test_shortcodes_are_registered_on_plugins_loaded(): void {

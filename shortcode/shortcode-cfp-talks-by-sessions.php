@@ -90,7 +90,7 @@ if ( ! function_exists( 'cfp_dev_talks_by_sessions_shortcode' ) ) {
 
 		$content .= '<div class="cfp-subject">';
 		$content .= cfp_dev_page_header( $title, '', empty( $_atts['hide_search'] ) );
-		$content .= '    <nav class="cfp-filter">';
+		$content .= '    <nav class="cfp-filter" aria-label="' . esc_attr__( 'Session types', 'cfp-dev-shortcodes' ) . '">';
 		foreach ( $sessions as $session ) {
 			if ( ! empty( $session->pause ) ) {
 				continue;

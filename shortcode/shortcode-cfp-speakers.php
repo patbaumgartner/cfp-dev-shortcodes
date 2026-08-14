@@ -83,6 +83,12 @@ if ( ! function_exists( 'cfp_dev_speakers_shortcode' ) ) {
 			! $_atts['hide_search']
 		);
 
+		// The cards sit one level under whatever heads the list. Usually that
+		// is the page title above; when the theme renders its own and this one
+		// is hidden, the cards move up to take its place — otherwise the
+		// outline steps from the theme's h1 straight to level 3.
+		$card_level = $_atts['hide_title'] ? 2 : 3;
+
 		$content .= '    </div>';
 		$content .= '    <div class="cfp-block">';
 
@@ -92,7 +98,7 @@ if ( ! function_exists( 'cfp_dev_speakers_shortcode' ) ) {
 			$last     = (string) ( $speaker->lastName ?? '' );
 			$content .= '<a class="cfp-a" href="' . esc_url( cfp_dev_speaker_url( $speaker ) ) . '">';
 			$content .= '           <div class="cfp-picture" style="background-image: url(\'' . esc_url( (string) ( $speaker->imageUrl ?? '' ) ) . '\')"></div>';
-			$content .= '        <div class="cfp-name"' . cfp_dev_heading( 3 ) . '>' . esc_html( trim( $first . ' ' . $last ) ) . '</div>';
+			$content .= '        <div class="cfp-name"' . cfp_dev_heading( $card_level ) . '>' . esc_html( trim( $first . ' ' . $last ) ) . '</div>';
 			if ( ! empty( $speaker->company ) ) {
 				$content .= '        <div class="cfp-company">' . esc_html( $speaker->company ) . '</div>';
 			}
