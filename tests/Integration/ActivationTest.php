@@ -121,4 +121,31 @@ final class ActivationTest extends PluginTestCase {
 			'subdirectory installs would 404 on every speaker URL'
 		);
 	}
+
+	/**
+	 * A prefixed install also gets an alias for talk URLs carrying one leading
+	 * path segment. See the note in rewrite.php: the analysis says it is
+	 * redundant, but it has not been checked against the deployment it was
+	 * written for, so it is pinned here rather than removed on reasoning
+	 * alone. Any change to it should be a deliberate one.
+	 */
+	public function test_a_prefixed_install_keeps_its_extra_talk_alias(): void {
+		$this->option( 'cfp_dev_path_prefix', 'trieste' );
+
+		cfp_dev_add_rewrite_rules();
+
+		$rules = WP_Test_State::$env['rewrite_rules'] ?? [];
+
+		$this->assertArrayHasKey( '([^/]+)/trieste/talk/([^/]+)/?$', $rules );
+		$this->assertSame( 'index.php?pagename=talk&talk_slug=$matches[2]', $rules['([^/]+)/trieste/talk/([^/]+)/?$'] );
+	}
+
+	/** Without a prefix there is nothing to alias, and no such rule is added. */
+	public function test_an_unprefixed_install_adds_no_alias(): void {
+		cfp_dev_add_rewrite_rules();
+
+		foreach ( array_keys( WP_Test_State::$env['rewrite_rules'] ?? [] ) as $pattern ) {
+			$this->assertStringStartsWith( '^', $pattern, 'every rule should be anchored at the site root' );
+		}
+	}
 }

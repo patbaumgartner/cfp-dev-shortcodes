@@ -37,7 +37,24 @@ function cfp_dev_add_rewrite_rules() {
 		'top'
 	);
 
-	// Handle subdirectory before talk URL with slug (fix for subdirectory redirect)
+	/*
+	 * An extra alias for talk URLs carrying one leading path segment, added as
+	 * a "fix for subdirectory redirect" and kept deliberately.
+	 *
+	 * On the evidence it should not be needed: WP::parse_request() strips the
+	 * installation's home path before matching, and prefixes each pattern with
+	 * `^`, so a subdirectory install of /trieste/talk/<slug> already matches
+	 * the rule above. That makes this an alias rather than a route — it
+	 * additionally answers /<anything>/trieste/talk/<slug>, which nothing in
+	 * the plugin links to.
+	 *
+	 * It stays because that reasoning has not been checked against the
+	 * deployment it was written for, and the cost of being wrong is 404s on a
+	 * live conference programme. The duplicate-content cost of keeping it is
+	 * already paid off by cfp_dev_canonical_url(), which points every one of
+	 * these URLs at the canonical form. Speaker URLs deliberately have no
+	 * equivalent: no such alias was ever reported for them.
+	 */
 	if ( ! empty( $prefix ) ) {
 		add_rewrite_rule(
 			'([^/]+)/' . $prefix . 'talk/([^/]+)/?$',
