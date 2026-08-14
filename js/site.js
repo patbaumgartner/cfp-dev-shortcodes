@@ -13,6 +13,12 @@
 	function applyTheme(theme) {
 		var root = document.documentElement;
 		root.className = root.className.replace(/cfp-theme:\w+/g, 'cfp-theme:' + theme);
+
+		// Keep the toggle's accessible state in sync with what is displayed.
+		var buttons = document.querySelectorAll('.cfp-theme [data-theme-key]');
+		Array.prototype.forEach.call(buttons, function (button) {
+			button.setAttribute('aria-pressed', button.getAttribute('data-theme-key') === theme ? 'true' : 'false');
+		});
 	}
 
 	function storeTheme(theme) {
@@ -32,7 +38,7 @@
 			return;
 		}
 
-		var toggle = target.closest('.cfp-theme a[data-theme-key]');
+		var toggle = target.closest('.cfp-theme [data-theme-key]');
 		if (!toggle) {
 			return;
 		}
@@ -44,5 +50,20 @@
 
 		applyTheme(theme);
 		storeTheme(theme);
+	});
+
+	// The inline head script applies the stored preference to the root element
+	// before first paint, but the toggle is rendered later — reflect the stored
+	// choice on the buttons once the DOM is available.
+	document.addEventListener('DOMContentLoaded', function () {
+		var saved = null;
+		try {
+			saved = window.localStorage.getItem(STORAGE_KEY);
+		} catch (error) {
+			saved = null;
+		}
+		if ('light' === saved || 'dark' === saved) {
+			applyTheme(saved);
+		}
 	});
 }());
