@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Accessibility
+- **Neither theme met WCAG AA, and the light one failed almost everywhere.** One stylesheet serves both themes, and two greys were written into it as literals: `#a7a7a7` reads at 7.0:1 on the dark background and 2.3:1 on the light one, `#484848` is exactly the reverse (8.8:1 and 1.8:1). Between them they coloured the table column headers, every search placeholder, the session type on a talk page and the schedule's favourite count — each unreadable in one of the two themes. The light accent was too pale for either job it had: 3.3:1 as link and company text, 3.5:1 as a button background under white text. The schedule's "Mobile Schedule" button then forced `color:white` inline over a stylesheet that had already chosen a working colour, giving white on amber at 2.0:1 — the worst ratio on any page. All seven pages now pass in both themes
+- **The plugin's pages had no headings at all.** Page titles, talk titles and speaker names are all `<div class="cfp-name">`, so screen-reader users met an undifferentiated run of text with no way to jump to the talk they came for. Each is now announced as a heading — level 2 for the subject of the page, level 3 for the speakers, talks and results within it, since the theme owns the `<h1>`. The rendering is unchanged: the stylesheet is compiled from a design system and styles these by class, so real heading elements would have outranked `.cfp-name` and restyled every one of them
+
+### Performance
+- **Text was hidden while the webfonts loaded.** The three Acumin faces declared no `font-display`, so the browser default applies and the text a page is about to draw stays invisible for up to three seconds — the talk titles, the speaker names, the whole schedule — although the HTML and CSS have already arrived. `swap` draws the fallback immediately and switches when the font is ready
+
 ### Security
 - **The crawler could publish an SVG under the site's own origin.** Snapshots are written to `wp-content/uploads` and served from the site's origin, and an SVG is a document that can carry script — which is why WordPress core refuses SVG uploads. Both the extension allow-list and the content-type map admitted it, so an image URL from a hostile or compromised CFP.DEV instance could place active same-origin content at a path derived from that URL, to be executed by getting anyone to open it directly. SVG is no longer an image here; such a URL keeps pointing at the CDN, exactly like one that failed to download
 - **A slow search could take the site down.** Every other API read waits up to 30 seconds because the answer populates a cache, so at most one visitor pays that cost. Search results are never cached — the query space is unbounded — so every request paid in full, on a public URL that takes its query from the visitor. Enough concurrent searches against a slow upstream occupied every PHP worker the site had. The search path now gives up after eight seconds, and `cfp_dev_api_timeout` receives the path it is deciding for
@@ -40,10 +47,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - The README documents the plugin's whole filter surface. Three of its four filters were undocumented, including `cfp_dev_video_embed_hosts`, which decides what may be framed on a talk page
 
 ### Tests
-- 263 → 348. The settings screen had no test at all and now covers the cache tables, the empty case, an unreachable API, records missing the fields it reads, the strings both admin scripts are handed, and the status they are started from. New coverage for snapshot publication and retention, crawl recovery and collision, the 404-versus-503 decision, the schedule grid's bounds and durations, canonical URLs in both permalink modes, repeated element ids across every shortcode page, the talk timing contract a theme depends on, the speaker page's caching promises, search timeouts, and every cache key uninstall has to reach
+- 263 → 356. The settings screen had no test at all and now covers the cache tables, the empty case, an unreachable API, records missing the fields it reads, the strings both admin scripts are handed, and the status they are started from. New coverage for snapshot publication and retention, crawl recovery and collision, the 404-versus-503 decision, the schedule grid's bounds and durations, canonical URLs in both permalink modes, repeated element ids and the heading outline of every shortcode page, the talk timing contract a theme depends on, the speaker page's caching promises, search timeouts, and every cache key uninstall has to reach
 - **Tests no longer decide each other's results.** Hooks are global and nothing removed the ones a test registered, so a filter added to prove one behaviour went on changing every test that ran after it — the suite passed only because of the order it ran in, and three tests fail when told to shuffle. A test's hooks are now dropped between tests, the plugin's are kept, and execution order is random by default so this stays true
 - Uninstall was checked against three hand-written cache keys out of the fourteen shapes the plugin produces; the keys now come from the plugin's own key functions
+- The stylesheet is checked for colours hardcoded for one theme and for webfonts that hide their text while loading
 - The test asserting that a failing endpoint should still finish a crawl as "done" was pinning that defect in place, and now asserts the opposite
+
+### CI
+- The three scripts the plugin ships were never checked by anything, while PHP got a syntax pass on two versions plus PHPCS. A typo in the admin bundle would have reached a release as a settings screen whose buttons silently do nothing; `node --check` now runs on every push
 
 ---
 

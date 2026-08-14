@@ -26,8 +26,8 @@
 - **Theming** — light / dark theme with optional user toggle, applied before first paint
 - **Lightweight** — no jQuery on the front end, and the stylesheet and script load only on pages that actually use a shortcode
 - **Admin UI** — API key, event settings, per-item cache management, offline crawl progress
-- **Translatable** — every user-facing string is localisable; a `.pot` template ships in `languages/`
-- **Accessible** — labelled search, keyboard-operable theme toggle, named social links
+- **Translatable** — every user-facing string is localisable, in the admin scripts as well as the PHP; a `.pot` template ships in `languages/`
+- **Accessible** — WCAG AA contrast in both themes, a heading outline on every page, labelled search, keyboard-operable theme toggle, named social links
 
 ---
 
@@ -248,6 +248,15 @@ add_filter( 'cfp_dev_enqueue_assets', function ( $enqueue ) {
 | `cfp_dev_video_embed_hosts` | `string[] $hosts` | Hostnames whose videos may be framed on a talk page. A talk's `videoURL` comes from the API, and an `<iframe src>` runs the framed origin's code in the visitor's browser, so anything not on this list is not embedded |
 | `cfp_dev_api_timeout` | `int $timeout`, `string $query_path` | HTTP timeout per API request. Defaults to 30 s, 10 s in the admin, and 8 s for search — whose results are never cached, so every request waits in full on a public URL |
 | `cfp_dev_crawl_deadline` | `int $seconds` | How long an offline crawl may run before it is presumed dead and the operator is allowed to start another. Defaults to 15 minutes |
+
+### Headings
+
+The plugin starts its heading outline at level 2, because the `<h1>` belongs to
+your theme — it is the WordPress page title. Talk titles, speaker names and
+page titles are announced as level 2, and the speakers, talks and results
+within them as level 3. They are marked with `role="heading"` rather than
+`<h2>`/`<h3>`: the stylesheet is compiled from a design system and styles them
+by class, so heading elements would outrank those rules and restyle every one.
 
 ### Head metadata
 
