@@ -190,6 +190,43 @@ final class HelpersTest extends PluginTestCase {
 		$this->assertStringContainsString( '"cfp-theme:light"', $script );
 	}
 
+	public function test_slug_lookups_honour_the_no_cache_setting(): void {
+		$this->api( 'public/talks', [ [ 'id' => 200, 'title' => 'Modern Java in Practice' ] ] );
+		$this->assertSame( 0, cfp_dev_get_cache_ttl(), 'guard: this test covers the No Cache setting' );
+
+		$this->assertSame( 200, cfp_dev_talk_id_from_slug( 'modern-java-in-practice' ) );
+
+		$this->assertFalse(
+			get_transient( cfp_dev_group_cache_key( 'cfp_talk_slug_' . md5( 'modern-java-in-practice' ) ) ),
+			'a resolved slug must not be pinned for a day when caching is switched off'
+		);
+	}
+
+	public function test_slug_lookups_cache_hits_for_the_configured_duration(): void {
+		$this->option( 'cfp_dev_cache_duration', 3600 );
+		$this->api( 'public/talks', [ [ 'id' => 200, 'title' => 'Modern Java in Practice' ] ] );
+
+		cfp_dev_talk_id_from_slug( 'modern-java-in-practice' );
+
+		$this->assertSame(
+			200,
+			get_transient( cfp_dev_group_cache_key( 'cfp_talk_slug_' . md5( 'modern-java-in-practice' ) ) )
+		);
+	}
+
+	public function test_unknown_slugs_are_cached_even_when_caching_is_off(): void {
+		$this->api( 'public/talks', [ [ 'id' => 200, 'title' => 'Modern Java in Practice' ] ] );
+
+		// Resolving a slug costs a full list fetch, so an unauthenticated loop
+		// over made-up slugs must not refetch it every time.
+		$this->assertNull( cfp_dev_talk_id_from_slug( 'no-such-talk' ) );
+
+		$this->assertSame(
+			0,
+			get_transient( cfp_dev_group_cache_key( 'cfp_talk_slug_' . md5( 'no-such-talk' ) ) )
+		);
+	}
+
 	public function test_request_cache_memoises_until_flushed(): void {
 		$calls    = 0;
 		$resolver = static function () use ( &$calls ) {

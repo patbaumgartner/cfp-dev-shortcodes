@@ -46,6 +46,10 @@ delete_transient( 'CFP_DEV_EVENT_NAME' );
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Content-cache transients (all keys are prefixed — remove in one query).
+//
+// Only reaches transients stored in the options table. On sites running a
+// persistent object cache the transients live there instead and are not
+// visible to SQL; they carry a TTL and expire on their own.
 // ─────────────────────────────────────────────────────────────────────────────
 global $wpdb;
 $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one-time uninstall cleanup
