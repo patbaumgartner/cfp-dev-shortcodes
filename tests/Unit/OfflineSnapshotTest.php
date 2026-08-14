@@ -181,6 +181,10 @@ final class OfflineSnapshotTest extends PluginTestCase {
 			'phar'     => [ 'https://cdn.test/x.phar' ],
 			'html'     => [ 'https://cdn.test/x.html' ],
 			'htaccess' => [ 'https://cdn.test/.htaccess' ],
+			// An SVG is a document that can carry script, and the snapshot is
+			// served from the site's own origin — the same reason WordPress
+			// core refuses SVG uploads.
+			'svg'      => [ 'https://cdn.test/x.svg' ],
 		];
 	}
 

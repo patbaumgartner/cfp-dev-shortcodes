@@ -463,9 +463,19 @@ function cfp_dev_record_fetch_failure( array &$tally, array &$fetch_log, bool $o
 	];
 }
 
-/** Image extensions a snapshot file is allowed to carry. */
+/**
+ * Image extensions a snapshot file is allowed to carry.
+ *
+ * SVG is deliberately absent. Snapshots are written under wp-content/uploads
+ * and served from the site's own origin, and an SVG is a document that can
+ * carry script — which is why WordPress core refuses SVG uploads too. These
+ * URLs come from a service the plugin does not control, so admitting SVG would
+ * let a hostile or compromised CFP.DEV instance publish active content under
+ * the site's origin at a predictable path. Such an image keeps its CDN URL
+ * instead, exactly like one that failed to download.
+ */
 function cfp_dev_allowed_image_extensions(): array {
-	return [ 'jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'svg' ];
+	return [ 'jpg', 'jpeg', 'png', 'gif', 'webp', 'avif' ];
 }
 
 /**
@@ -604,13 +614,14 @@ function cfp_dev_download_image( string $url, string $dest_path, array &$fetch_l
 	// Trust the served content type over the URL's extension — the filename was
 	// derived from a string the API controls.
 	$content_type = strtolower( trim( (string) strtok( (string) wp_remote_retrieve_header( $response, 'content-type' ), ';' ) ) );
-	$by_type      = [
-		'image/jpeg'    => 'jpg',
-		'image/png'     => 'png',
-		'image/gif'     => 'gif',
-		'image/webp'    => 'webp',
-		'image/avif'    => 'avif',
-		'image/svg+xml' => 'svg',
+	// Same allow-list as the extensions, and for the same reason: the snapshot
+	// is served from the site's own origin, so SVG is not an image here.
+	$by_type = [
+		'image/jpeg' => 'jpg',
+		'image/png'  => 'png',
+		'image/gif'  => 'gif',
+		'image/webp' => 'webp',
+		'image/avif' => 'avif',
 	];
 
 	if ( ! isset( $by_type[ $content_type ] ) ) {
