@@ -20,7 +20,7 @@ final class HelpersTest extends PluginTestCase {
 	 * @dataProvider slugProvider
 	 */
 	public function test_generate_slug_produces_url_safe_lowercase_slugs( string $input, string $expected ): void {
-		$this->assertSame( $expected, generate_slug( $input ) );
+		$this->assertSame( $expected, cfp_dev_generate_slug( $input ) );
 	}
 
 	public static function slugProvider(): array {
@@ -40,7 +40,7 @@ final class HelpersTest extends PluginTestCase {
 		// Slugs are generated on the render side and re-sanitised on the lookup
 		// side; a slug that changes under sanitize_title() can never be resolved.
 		foreach ( [ 'Ilya-Šumailov', 'Jürgen Höller', 'Kafka: the good parts!' ] as $name ) {
-			$slug = generate_slug( $name );
+			$slug = cfp_dev_generate_slug( $name );
 			$this->assertSame( $slug, sanitize_title( $slug ), 'slug is not stable for ' . $name );
 		}
 	}
@@ -101,7 +101,7 @@ final class HelpersTest extends PluginTestCase {
 		$before = cfp_dev_group_cache_key( 'cfp_schedule_Monday' );
 		$this->assertSame( 'cfp_schedule_Monday_v1', $before );
 
-		clearCache();
+		cfp_dev_clear_cache();
 
 		$this->assertSame( 'cfp_schedule_Monday_v2', cfp_dev_group_cache_key( 'cfp_schedule_Monday' ) );
 		$this->assertNotSame( $before, cfp_dev_group_cache_key( 'cfp_schedule_Monday' ) );
@@ -109,10 +109,10 @@ final class HelpersTest extends PluginTestCase {
 
 	public function test_detail_cache_keys_are_distinct_per_type_and_id(): void {
 		$keys = [
-			generate_cfp_cache_key( 'speaker', 1 ),
-			generate_cfp_cache_key( 'talk', 1 ),
-			generate_cfp_cache_key( 'photo', 1 ),
-			generate_cfp_cache_key( 'speaker', 2 ),
+			cfp_dev_detail_cache_key( 'speaker', 1 ),
+			cfp_dev_detail_cache_key( 'talk', 1 ),
+			cfp_dev_detail_cache_key( 'photo', 1 ),
+			cfp_dev_detail_cache_key( 'speaker', 2 ),
 		];
 
 		$this->assertSame( $keys, array_unique( $keys ) );
@@ -143,17 +143,17 @@ final class HelpersTest extends PluginTestCase {
 	}
 
 	public function test_store_key_strips_anything_that_is_not_a_hostname_label(): void {
-		storeCfpDevKey( 'DvBe25/../evil.com' );
+		cfp_dev_store_key( 'DvBe25/../evil.com' );
 
 		$this->assertSame( 'dvbe25evilcom', cfp_dev_get_key() );
 		$this->assertSame( 'https://dvbe25evilcom.cfp.dev/api/', cfp_dev_api_base() );
 	}
 
 	public function test_cache_ttl_never_goes_negative(): void {
-		storeCfpDevCache( '-500' );
+		cfp_dev_store_cache_ttl( '-500' );
 		$this->assertSame( 0, cfp_dev_get_cache_ttl() );
 
-		storeCfpDevCache( '3600' );
+		cfp_dev_store_cache_ttl( '3600' );
 		$this->assertSame( 3600, cfp_dev_get_cache_ttl() );
 	}
 

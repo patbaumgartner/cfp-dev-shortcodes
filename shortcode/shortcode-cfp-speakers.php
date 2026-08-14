@@ -8,14 +8,14 @@
  * @since    1.0.0
  */
 
-if ( ! function_exists( 'cfp_speakers_shortcode' ) ) {
+if ( ! function_exists( 'cfp_dev_speakers_shortcode' ) ) {
 
 	add_action(
 		'plugins_loaded',
 		function () {
 
 			if ( ! shortcode_exists( 'cfp_speakers' ) ) {
-				add_shortcode( 'cfp_speakers', 'cfp_speakers_shortcode' );
+				add_shortcode( 'cfp_speakers', 'cfp_dev_speakers_shortcode' );
 			}
 		}
 	);
@@ -27,7 +27,7 @@ if ( ! function_exists( 'cfp_speakers_shortcode' ) ) {
 	 * @return string
 	 * @since  1.0.0
 	 */
-	function cfp_speakers_shortcode( $atts ) {
+	function cfp_dev_speakers_shortcode( $atts ) {
 		$_atts = shortcode_atts( cfp_dev_speakers_default_atts(), $atts );
 
 		$_atts['random']      = cfp_dev_attr_bool( $_atts['random'] );
@@ -38,14 +38,14 @@ if ( ! function_exists( 'cfp_speakers_shortcode' ) ) {
 		$ttl = cfp_dev_get_cache_ttl();
 
 		if ( 0 === $ttl ) {
-			$data    = getJSON( 'public/speakers?size=' . $_atts['size'] );
-			$content = generate_speakers_content( $data, $_atts );
+			$data    = cfp_dev_get_json( 'public/speakers?size=' . $_atts['size'] );
+			$content = cfp_dev_render_speakers( $data, $_atts );
 		} else {
 			$cache_key = cfp_dev_speakers_cache_key( $_atts );
 			$cache     = get_transient( $cache_key );
 			if ( false === $cache ) {
-				$data    = getJSON( 'public/speakers?size=' . $_atts['size'] );
-				$content = generate_speakers_content( $data, $_atts );
+				$data    = cfp_dev_get_json( 'public/speakers?size=' . $_atts['size'] );
+				$content = cfp_dev_render_speakers( $data, $_atts );
 				set_transient( $cache_key, $content, $ttl );
 			} else {
 				$content = $cache;
@@ -62,7 +62,7 @@ if ( ! function_exists( 'cfp_speakers_shortcode' ) ) {
 	 * @param array      $_atts  Normalised shortcode attributes.
 	 * @return string
 	 */
-	function generate_speakers_content( $data, $_atts ) {
+	function cfp_dev_render_speakers( $data, $_atts ) {
 		if ( empty( $data ) || ! is_array( $data ) ) {
 			return '<p>No speakers found.</p>';
 		}
@@ -70,7 +70,7 @@ if ( ! function_exists( 'cfp_speakers_shortcode' ) ) {
 		if ( $_atts['random'] ) {
 			shuffle( $data );
 		} else {
-			usort( $data, 'compareLastName' );
+			usort( $data, 'cfp_dev_compare_last_name' );
 		}
 
 		// Enforce the size attribute locally: the live API honours ?size=, but
@@ -101,7 +101,7 @@ if ( ! function_exists( 'cfp_speakers_shortcode' ) ) {
 			$first    = (string) ( $speaker->firstName ?? '' );
 			$last     = (string) ( $speaker->lastName ?? '' );
 			if ( $use_slugs ) {
-				$speaker_slug = generate_slug( $first . '-' . $last );
+				$speaker_slug = cfp_dev_generate_slug( $first . '-' . $last );
 				$content     .= '<a class="cfp-a" href="' . esc_url( cfp_dev_url( "/speaker/{$speaker_slug}" ) ) . '">';
 			} else {
 				$content .= '<a class="cfp-a" href="' . esc_url( cfp_dev_url( '/speaker?id=' . absint( $speaker->id ?? 0 ) ) ) . '">';
@@ -119,7 +119,7 @@ if ( ! function_exists( 'cfp_speakers_shortcode' ) ) {
 		$content .= '</section>';
 		$content .= '</div>';
 
-		$content .= getFooter();
+		$content .= cfp_dev_footer();
 
 		return $content;
 	}

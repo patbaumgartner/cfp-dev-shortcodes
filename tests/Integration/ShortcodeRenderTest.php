@@ -21,7 +21,7 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		$this->registerDefaultApi();
 		$this->api( 'public/speakers?size=300', Fixtures::speakers() );
 
-		$html = cfp_speakers_shortcode( [] );
+		$html = cfp_dev_speakers_shortcode( [] );
 
 		$this->assertHtmlBalanced( $html, '[cfp_speakers]' );
 		$this->assertStringContainsString( 'Jane Doe', $html );
@@ -35,7 +35,7 @@ final class ShortcodeRenderTest extends PluginTestCase {
 	public function test_speakers_honours_the_size_attribute_even_when_the_api_over_delivers(): void {
 		$this->api( 'public/speakers?size=1', Fixtures::speakers() );
 
-		$html = cfp_speakers_shortcode( [ 'size' => '1' ] );
+		$html = cfp_dev_speakers_shortcode( [ 'size' => '1' ] );
 
 		$this->assertStringContainsString( 'Jane Doe', $html );
 		$this->assertStringNotContainsString( 'Šumailov', $html );
@@ -44,7 +44,7 @@ final class ShortcodeRenderTest extends PluginTestCase {
 	public function test_speakers_reports_an_empty_api_result_without_breaking_markup(): void {
 		$this->api( 'public/speakers?size=300', [] );
 
-		$html = cfp_speakers_shortcode( [] );
+		$html = cfp_dev_speakers_shortcode( [] );
 
 		$this->assertHtmlBalanced( $html );
 		$this->assertStringContainsString( 'No speakers found', $html );
@@ -53,7 +53,7 @@ final class ShortcodeRenderTest extends PluginTestCase {
 	public function test_speakers_can_hide_the_title_and_search_form(): void {
 		$this->api( 'public/speakers?size=300', Fixtures::speakers() );
 
-		$html = cfp_speakers_shortcode(
+		$html = cfp_dev_speakers_shortcode(
 			[
 				'hide_title'  => 'yes',
 				'hide_search' => 'yes',
@@ -68,7 +68,7 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		$this->registerDefaultApi();
 		$this->queryVar( 'id', 100 );
 
-		$html = cfp_speaker_details_shortcode();
+		$html = cfp_dev_speaker_details_shortcode();
 
 		$this->assertHtmlBalanced( $html, '[cfp_speaker_details]' );
 		$this->assertStringContainsString( 'Jane Doe', $html );
@@ -82,7 +82,7 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		$this->registerDefaultApi();
 		$this->queryVar( 'speaker_slug', 'ilya-sumailov' );
 
-		$html = cfp_speaker_details_shortcode();
+		$html = cfp_dev_speaker_details_shortcode();
 
 		$this->assertHtmlBalanced( $html );
 		$this->assertStringContainsString( 'Ilya Šumailov', $html );
@@ -93,7 +93,7 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		$this->queryVar( 'id', 999 );
 		$this->api( 'public/speakers/999', null, 404 );
 
-		$this->assertSame( 'Speaker not found.', cfp_speaker_details_shortcode() );
+		$this->assertSame( 'Speaker not found.', cfp_dev_speaker_details_shortcode() );
 	}
 
 	public function test_talk_details_renders_description_schedule_video_and_speakers(): void {
@@ -101,7 +101,7 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		$this->search( 'x', [] );
 		$this->queryVar( 'id', 200 );
 
-		$html = cfp_talk_details_shortcode();
+		$html = cfp_dev_talk_details_shortcode();
 
 		$this->assertHtmlBalanced( $html, '[cfp_talk_details]' );
 		$this->assertStringContainsString( 'Modern Java in Practice', $html );
@@ -119,7 +119,7 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		$this->api( 'public/talks/200', $detail );
 		$this->queryVar( 'id', 200 );
 
-		$html = cfp_talk_details_shortcode();
+		$html = cfp_dev_talk_details_shortcode();
 
 		$this->assertStringNotContainsString( 'evil.test', $html );
 		$this->assertStringNotContainsString( 'cfp-podcast', $html );
@@ -129,14 +129,14 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		$this->queryVar( 'id', 999 );
 		$this->api( 'public/talks/999', null, 404 );
 
-		$this->assertSame( 'Talk not found.', cfp_talk_details_shortcode() );
+		$this->assertSame( 'Talk not found.', cfp_dev_talk_details_shortcode() );
 	}
 
 	public function test_talks_by_tracks_defaults_to_the_first_track(): void {
 		$this->registerDefaultApi();
 		$this->api( 'public/talks/track/10', [ Fixtures::talks()[0] ] );
 
-		$html = cfp_talks_by_tracks_shortcode( [] );
+		$html = cfp_dev_talks_by_tracks_shortcode( [] );
 
 		$this->assertHtmlBalanced( $html, '[cfp_talks_by_tracks]' );
 		$this->assertStringContainsString( 'Modern Java in Practice', $html );
@@ -147,7 +147,7 @@ final class ShortcodeRenderTest extends PluginTestCase {
 	public function test_talks_by_tracks_all_attribute_lists_every_talk(): void {
 		$this->registerDefaultApi();
 
-		$html = cfp_talks_by_tracks_shortcode( [ 'all' => 'true' ] );
+		$html = cfp_dev_talks_by_tracks_shortcode( [ 'all' => 'true' ] );
 
 		$this->assertHtmlBalanced( $html );
 		$this->assertStringContainsString( 'Modern Java in Practice', $html );
@@ -157,7 +157,7 @@ final class ShortcodeRenderTest extends PluginTestCase {
 	public function test_talks_by_tracks_handles_a_failing_api(): void {
 		$this->api( 'public/tracks', null, 500 );
 
-		$html = cfp_talks_by_tracks_shortcode( [] );
+		$html = cfp_dev_talks_by_tracks_shortcode( [] );
 
 		$this->assertHtmlBalanced( $html );
 		$this->assertStringContainsString( 'No tracks found', $html );
@@ -167,7 +167,7 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		$this->registerDefaultApi();
 		$this->api( 'public/talks/session-type/20', [ Fixtures::talks()[0] ] );
 
-		$html = cfp_talks_by_sessions_shortcode( [] );
+		$html = cfp_dev_talks_by_sessions_shortcode( [] );
 
 		$this->assertHtmlBalanced( $html, '[cfp_talks_by_sessions]' );
 		$this->assertStringContainsString( 'Conference', $html );
@@ -196,7 +196,7 @@ final class ShortcodeRenderTest extends PluginTestCase {
 			]
 		);
 
-		$html = cfp_search_results_shortcode();
+		$html = cfp_dev_search_results_shortcode();
 
 		$this->assertHtmlBalanced( $html, '[cfp_search_results]' );
 		$this->assertStringContainsString( 'Search results for', $html );
@@ -210,14 +210,14 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		$this->api( 'public/search?query=' . rawurlencode( 'img srcx onerroralert1' ), [] );
 		$this->search( 'img srcx onerroralert1', [] );
 
-		$html = cfp_search_results_shortcode();
+		$html = cfp_dev_search_results_shortcode();
 
 		$this->assertStringNotContainsString( '<img', $html );
 		$this->assertStringNotContainsString( 'onerror', $html );
 	}
 
 	public function test_search_results_without_a_query_still_offers_the_search_form(): void {
-		$html = cfp_search_results_shortcode();
+		$html = cfp_dev_search_results_shortcode();
 
 		$this->assertHtmlBalanced( $html, '[cfp_search_results] without a query' );
 		$this->assertStringContainsString( '<form', $html, 'visitors need a way to start a search' );
@@ -230,7 +230,7 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		$this->search( 'Bare Minimum Talk ', [] );
 		$this->queryVar( 'id', 202 );
 
-		$html = cfp_talk_details_shortcode();
+		$html = cfp_dev_talk_details_shortcode();
 
 		$this->assertHtmlBalanced( $html );
 		$this->assertStringContainsString( 'Bare Minimum Talk', $html );
@@ -265,7 +265,7 @@ final class ShortcodeRenderTest extends PluginTestCase {
 			]
 		);
 
-		$html = cfp_talk_details_shortcode();
+		$html = cfp_dev_talk_details_shortcode();
 
 		preg_match_all( '#<div class="cfp-related">(.*?)</div>#s', $html, $matches );
 		$related = implode( "\n", $matches[1] );
@@ -283,14 +283,14 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		$this->registerDefaultApi();
 		$this->api( 'public/speakers?size=300', Fixtures::speakers() );
 
-		$this->assertNoCssBreakout( cfp_speakers_shortcode( [] ) );
+		$this->assertNoCssBreakout( cfp_dev_speakers_shortcode( [] ) );
 	}
 
 	public function test_speaker_details_survives_a_profile_with_no_optional_fields(): void {
 		$this->registerDefaultApi();
 		$this->queryVar( 'id', 101 );
 
-		$html = cfp_speaker_details_shortcode();
+		$html = cfp_dev_speaker_details_shortcode();
 
 		$this->assertHtmlBalanced( $html );
 		$this->assertNoCssBreakout( $html );
@@ -312,8 +312,8 @@ final class ShortcodeRenderTest extends PluginTestCase {
 
 	public static function sparseTalkListProvider(): array {
 		return [
-			'by track'        => [ 'cfp_talks_by_tracks_shortcode', 'public/talks/track/10' ],
-			'by session type' => [ 'cfp_talks_by_sessions_shortcode', 'public/talks/session-type/20' ],
+			'by track'        => [ 'cfp_dev_talks_by_tracks_shortcode', 'public/talks/track/10' ],
+			'by session type' => [ 'cfp_dev_talks_by_sessions_shortcode', 'public/talks/session-type/20' ],
 		];
 	}
 
@@ -328,7 +328,7 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		);
 		$this->search( 'bare', [ [ 'title' => 'Bare Minimum Talk' ] ] );
 
-		$html = cfp_search_results_shortcode();
+		$html = cfp_dev_search_results_shortcode();
 
 		$this->assertHtmlBalanced( $html );
 		$this->assertStringContainsString( 'Bare Minimum Talk', $html );
@@ -337,7 +337,7 @@ final class ShortcodeRenderTest extends PluginTestCase {
 	public function test_schedule_renders_day_tabs_rooms_and_sessions(): void {
 		$this->registerScheduleApi();
 
-		$html = cfp_schedule_shortcode( [] );
+		$html = cfp_dev_schedule_shortcode( [] );
 
 		$this->assertHtmlBalanced( $html, '[cfp_schedule]' );
 		$this->assertStringContainsString( 'Modern Java in Practice', $html );
@@ -352,7 +352,7 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		// A site in another timezone must not shift the schedule's own clock.
 		$this->siteTimezone( 'America/New_York' );
 
-		$html = cfp_schedule_shortcode( [] );
+		$html = cfp_dev_schedule_shortcode( [] );
 
 		// Sessions run 07:00–09:20 UTC → 09:00–11:20 in Europe/Brussels.
 		preg_match_all( '#<time class="cfp-time" datetime="([^"]+)">([^<]+)</time>#', $html, $matches, PREG_SET_ORDER );
@@ -372,7 +372,7 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		$this->registerScheduleApi();
 		$this->api( 'public/event', $event );
 
-		$html = cfp_schedule_shortcode( [] );
+		$html = cfp_dev_schedule_shortcode( [] );
 
 		$this->assertStringContainsString( '?id=Wednesday', $html, 'the closing day must still be listed' );
 	}
@@ -381,7 +381,7 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		$this->registerScheduleApi();
 		$this->queryVar( 'id', '../../etc/passwd' );
 
-		$html = cfp_schedule_shortcode( [] );
+		$html = cfp_dev_schedule_shortcode( [] );
 
 		// Falls back to the event's first day rather than building an API path
 		// (and a transient key) out of arbitrary input.
@@ -392,7 +392,7 @@ final class ShortcodeRenderTest extends PluginTestCase {
 	public function test_schedule_reports_a_failing_event_endpoint(): void {
 		$this->api( 'public/event', null, 500 );
 
-		$this->assertSame( 'Failed to retrieve current event', cfp_schedule_shortcode( [] ) );
+		$this->assertSame( 'Failed to retrieve current event', cfp_dev_schedule_shortcode( [] ) );
 	}
 
 	public function test_schedule_reports_a_missing_event_timezone(): void {
@@ -400,7 +400,7 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		unset( $event['timezone'] );
 		$this->api( 'public/event', $event );
 
-		$this->assertSame( 'Event timezone is not set.', cfp_schedule_shortcode( [] ) );
+		$this->assertSame( 'Event timezone is not set.', cfp_dev_schedule_shortcode( [] ) );
 	}
 
 	public function test_shortcodes_are_registered_on_plugins_loaded(): void {

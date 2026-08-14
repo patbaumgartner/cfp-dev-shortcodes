@@ -20,9 +20,9 @@ final class ApiMemoisationTest extends PluginTestCase {
 	public function test_the_same_endpoint_is_fetched_once_per_request(): void {
 		$this->api( 'public/talks', Fixtures::talks() );
 
-		getJSON( 'public/talks' );
-		getJSON( 'public/talks' );
-		getJSON( 'public/talks' );
+		cfp_dev_get_json( 'public/talks' );
+		cfp_dev_get_json( 'public/talks' );
+		cfp_dev_get_json( 'public/talks' );
 
 		$this->assertSame( 1, $this->apiCallCount( 'public/talks' ) );
 	}
@@ -31,25 +31,25 @@ final class ApiMemoisationTest extends PluginTestCase {
 		$this->api( 'public/talks', Fixtures::talks() );
 		$this->api( 'public/tracks', Fixtures::tracks() );
 
-		$this->assertCount( 2, getJSON( 'public/talks' ) );
-		$this->assertCount( 2, getJSON( 'public/tracks' ) );
-		$this->assertSame( 'Java', getJSON( 'public/tracks' )[0]->name );
+		$this->assertCount( 2, cfp_dev_get_json( 'public/talks' ) );
+		$this->assertCount( 2, cfp_dev_get_json( 'public/tracks' ) );
+		$this->assertSame( 'Java', cfp_dev_get_json( 'public/tracks' )[0]->name );
 	}
 
 	public function test_a_failed_lookup_is_not_retried_within_the_request(): void {
 		$this->api( 'public/talks/404', null, 404 );
 
-		$this->assertNull( getJSON( 'public/talks/404' ) );
-		$this->assertNull( getJSON( 'public/talks/404' ) );
+		$this->assertNull( cfp_dev_get_json( 'public/talks/404' ) );
+		$this->assertNull( cfp_dev_get_json( 'public/talks/404' ) );
 		$this->assertSame( 1, $this->apiCallCount( 'public/talks/404' ) );
 	}
 
 	public function test_flushing_the_request_cache_allows_a_refetch(): void {
 		$this->api( 'public/talks', Fixtures::talks() );
 
-		getJSON( 'public/talks' );
+		cfp_dev_get_json( 'public/talks' );
 		cfp_dev_flush_request_cache();
-		getJSON( 'public/talks' );
+		cfp_dev_get_json( 'public/talks' );
 
 		$this->assertSame( 2, $this->apiCallCount( 'public/talks' ) );
 	}
@@ -61,8 +61,8 @@ final class ApiMemoisationTest extends PluginTestCase {
 		$this->search( 'Modern Java in Practice A talk about Java.', [] );
 		$this->queryVar( 'id', 200 );
 
-		$first  = cfp_talk_details_shortcode();
-		$second = cfp_talk_details_shortcode();
+		$first  = cfp_dev_talk_details_shortcode();
+		$second = cfp_dev_talk_details_shortcode();
 
 		$this->assertStringContainsString( 'Room 4', $first );
 		$this->assertSame( $first, $second, 'a second render must produce identical markup' );
@@ -74,7 +74,7 @@ final class ApiMemoisationTest extends PluginTestCase {
 		$this->onPage( 'talk' );
 		$this->queryVar( 'id', 200 );
 
-		cfp_talk_details_shortcode();
+		cfp_dev_talk_details_shortcode();
 		cfp_dev_page_meta();
 		ob_start();
 		cfp_dev_output_jsonld();
@@ -87,7 +87,7 @@ final class ApiMemoisationTest extends PluginTestCase {
 		$this->registerDefaultApi();
 		$this->queryVar( 'id', 100 );
 
-		cfp_speaker_details_shortcode();
+		cfp_dev_speaker_details_shortcode();
 
 		// The speaker's single proposal needs its detail record for the time
 		// slot; the sitemap/head layer must not fetch it again.
@@ -100,11 +100,11 @@ final class ApiMemoisationTest extends PluginTestCase {
 	public function test_memoised_responses_are_isolated_from_caller_mutation(): void {
 		$this->api( 'public/talks/200', Fixtures::talkDetail( 200 ) );
 
-		$first = getJSON( 'public/talks/200' );
+		$first = cfp_dev_get_json( 'public/talks/200' );
 		array_pop( $first->timeSlots );
 		$first->title = 'Mutated';
 
-		$second = getJSON( 'public/talks/200' );
+		$second = cfp_dev_get_json( 'public/talks/200' );
 
 		$this->assertCount( 1, $second->timeSlots );
 		$this->assertSame( 'Modern Java in Practice', $second->title );

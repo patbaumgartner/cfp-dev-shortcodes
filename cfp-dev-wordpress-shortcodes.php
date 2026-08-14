@@ -185,7 +185,7 @@ function cfp_dev_flush_request_cache(): void {
  * enumeration. Superseded transients simply expire via their TTL.
  */
 
-/** Version suffix appended to every transient key (see clearCache()). */
+/** Version suffix appended to every transient key (see cfp_dev_clear_cache()). */
 function cfp_dev_cache_salt(): string {
 	return '_v' . (int) get_option( 'cfp_dev_cache_version', 1 );
 }
@@ -261,7 +261,7 @@ function cfp_dev_page_header( string $title, string $subtitle = '', bool $show_s
 		$content .= '<div class="cfp-company">' . esc_html( $subtitle ) . '</div>';
 	}
 	if ( $show_search ) {
-		$content .= getSearchForm();
+		$content .= cfp_dev_search_form();
 	}
 	$content .= '</div>';
 	return $content;
@@ -370,7 +370,7 @@ function cfp_dev_page_uses_shortcodes(): bool {
 /**
  * Enqueues the front-end script and stylesheet on pages that use a shortcode.
  */
-function cfp_ajax_load_scripts() {
+function cfp_dev_enqueue_front_end_assets() {
 	if ( ! cfp_dev_page_uses_shortcodes() ) {
 		return;
 	}
@@ -378,7 +378,7 @@ function cfp_ajax_load_scripts() {
 	wp_enqueue_style( 'cfp-dev-style', plugin_dir_url( __FILE__ ) . 'shortcode/' . CFP_DEV_CSS, [], CFP_DEV_VERSION );
 }
 
-add_action( 'wp_enqueue_scripts', 'cfp_ajax_load_scripts' );
+add_action( 'wp_enqueue_scripts', 'cfp_dev_enqueue_front_end_assets' );
 
 /**
  * Registers the Settings → CFP.DEV admin page.
@@ -458,9 +458,9 @@ function cfp_dev_handle_settings_post( array $post ): string {
 		return '';
 	}
 
-	storeCfpDevKey( sanitize_text_field( $post['cfp_dev_key'] ) );
-	storeCfpDevEventName( sanitize_text_field( $post['cfp_dev_event_name'] ?? '' ) );
-	storeCfpDevCache( sanitize_text_field( $post['cfp_dev_cache'] ?? '0' ) );
+	cfp_dev_store_key( sanitize_text_field( $post['cfp_dev_key'] ) );
+	cfp_dev_store_event_name( sanitize_text_field( $post['cfp_dev_event_name'] ?? '' ) );
+	cfp_dev_store_cache_ttl( sanitize_text_field( $post['cfp_dev_cache'] ?? '0' ) );
 
 	update_option( 'cfp_dev_default_theme', cfp_dev_option_choice( $post['cfp_dev_default_theme'] ?? '', [ 'light', 'dark' ], 'dark' ) );
 	update_option( 'cfp_dev_content_by_id', cfp_dev_option_choice( $post['cfp_dev_content_by_id'] ?? '', [ 'yes', 'no' ], 'yes' ) );
@@ -479,7 +479,7 @@ function cfp_dev_handle_settings_post( array $post ): string {
 		flush_rewrite_rules();
 	}
 
-	clearCache();
+	cfp_dev_clear_cache();
 	return 'Settings saved.';
 }
 
@@ -508,8 +508,8 @@ function cfp_dev_handle_cache_deletion( array $post ): string {
 
 	if ( in_array( $cache_type, [ 'speaker', 'talk' ], true ) && isset( $post['cache_id'] ) ) {
 		$cache_id = sanitize_text_field( $post['cache_id'] );
-		delete_transient( generate_cfp_cache_key( $cache_type, $cache_id ) );
-		delete_transient( generate_cfp_cache_key( 'photo', $cache_id ) );
+		delete_transient( cfp_dev_detail_cache_key( $cache_type, $cache_id ) );
+		delete_transient( cfp_dev_detail_cache_key( 'photo', $cache_id ) );
 		return 'Cache deleted for ' . $cache_type . ' with ID: ' . $cache_id . ' (including any photo cache).';
 	}
 
@@ -531,7 +531,7 @@ function cfp_dev_handle_offline_mode( bool $enable ): void {
 		update_option( 'cfp_dev_offline_mode', 0 );
 		if ( $was_enabled ) {
 			// Rendered HTML still points at snapshot URLs — re-render from live API.
-			clearCache();
+			cfp_dev_clear_cache();
 		}
 		return;
 	}
@@ -691,7 +691,7 @@ function cfp_dev_plugin_options() {
 
 	// Speaker detail caches
 	echo '<h4>Speaker Detail Caches</h4>';
-	$speakers             = getJSON( 'public/speakers?size=' . CFP_DEV_SPEAKERS_FETCH_SIZE );
+	$speakers             = cfp_dev_get_json( 'public/speakers?size=' . CFP_DEV_SPEAKERS_FETCH_SIZE );
 	$speaker_caches_exist = false;
 
 	if ( is_array( $speakers ) || is_object( $speakers ) ) {
@@ -700,7 +700,7 @@ function cfp_dev_plugin_options() {
 			<tbody>';
 
 		foreach ( $speakers as $speaker ) {
-			$transient_key = generate_cfp_cache_key( 'speaker', $speaker->id );
+			$transient_key = cfp_dev_detail_cache_key( 'speaker', $speaker->id );
 			if ( get_transient( $transient_key ) !== false ) {
 				$speaker_caches_exist = true;
 				echo '<tr id="speaker-row-' . esc_attr( $speaker->id ) . '">
@@ -727,7 +727,7 @@ function cfp_dev_plugin_options() {
 
 	// Talk detail caches
 	echo '<h4>Talk Detail Caches</h4>';
-	$talks             = getJSON( 'public/talks' );
+	$talks             = cfp_dev_get_json( 'public/talks' );
 	$talk_caches_exist = false;
 
 	if ( is_array( $talks ) || is_object( $talks ) ) {
@@ -736,7 +736,7 @@ function cfp_dev_plugin_options() {
 				<tbody>';
 
 		foreach ( $talks as $talk ) {
-			$transient_key = generate_cfp_cache_key( 'talk', $talk->id );
+			$transient_key = cfp_dev_detail_cache_key( 'talk', $talk->id );
 			if ( get_transient( $transient_key ) !== false ) {
 				$talk_caches_exist = true;
 				echo '<tr>
@@ -844,7 +844,7 @@ function cfp_dev_plugin_options() {
  * @param string|int $id    Entity id (hashed into the key).
  * @return string
  */
-function generate_cfp_cache_key( $type, $id ) {
+function cfp_dev_detail_cache_key( $type, $id ) {
 	switch ( $type ) {
 		case 'speaker':
 			$key = 'cfp_speaker_details_' . md5( (string) $id );
@@ -867,7 +867,7 @@ function generate_cfp_cache_key( $type, $id ) {
  *
  * @param string $key  Raw key from the settings form.
  */
-function storeCfpDevKey( $key ) {
+function cfp_dev_store_key( $key ) {
 	// The key is a cfp.dev subdomain — restrict to safe hostname characters so it
 	// cannot alter the API URL (e.g. via dots or slashes).
 	$key = strtolower( preg_replace( '/[^A-Za-z0-9-]/', '', (string) $key ) );
@@ -880,7 +880,7 @@ function storeCfpDevKey( $key ) {
  *
  * @param int|string $ttl  TTL in seconds (0 disables caching).
  */
-function storeCfpDevCache( $ttl ) {
+function cfp_dev_store_cache_ttl( $ttl ) {
 	update_option( 'cfp_dev_cache_duration', max( 0, (int) $ttl ) );
 	delete_transient( 'CFP_DEV_CACHE' ); // Legacy storage location.
 }
@@ -890,7 +890,7 @@ function storeCfpDevCache( $ttl ) {
  *
  * @param string $cfpDevEventName  Event name from the settings form.
  */
-function storeCfpDevEventName( $cfpDevEventName ) {
+function cfp_dev_store_event_name( $cfpDevEventName ) {
 	update_option( 'cfp_dev_event_name', sanitize_text_field( (string) $cfpDevEventName ) );
 	delete_transient( 'CFP_DEV_EVENT_NAME' ); // Legacy storage location.
 }
@@ -902,15 +902,15 @@ function storeCfpDevEventName( $cfpDevEventName ) {
  * bumping the version instantly orphans every cached entry — no API calls, no
  * key enumeration. Orphaned transients expire naturally via their TTL.
  */
-function clearCache() {
+function cfp_dev_clear_cache() {
 	update_option( 'cfp_dev_cache_version', (int) get_option( 'cfp_dev_cache_version', 1 ) + 1 );
-	cfp_dev_log( 'clearCache: cache version bumped to ' . get_option( 'cfp_dev_cache_version' ) );
+	cfp_dev_log( 'cfp_dev_clear_cache: cache version bumped to ' . get_option( 'cfp_dev_cache_version' ) );
 }
 
 /**
  * Theme-switch footer (empty string when switching is disabled).
  */
-function getFooter() {
+function cfp_dev_footer() {
 	if ( cfp_dev_theme_switch_enabled() ) {
 		$content  = '<footer class="cfp-footer">';
 		$content .= '	<div class="cfp-theme">';
@@ -927,14 +927,14 @@ function getFooter() {
  * usort() comparator: orders speakers by last name, accent-insensitively
  * (transliterated to ASCII so e.g. Šumailov sorts under S).
  */
-function compareLastName( $x, $y ) {
+function cfp_dev_compare_last_name( $x, $y ) {
 	return iconv( 'utf-8', 'ascii//TRANSLIT', $x->lastName ) <=> iconv( 'utf-8', 'ascii//TRANSLIT', $y->lastName );
 }
 
 /**
  * usort() comparator: orders objects by their name property, accent-insensitively.
  */
-function compareName( $x, $y ) {
+function cfp_dev_compare_name( $x, $y ) {
 	return iconv( 'utf-8', 'ascii//TRANSLIT', $x->name ) <=> iconv( 'utf-8', 'ascii//TRANSLIT', $y->name );
 }
 
@@ -950,11 +950,11 @@ function compareName( $x, $y ) {
  * @param string $queryPath  Relative API path, e.g. 'public/speakers?size=500'.
  * @return mixed  Decoded JSON (object|array) or null on failure.
  */
-function getJSON( $queryPath ) {
+function cfp_dev_get_json( $queryPath ) {
 	// Reject path traversal — query paths are relative API routes and several
 	// callers interpolate user-supplied ids (also guards offline file lookups).
 	if ( str_contains( $queryPath, '..' ) || str_starts_with( $queryPath, '/' ) ) {
-		cfp_dev_log( 'getJSON: rejected suspicious query path — ' . $queryPath );
+		cfp_dev_log( 'cfp_dev_get_json: rejected suspicious query path — ' . $queryPath );
 		return null;
 	}
 
@@ -972,7 +972,7 @@ function getJSON( $queryPath ) {
 	$decoded = json_decode( $body );
 
 	if ( JSON_ERROR_NONE !== json_last_error() ) {
-		cfp_dev_log( 'getJSON: JSON decode error for ' . $queryPath . ' — ' . json_last_error_msg() );
+		cfp_dev_log( 'cfp_dev_get_json: JSON decode error for ' . $queryPath . ' — ' . json_last_error_msg() );
 		return null;
 	}
 
@@ -997,13 +997,13 @@ function cfp_dev_fetch_json_body( $queryPath ) {
 			return cfp_dev_read_snapshot_body( $queryPath );
 		}
 		// No completed snapshot at all — fall back to live API and disable offline mode.
-		cfp_dev_log( 'getJSON: no offline snapshot available, falling back to live API and disabling offline mode.' );
+		cfp_dev_log( 'cfp_dev_get_json: no offline snapshot available, falling back to live API and disabling offline mode.' );
 		update_option( 'cfp_dev_offline_mode', 0 );
-		clearCache();
+		cfp_dev_clear_cache();
 	}
 
 	if ( '' === cfp_dev_get_key() ) {
-		cfp_dev_log( 'getJSON: no CFP.DEV key configured, skipping ' . $queryPath );
+		cfp_dev_log( 'cfp_dev_get_json: no CFP.DEV key configured, skipping ' . $queryPath );
 		return null;
 	}
 
@@ -1019,17 +1019,17 @@ function cfp_dev_fetch_json_body( $queryPath ) {
 	);
 
 	if ( is_wp_error( $response ) ) {
-		cfp_dev_log( 'getJSON: error for ' . $queryPath . ' — ' . $response->get_error_message() );
+		cfp_dev_log( 'cfp_dev_get_json: error for ' . $queryPath . ' — ' . $response->get_error_message() );
 		return null;
 	}
 
 	$status_code = wp_remote_retrieve_response_code( $response );
 	if ( 200 !== $status_code ) {
-		cfp_dev_log( 'getJSON: HTTP ' . $status_code . ' for ' . $queryPath );
+		cfp_dev_log( 'cfp_dev_get_json: HTTP ' . $status_code . ' for ' . $queryPath );
 		return null;
 	}
 
-	cfp_dev_log( 'getJSON: OK ' . $queryPath );
+	cfp_dev_log( 'cfp_dev_get_json: OK ' . $queryPath );
 	return wp_remote_retrieve_body( $response );
 }
 
@@ -1040,7 +1040,7 @@ function cfp_dev_fetch_json_body( $queryPath ) {
  * @param string $query  Free-text search term.
  * @return array  Result objects sorted by the service, or [] on failure.
  */
-function searchJSON( $query ) {
+function cfp_dev_search_json( $query ) {
 	// Offline mode: live search is not available without the API.
 	if ( get_option( 'cfp_dev_offline_mode', 0 ) ) {
 		return [];
@@ -1049,11 +1049,11 @@ function searchJSON( $query ) {
 	$safe_query = rawurlencode( sanitize_text_field( $query ) );
 	$response   = wp_remote_get( cfp_dev_search_base() . $safe_query, [ 'timeout' => 30 ] );
 	if ( is_wp_error( $response ) ) {
-		cfp_dev_log( 'searchJSON: error — ' . $response->get_error_message() );
+		cfp_dev_log( 'cfp_dev_search_json: error — ' . $response->get_error_message() );
 		return [];
 	}
 	if ( 200 !== wp_remote_retrieve_response_code( $response ) ) {
-		cfp_dev_log( 'searchJSON: HTTP ' . wp_remote_retrieve_response_code( $response ) );
+		cfp_dev_log( 'cfp_dev_search_json: HTTP ' . wp_remote_retrieve_response_code( $response ) );
 		return [];
 	}
 	$decoded = json_decode( wp_remote_retrieve_body( $response ) );
@@ -1068,7 +1068,7 @@ function searchJSON( $query ) {
  * @param string       $format    date() format string.
  * @return string
  */
-function getTime( $time, $timezone, $format ) {
+function cfp_dev_format_time( $time, $timezone, $format ) {
 	$dt = new DateTime( $time, new DateTimeZone( 'UTC' ) );
 	$dt->setTimezone( $timezone );
 	return $dt->format( $format );
@@ -1082,7 +1082,7 @@ function getTime( $time, $timezone, $format ) {
  * can invoke the search as a structured tool. Regular browsers ignore the
  * extra attributes.
  */
-function getSearchForm() {
+function cfp_dev_search_form() {
 	// Absolute action URL — a relative one resolves against the current path
 	// (e.g. /talks-by-tracks/search-results) and 404s.
 	// toolname/tooldescription = declarative WebMCP metadata for AI agents.
@@ -1154,8 +1154,8 @@ function cfp_dev_delete_cache_handler() {
 
 	if ( 'speaker' === $cache_type || 'talk' === $cache_type ) {
 		// Use the shared key generator — raw string keys silently miss (keys are hashed + versioned).
-		$deleted_main  = delete_transient( generate_cfp_cache_key( $cache_type, $cache_id ) );
-		$deleted_photo = delete_transient( generate_cfp_cache_key( 'photo', $cache_id ) );
+		$deleted_main  = delete_transient( cfp_dev_detail_cache_key( $cache_type, $cache_id ) );
+		$deleted_photo = delete_transient( cfp_dev_detail_cache_key( 'photo', $cache_id ) );
 
 		cfp_dev_log( 'delete_cache: ' . $cache_type . ' transient deleted=' . ( $deleted_main ? 'true' : 'false' ) );
 		cfp_dev_log( 'delete_cache: photo transient deleted=' . ( $deleted_photo ? 'true' : 'false' ) );
@@ -1292,7 +1292,7 @@ function cfp_dev_maybe_upgrade() {
 	}
 
 	update_option( 'cfp_dev_installed_version', CFP_DEV_VERSION );
-	clearCache();
+	cfp_dev_clear_cache();
 	cfp_dev_log( 'upgrade: caches invalidated for version ' . CFP_DEV_VERSION );
 }
 add_action( 'init', 'cfp_dev_maybe_upgrade' );
@@ -1303,8 +1303,8 @@ add_action( 'init', 'cfp_dev_maybe_upgrade' );
  * @param int|string $id  Speaker id.
  * @return object|null
  */
-function get_speaker_by_id( $id ) {
-	return getJSON( 'public/speakers/' . $id );
+function cfp_dev_get_speaker_by_id( $id ) {
+	return cfp_dev_get_json( 'public/speakers/' . $id );
 }
 
 /**
@@ -1313,8 +1313,8 @@ function get_speaker_by_id( $id ) {
  * @param int|string $id  Talk id.
  * @return object|null
  */
-function get_talk_by_id( $id ) {
-	return getJSON( 'public/talks/' . $id );
+function cfp_dev_get_talk_by_id( $id ) {
+	return cfp_dev_get_json( 'public/talks/' . $id );
 }
 
 /**
@@ -1324,16 +1324,16 @@ function get_talk_by_id( $id ) {
  * @param string $slug  Speaker slug, e.g. 'jane-doe'.
  * @return int|null  Speaker id, or null when the slug is unknown.
  */
-function get_speaker_id_from_slug( $slug ) {
+function cfp_dev_speaker_id_from_slug( $slug ) {
 	$cache_key  = cfp_dev_group_cache_key( 'cfp_speaker_slug_' . md5( $slug ) );
 	$speaker_id = get_transient( $cache_key );
 
 	if ( false === $speaker_id ) {
 		$speaker_id = 0;
-		$speakers   = getJSON( 'public/speakers?size=' . CFP_DEV_SPEAKERS_FETCH_SIZE );
+		$speakers   = cfp_dev_get_json( 'public/speakers?size=' . CFP_DEV_SPEAKERS_FETCH_SIZE );
 		if ( is_array( $speakers ) ) {
 			foreach ( $speakers as $speaker ) {
-				$current_slug = generate_slug( $speaker->firstName . '-' . $speaker->lastName );
+				$current_slug = cfp_dev_generate_slug( $speaker->firstName . '-' . $speaker->lastName );
 				if ( $current_slug === $slug ) {
 					$speaker_id = $speaker->id;
 					break;
@@ -1354,16 +1354,16 @@ function get_speaker_id_from_slug( $slug ) {
  * @param string $slug  Talk slug, e.g. 'my-great-talk'.
  * @return int|null  Talk id, or null when the slug is unknown.
  */
-function get_talk_id_from_slug( $slug ) {
+function cfp_dev_talk_id_from_slug( $slug ) {
 	$cache_key = cfp_dev_group_cache_key( 'cfp_talk_slug_' . md5( $slug ) );
 	$talk_id   = get_transient( $cache_key );
 
 	if ( false === $talk_id ) {
 		$talk_id = 0;
-		$talks   = getJSON( 'public/talks' );
+		$talks   = cfp_dev_get_json( 'public/talks' );
 		if ( is_array( $talks ) ) {
 			foreach ( $talks as $talk ) {
-				if ( generate_slug( $talk->title ) === $slug ) {
+				if ( cfp_dev_generate_slug( $talk->title ) === $slug ) {
 					$talk_id = $talk->id;
 					break;
 				}
@@ -1386,7 +1386,7 @@ function get_talk_id_from_slug( $slug ) {
  * @param string $input  Text to slugify, e.g. a speaker name or talk title.
  * @return string
  */
-function generate_slug( $input ) {
+function cfp_dev_generate_slug( $input ) {
 	$slug = strtolower( trim( preg_replace( '/[^A-Za-z0-9-]+/', '-', remove_accents( (string) $input ) ), '-' ) );
 	return preg_replace( '/-{2,}/', '-', $slug );
 }
@@ -1395,7 +1395,7 @@ function generate_slug( $input ) {
  * Creates the required shortcode pages on plugin activation.
  * Existing pages (any status) are left untouched.
  */
-function cfp_create_required_pages() {
+function cfp_dev_create_required_pages() {
 	$pages = [
 		'speakers'          => [
 			'title'   => 'Speakers',
@@ -1444,7 +1444,7 @@ function cfp_create_required_pages() {
 
 	flush_rewrite_rules();
 }
-register_activation_hook( __FILE__, 'cfp_create_required_pages' );
+register_activation_hook( __FILE__, 'cfp_dev_create_required_pages' );
 
 
 /*
@@ -1498,7 +1498,7 @@ function cfp_dev_get_entity_cached( $type, $id ) {
 		}
 	}
 
-	$data = ( 'talk' === $type ) ? get_talk_by_id( $id ) : get_speaker_by_id( $id );
+	$data = ( 'talk' === $type ) ? cfp_dev_get_talk_by_id( $id ) : cfp_dev_get_speaker_by_id( $id );
 
 	if ( ! empty( $data ) && $ttl > 0 ) {
 		set_transient( $key, $data, $ttl );
@@ -1527,7 +1527,7 @@ function cfp_dev_resolve_current_entity() {
 		$slug = get_query_var( 'talk_slug' );
 		$id   = absint( get_query_var( 'id' ) );
 		if ( ! empty( $slug ) ) {
-			$id = (int) get_talk_id_from_slug( sanitize_title( $slug ) );
+			$id = (int) cfp_dev_talk_id_from_slug( sanitize_title( $slug ) );
 		}
 		if ( $id ) {
 			$talk = cfp_dev_get_entity_cached( 'talk', $id );
@@ -1542,7 +1542,7 @@ function cfp_dev_resolve_current_entity() {
 		$slug = get_query_var( 'speaker_slug' );
 		$id   = absint( get_query_var( 'id' ) );
 		if ( ! empty( $slug ) ) {
-			$id = (int) get_speaker_id_from_slug( sanitize_title( $slug ) );
+			$id = (int) cfp_dev_speaker_id_from_slug( sanitize_title( $slug ) );
 		}
 		if ( $id ) {
 			$speaker = cfp_dev_get_entity_cached( 'speaker', $id );
@@ -1578,7 +1578,7 @@ function cfp_dev_tracks_meta_description( $event_name ) {
 	}
 
 	$description = 'Browse talks by track at ' . $event_name . '.';
-	$tracks      = getJSON( 'public/tracks' );
+	$tracks      = cfp_dev_get_json( 'public/tracks' );
 
 	if ( is_array( $tracks ) && ! empty( $tracks ) ) {
 		if ( $track_id ) {
@@ -1630,7 +1630,7 @@ function cfp_dev_sessions_meta_description( $event_name ) {
 	}
 
 	$description = 'Browse talks by session type at ' . $event_name . '.';
-	$sessions    = getJSON( 'public/session-types' );
+	$sessions    = cfp_dev_get_json( 'public/session-types' );
 
 	if ( is_array( $sessions ) && ! empty( $sessions ) ) {
 		if ( $session_id ) {
@@ -1700,7 +1700,7 @@ function cfp_dev_resolve_page_meta() {
 		return [
 			'title'       => $title . ' - ' . $event_name,
 			'description' => $description,
-			'url'         => home_url( cfp_dev_url( '/talk/' . generate_slug( $talk->title ) ) ),
+			'url'         => home_url( cfp_dev_url( '/talk/' . cfp_dev_generate_slug( $talk->title ) ) ),
 			'image'       => cfp_dev_usable_image( $talk->trackImageURL ?? '' ),
 			'og_type'     => 'article',
 		];
@@ -1718,7 +1718,7 @@ function cfp_dev_resolve_page_meta() {
 		return [
 			'title'       => $name . ' - ' . $event_name,
 			'description' => $description,
-			'url'         => home_url( cfp_dev_url( '/speaker/' . generate_slug( $speaker->firstName . '-' . $speaker->lastName ) ) ),
+			'url'         => home_url( cfp_dev_url( '/speaker/' . cfp_dev_generate_slug( $speaker->firstName . '-' . $speaker->lastName ) ) ),
 			'image'       => (string) ( $speaker->imageUrl ?? '' ),
 			'og_type'     => 'profile',
 		];
@@ -1989,20 +1989,20 @@ function cfp_dev_resolve_sitemap_urls() {
 
 	$entries = [];
 
-	$talks = getJSON( 'public/talks' );
+	$talks = cfp_dev_get_json( 'public/talks' );
 	if ( is_array( $talks ) ) {
 		foreach ( $talks as $talk ) {
 			if ( ! empty( $talk->title ) ) {
-				$entries[ '/talk/' . generate_slug( $talk->title ) ] = true;
+				$entries[ '/talk/' . cfp_dev_generate_slug( $talk->title ) ] = true;
 			}
 		}
 	}
 
-	$speakers = getJSON( 'public/speakers?size=' . CFP_DEV_SPEAKERS_FETCH_SIZE );
+	$speakers = cfp_dev_get_json( 'public/speakers?size=' . CFP_DEV_SPEAKERS_FETCH_SIZE );
 	if ( is_array( $speakers ) ) {
 		foreach ( $speakers as $speaker ) {
 			if ( ! empty( $speaker->firstName ) ) {
-				$entries[ '/speaker/' . generate_slug( $speaker->firstName . '-' . $speaker->lastName ) ] = true;
+				$entries[ '/speaker/' . cfp_dev_generate_slug( $speaker->firstName . '-' . $speaker->lastName ) ] = true;
 			}
 		}
 	}
@@ -2042,7 +2042,7 @@ add_action( 'wp_sitemaps_init', 'cfp_dev_register_sitemap_provider' );
  * @param object $speaker  Speaker object from the API.
  * @return string
  */
-function getSocialLinks( $speaker ) {
+function cfp_dev_social_links( $speaker ) {
 	$content = '';
 	if ( ! empty( $speaker->twitterHandle ) ||
 		! empty( $speaker->linkedInUsername ) ||
