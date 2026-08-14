@@ -828,7 +828,11 @@ function wp_timezone() {
 // ─────────────────────────────────────────────────────────────────────────
 
 function wp_enqueue_script( $handle, $src = '', $deps = [], $ver = false, $args = [] ) {
-	WP_Test_State::$enqueued[]                 = $handle;
+	// WordPress ignores a handle that is already enqueued; so must this,
+	// or a plugin enqueueing from two places looks like a bug that is not one.
+	if ( ! in_array( $handle, WP_Test_State::$enqueued, true ) ) {
+		WP_Test_State::$enqueued[] = $handle;
+	}
 	WP_Test_State::$enqueued_assets[ $handle ] = [
 		'type' => 'script',
 		'src'  => $src,
@@ -839,7 +843,11 @@ function wp_enqueue_script( $handle, $src = '', $deps = [], $ver = false, $args 
 }
 
 function wp_enqueue_style( $handle, $src = '', $deps = [], $ver = false, $media = 'all' ) {
-	WP_Test_State::$enqueued[]                 = $handle;
+	// WordPress ignores a handle that is already enqueued; so must this,
+	// or a plugin enqueueing from two places looks like a bug that is not one.
+	if ( ! in_array( $handle, WP_Test_State::$enqueued, true ) ) {
+		WP_Test_State::$enqueued[] = $handle;
+	}
 	WP_Test_State::$enqueued_assets[ $handle ] = [
 		'type'  => 'style',
 		'src'   => $src,

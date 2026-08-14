@@ -27,6 +27,7 @@ if ( ! function_exists( 'cfp_dev_talks_by_tracks_shortcode' ) ) {
 	 * @since  1.0.0
 	 */
 	function cfp_dev_talks_by_tracks_shortcode( $atts = [] ) {
+		cfp_dev_shortcode_assets();
 		$defaults = [
 			'all'         => false,
 			'title'       => __( 'Talks grouped by Track', 'cfp-dev-shortcodes' ),

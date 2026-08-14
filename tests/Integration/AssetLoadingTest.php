@@ -65,6 +65,60 @@ final class AssetLoadingTest extends PluginTestCase {
 		$this->assertSame( [], WP_Test_State::$enqueued );
 	}
 
+	/**
+	 * The early pass reads the post content, and a theme is free to render a
+	 * shortcode from somewhere that content never mentions — a template, a
+	 * widget, the front page. That is how a live front page ended up showing
+	 * eight speaker cards with no stylesheet at all. Rendering the shortcode
+	 * is itself proof the page needs the assets.
+	 *
+	 * @dataProvider renderedShortcodeProvider
+	 */
+	public function test_rendering_a_shortcode_anywhere_loads_the_assets( string $shortcode ): void {
+		$this->registerDefaultApi();
+		$this->api( 'public/speakers?size=300', Fixtures::speakers() );
+		foreach ( [ 'Monday', 'Tuesday', 'Wednesday' ] as $day ) {
+			$this->api( 'public/schedules/' . $day, Fixtures::daySchedule() );
+			$this->api( 'public/schedules/' . $day . '/1', Fixtures::roomSchedule() );
+			$this->api( 'public/schedules/' . $day . '/2', [] );
+		}
+
+		// A front page whose content does not mention the shortcode, and which
+		// is not one of the plugin's own pages: neither early test can fire.
+		$this->queriedPost( '<p>Welcome to the conference.</p>' );
+		cfp_dev_enqueue_front_end_assets();
+		$this->assertSame( [], WP_Test_State::$enqueued, 'the early pass should find nothing here' );
+
+		$shortcode( [] );
+
+		$this->assertSame(
+			[ 'site-cfp', 'cfp-dev-style' ],
+			WP_Test_State::$enqueued,
+			$shortcode . ' rendered without its assets'
+		);
+	}
+
+	public static function renderedShortcodeProvider(): array {
+		return [
+			'speakers'   => [ 'cfp_dev_speakers_shortcode' ],
+			'schedule'   => [ 'cfp_dev_schedule_shortcode' ],
+			'by track'   => [ 'cfp_dev_talks_by_tracks_shortcode' ],
+			'by session' => [ 'cfp_dev_talks_by_sessions_shortcode' ],
+		];
+	}
+
+	/** Enqueuing twice must stay harmless — both paths can fire on one request. */
+	public function test_the_assets_are_enqueued_once_even_when_both_paths_fire(): void {
+		$this->registerDefaultApi();
+		$this->api( 'public/speakers?size=300', Fixtures::speakers() );
+		$this->queriedPost( '[cfp_speakers]' );
+
+		cfp_dev_enqueue_front_end_assets();
+		cfp_dev_speakers_shortcode( [] );
+
+		$this->assertSame( [ 'site-cfp', 'cfp-dev-style' ], WP_Test_State::$enqueued );
+	}
+
 	public function test_the_front_end_script_is_registered_without_jquery_and_version_busted(): void {
 		$this->queriedPost( '[cfp_speakers]' );
 

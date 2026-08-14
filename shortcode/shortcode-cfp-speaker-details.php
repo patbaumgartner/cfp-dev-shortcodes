@@ -28,6 +28,7 @@ if ( ! function_exists( 'cfp_dev_speaker_details_shortcode' ) ) {
 	 * @since  1.0.0
 	 */
 	function cfp_dev_speaker_details_shortcode() {
+		cfp_dev_shortcode_assets();
 		$speaker_slug = get_query_var( 'speaker_slug' );
 		$speaker_id   = absint( get_query_var( 'id' ) );
 
