@@ -65,14 +65,17 @@ final class OfflineSnapshotTest extends PluginTestCase {
 		$snapshot = $this->makeSnapshot( '2025-01-01_00-00-00', true );
 		file_put_contents( dirname( $snapshot ) . '/secret.json', '{"secret":true}' );
 
-		$this->assertNull( cfp_dev_get_json_offline( 'public/../../secret' ) );
+		// Asserted on the reader itself: cfp_dev_get_json() turns this path away
+		// before the snapshot is ever consulted, so going through it would prove
+		// only that the outer guard works.
+		$this->assertNull( cfp_dev_read_snapshot_body( 'public/../../secret' ) );
 	}
 
 	public function test_malformed_snapshot_json_is_reported_as_a_miss(): void {
 		$snapshot = $this->makeSnapshot( '2025-01-01_00-00-00', true );
 		$this->writeSnapshotJson( $snapshot, 'public/event', '{broken' );
 
-		$this->assertNull( cfp_dev_get_json_offline( 'public/event' ) );
+		$this->assertNull( cfp_dev_read_snapshot_body( 'public/event' ) );
 	}
 
 	public function test_pruning_keeps_only_the_newest_snapshots(): void {
