@@ -60,17 +60,32 @@ function cfp_dev_get_json( $query_path ) {
  * only to show which caches exist, so an unreachable API would otherwise hold
  * the page for a full 30 seconds per list before rendering anything.
  *
+ * Shorter again for search. What justifies waiting 30 seconds elsewhere is
+ * that the answer populates a cache, so at most one visitor pays it. Search
+ * results are never cached — the query space is unbounded — so every request
+ * pays in full, on a public URL, and a site with ten PHP workers is taken down
+ * by ten slow searches. A search that has not answered in a few seconds is of
+ * no use to the person waiting for it anyway.
+ *
+ * @param string $query_path  Relative API path the timeout is for.
  * @return int
  */
-function cfp_dev_api_timeout(): int {
-	$timeout = is_admin() ? 10 : 30;
+function cfp_dev_api_timeout( string $query_path = '' ): int {
+	if ( str_starts_with( $query_path, CFP_DEV_SEARCH_PATH ) ) {
+		$timeout = 8;
+	} elseif ( is_admin() ) {
+		$timeout = 10;
+	} else {
+		$timeout = 30;
+	}
 
 	/**
 	 * Filters the HTTP timeout used for CFP.DEV API requests.
 	 *
-	 * @param int $timeout  Timeout in seconds.
+	 * @param int    $timeout     Timeout in seconds.
+	 * @param string $query_path  Relative API path the timeout is for.
 	 */
-	return max( 1, (int) apply_filters( 'cfp_dev_api_timeout', $timeout ) );
+	return max( 1, (int) apply_filters( 'cfp_dev_api_timeout', $timeout, $query_path ) );
 }
 
 /**
@@ -111,7 +126,7 @@ function cfp_dev_fetch_json_body( $query_path ) {
 	$response = wp_remote_get(
 		cfp_dev_api_base() . $query_path,
 		[
-			'timeout' => cfp_dev_api_timeout(),
+			'timeout' => cfp_dev_api_timeout( $query_path ),
 			'headers' => [
 				'Accept'     => CFP_DEV_APPLICATION_JSON,
 				'Connection' => 'keep-alive',
@@ -153,8 +168,10 @@ function cfp_dev_search_json( $query ) {
 		return [];
 	}
 
+	// Timed out as the search path it is: this runs on the uncached public
+	// search page, and again for the related-talks list on a talk page.
 	$safe_query = rawurlencode( sanitize_text_field( $query ) );
-	$response   = wp_remote_get( cfp_dev_search_base() . $safe_query, [ 'timeout' => cfp_dev_api_timeout() ] );
+	$response   = wp_remote_get( cfp_dev_search_base() . $safe_query, [ 'timeout' => cfp_dev_api_timeout( CFP_DEV_SEARCH_PATH ) ] );
 	if ( is_wp_error( $response ) ) {
 		cfp_dev_log( 'cfp_dev_search_json: error — ' . $response->get_error_message() );
 		return [];

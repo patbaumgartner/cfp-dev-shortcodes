@@ -68,6 +68,11 @@ if ( ! defined( 'CFP_DEV_SPEAKERS_FETCH_SIZE' ) ) {
 	define( 'CFP_DEV_SPEAKERS_FETCH_SIZE', 500 );
 }
 
+// The one API path whose results are never cached, and so is timed out sooner.
+if ( ! defined( 'CFP_DEV_SEARCH_PATH' ) ) {
+	define( 'CFP_DEV_SEARCH_PATH', 'public/search' );
+}
+
 /*
  * ── Module load ───────────────────────────────────────────────────
  * Core modules first — later ones call into earlier ones — then the
