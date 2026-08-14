@@ -44,5 +44,8 @@
 .gitattributes export-ignore
 .gitignore export-ignore
 .github/ export-ignore
-ChangeLog.md export-ignore
-README.txt export-ignore
+tests/ export-ignore
+phpcs.xml.dist export-ignore
+phpunit.xml.dist export-ignore
+composer.json export-ignore
+CHANGELOG.md export-ignore

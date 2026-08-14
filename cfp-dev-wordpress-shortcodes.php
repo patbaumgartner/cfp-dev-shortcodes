@@ -3,11 +3,13 @@
  * Plugin Name:       CFP.DEV shortcodes
  * Plugin URI:        https://github.com/patbaumgartner/cfp-dev-shortcodes
  * Description:       Display CFP.DEV conference content on your WordPress site: speakers, talks, schedule, and search — with light/dark theming, caching, and offline mode.
- * Version:           4.4.3
+ * Version:           4.5.0
+ * Requires at least: 6.0
+ * Requires PHP:      8.0
  * Author:            Stephan Janssen, Patrick Baumgartner
  * Author URI:        https://x.com/stephan007
  * License:           GPL-2.0+
- * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
+ * License URI:       https://www.gnu.org/licenses/gpl-2.0.txt
  * Text Domain:       cfp-dev-shortcodes
  */
 
@@ -26,7 +28,7 @@ if ( ! defined( 'CFP_DEV_APPLICATION_JSON' ) ) {
 
 // Plugin version.
 if ( ! defined( 'CFP_DEV_VERSION' ) ) {
-	define( 'CFP_DEV_VERSION', '4.4.3' );
+	define( 'CFP_DEV_VERSION', '4.5.0' );
 }
 
 if ( ! defined( 'CFP_DEV_NAME' ) ) {
@@ -63,7 +65,7 @@ if ( ! defined( 'CFP_DEV_SEARCH_DOMAIN' ) ) {
 
 if ( ! defined( 'CFP_DEV_CSS' ) ) {
 	// Stylesheet is versioned by minor release — rename on breaking style changes.
-	define( 'CFP_DEV_CSS', 'css/cfp_dev_v4_4.css' );
+	define( 'CFP_DEV_CSS', 'css/cfp_dev_v4_5.css' );
 }
 
 // Single fetch size for full speaker-list lookups (was 300/400/500 in different places).
