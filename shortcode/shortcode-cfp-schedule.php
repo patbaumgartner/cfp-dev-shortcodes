@@ -249,7 +249,7 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 									$content .= '        <div id="dev-cfp-talk-' . absint( $item->proposal->id ) . '" class="cfp-favourite">' . absint( $item->proposal->totalFavourites ) . '</div>';
 								}
 								if ( ! empty( $item->proposal->track->imageURL ) ) {
-									$content .= '        <div class="cfp-track" style="background-image: url(' . esc_url( $item->proposal->track->imageURL ) . ');filter: grayscale(100%);"></div>';
+									$content .= '        <div class="cfp-track" style="background-image: url(\'' . esc_url( $item->proposal->track->imageURL ) . '\');filter: grayscale(100%);"></div>';
 								}
 							}
 
@@ -274,7 +274,7 @@ if ( ! function_exists( 'cfp_schedule_shortcode' ) ) {
 
 							if ( ! empty( $item->proposal->speakers ) && ( is_array( $item->proposal->speakers ) || is_object( $item->proposal->speakers ) ) ) {
 								foreach ( $item->proposal->speakers as $speaker ) {
-									$content .= '<div class="cfp-speaker">' . esc_html( $speaker->firstName . ' ' . $speaker->lastName ) . '</div>';
+									$content .= '<div class="cfp-speaker">' . esc_html( trim( ( $speaker->firstName ?? '' ) . ' ' . ( $speaker->lastName ?? '' ) ) ) . '</div>';
 								}
 							}
 

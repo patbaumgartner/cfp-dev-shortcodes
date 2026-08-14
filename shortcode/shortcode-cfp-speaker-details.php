@@ -152,17 +152,17 @@ if ( ! function_exists( 'cfp_speaker_details_shortcode' ) ) {
 	 */
 	function generateSpeakerContent( $speaker ) {
 		$content  = '<section class="cfp-profile">';
-		$content .= '    <div class="cfp-picture" style="background-image: url(' . esc_url( $speaker->imageUrl ) . ')"></div>';
+		$content .= '    <div class="cfp-picture" style="background-image: url(\'' . esc_url( (string) ( $speaker->imageUrl ?? '' ) ) . '\')"></div>';
 		$content .= '    <div class="cfp-content">';
 		$content .= '        <div class="cfp-detail">';
-		$content .= '            <div class="cfp-name">' . esc_html( $speaker->firstName . ' ' . $speaker->lastName ) . '</div>';
+		$content .= '            <div class="cfp-name">' . esc_html( trim( ( $speaker->firstName ?? '' ) . ' ' . ( $speaker->lastName ?? '' ) ) ) . '</div>';
 		$content .= getSocialLinks( $speaker );
 		$content .= '        </div>';
 		if ( ! empty( $speaker->company ) ) {
 			$content .= '        <div class="cfp-company cfp-company-left">' . esc_html( $speaker->company ) . '</div>';
 		}
 		$content .= '        <div class="cfp-text">';
-		$content .= wp_kses_post( $speaker->bio );
+		$content .= wp_kses_post( (string) ( $speaker->bio ?? '' ) );
 		$content .= '        </div>';
 		$content .= '    </div>';
 		$content .= '</section>';
@@ -186,19 +186,19 @@ if ( ! function_exists( 'cfp_speaker_details_shortcode' ) ) {
 	function generateTalkContent( $talk ) {
 		$use_slugs = ( 'no' === get_option( 'cfp_dev_content_by_id', 'yes' ) );
 		$talk_url  = $use_slugs
-			? cfp_dev_url( '/talk/' . generate_slug( $talk->title ) )
-			: cfp_dev_url( '/talk?id=' . absint( $talk->id ) );
+			? cfp_dev_url( '/talk/' . generate_slug( (string) ( $talk->title ?? '' ) ) )
+			: cfp_dev_url( '/talk?id=' . absint( $talk->id ?? 0 ) );
 
 		$content  = '<section class="cfp-session">';
 		$content .= '    <div class="cfp-foreword">';
-		$content .= '        <a class="cfp-a" href="' . esc_url( cfp_dev_url( '/talks-by-tracks/?id=' . absint( $talk->track->id ) ) ) . '">';
-		$content .= '            <div class="cfp-track" title="' . esc_attr( $talk->track->name ) . '" style="background-image: url(' . esc_url( $talk->track->imageURL ) . ')"></div>';
+		$content .= '        <a class="cfp-a" href="' . esc_url( cfp_dev_url( '/talks-by-tracks/?id=' . absint( $talk->track->id ?? 0 ) ) ) . '">';
+		$content .= '            <div class="cfp-track" title="' . esc_attr( (string) ( $talk->track->name ?? '' ) ) . '" style="background-image: url(\'' . esc_url( (string) ( $talk->track->imageURL ?? '' ) ) . '\')"></div>';
 		$content .= '        </a>';
 		$content .= '        <a class="cfp-a" href="' . esc_url( $talk_url ) . '">';
-		$content .= '            <div class="cfp-name">' . esc_html( $talk->title ) . '</div>';
+		$content .= '            <div class="cfp-name">' . esc_html( (string) ( $talk->title ?? '' ) ) . '</div>';
 		$content .= '        </a>';
 		$content .= '        <div class="cfp-type">';
-		$content .= '            <a href="' . esc_url( cfp_dev_url( '/talks-by-sessions/?id=' . absint( $talk->sessionType->id ) ) ) . '">' . esc_html( $talk->sessionType->name ) . '</a> <em>(' . esc_html( $talk->audienceLevel ) . ' level)</em>';
+		$content .= '            <a href="' . esc_url( cfp_dev_url( '/talks-by-sessions/?id=' . absint( $talk->sessionType->id ?? 0 ) ) ) . '">' . esc_html( (string) ( $talk->sessionType->name ?? '' ) ) . '</a> <em>(' . esc_html( (string) ( $talk->audienceLevel ?? '' ) ) . ' level)</em>';
 		$content .= '        </div>';
 
 		$content .= generateTalkScheduleInfo( $talk );
@@ -207,7 +207,7 @@ if ( ! function_exists( 'cfp_speaker_details_shortcode' ) ) {
 		$content .= '    </div>';
 		$content .= '    <div class="cfp-content">';
 		$content .= '        <div class="cfp-text">';
-		$content .= wp_kses_post( cleanupDescription( $talk->description ) );
+		$content .= wp_kses_post( cleanupDescription( (string) ( $talk->description ?? '' ) ) );
 		$content .= '        </div>';
 		$content .= '        <a class="cfp-a" href="' . esc_url( $talk_url ) . '">More</a>';
 
@@ -229,7 +229,7 @@ if ( ! function_exists( 'cfp_speaker_details_shortcode' ) ) {
 	 */
 	function generateTalkScheduleInfo( $talk ) {
 		$content     = '';
-		$talkDetails = getJSON( 'public/talks/' . absint( $talk->id ) );
+		$talkDetails = getJSON( 'public/talks/' . absint( $talk->id ?? 0 ) );
 		if ( empty( $talkDetails ) || empty( $talkDetails->timeSlots ) || ! is_array( $talkDetails->timeSlots ) ) {
 			return $content;
 		}
@@ -276,8 +276,9 @@ if ( ! function_exists( 'cfp_speaker_details_shortcode' ) ) {
 			return $content;
 		}
 		foreach ( $talk->keywords as $keyword ) {
+			$name     = (string) ( $keyword->name ?? '' );
 			$content .= '<span class="cfp-span">';
-			$content .= '    <a href="' . esc_url( cfp_dev_url( '/search-results/?query=' . rawurlencode( $keyword->name ) ) ) . '">' . esc_html( ucwords( $keyword->name ) ) . '</a>';
+			$content .= '    <a href="' . esc_url( cfp_dev_url( '/search-results/?query=' . rawurlencode( $name ) ) ) . '">' . esc_html( ucwords( $name ) ) . '</a>';
 			$content .= '</span>';
 		}
 		$content .= '        </div>';

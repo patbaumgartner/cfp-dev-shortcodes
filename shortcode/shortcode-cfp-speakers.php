@@ -98,14 +98,16 @@ if ( ! function_exists( 'cfp_speakers_shortcode' ) ) {
 
 		foreach ( $data as $speaker ) {
 			$content .= ' <div class="cfp-person">';
+			$first    = (string) ( $speaker->firstName ?? '' );
+			$last     = (string) ( $speaker->lastName ?? '' );
 			if ( $use_slugs ) {
-				$speaker_slug = generate_slug( $speaker->firstName . '-' . $speaker->lastName );
+				$speaker_slug = generate_slug( $first . '-' . $last );
 				$content     .= '<a class="cfp-a" href="' . esc_url( cfp_dev_url( "/speaker/{$speaker_slug}" ) ) . '">';
 			} else {
-				$content .= '<a class="cfp-a" href="' . esc_url( cfp_dev_url( '/speaker?id=' . absint( $speaker->id ) ) ) . '">';
+				$content .= '<a class="cfp-a" href="' . esc_url( cfp_dev_url( '/speaker?id=' . absint( $speaker->id ?? 0 ) ) ) . '">';
 			}
-			$content .= '           <div class="cfp-picture" style="background-image: url(' . esc_url( $speaker->imageUrl ) . ')"></div>';
-			$content .= '        <div class="cfp-name">' . esc_html( $speaker->firstName . ' ' . $speaker->lastName ) . '</div>';
+			$content .= '           <div class="cfp-picture" style="background-image: url(\'' . esc_url( (string) ( $speaker->imageUrl ?? '' ) ) . '\')"></div>';
+			$content .= '        <div class="cfp-name">' . esc_html( trim( $first . ' ' . $last ) ) . '</div>';
 			if ( ! empty( $speaker->company ) ) {
 				$content .= '        <div class="cfp-company">' . esc_html( $speaker->company ) . '</div>';
 			}

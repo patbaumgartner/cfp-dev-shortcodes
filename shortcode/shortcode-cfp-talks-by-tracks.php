@@ -113,12 +113,12 @@ if ( ! function_exists( 'cfp_talks_by_tracks_shortcode' ) ) {
 		$content .= '<div class="cfp-group">';
 		$content .= '    <div class="cfp-foreword">';
 		if ( ! empty( $trackDescr ) ) {
-			$content .= '       <div class="cfp-text">' . wp_kses_post( $trackDescr ) . '</div>';
+			$content .= '       <div class="cfp-text">' . wp_kses_post( (string) $trackDescr ) . '</div>';
 		}
 		$content .= '    </div>';
 
-		$content .= generateTableHeading();
-		$content .= generateTalkArticles( $talks );
+		$content .= cfp_dev_talk_table_heading();
+		$content .= cfp_dev_talk_table_rows( $talks );
 
 		$content .= '</div>';
 		$content .= '</section>';
@@ -135,66 +135,6 @@ if ( ! function_exists( 'cfp_talks_by_tracks_shortcode' ) ) {
 	 */
 	function modifyCfpClasses() {
 		return cfp_dev_root_class_script( 'session' );
-	}
-
-	/**
-	 * Renders the table heading row.
-	 *
-	 * @return string
-	 */
-	function generateTableHeading() {
-		$content  = '    <div class="cfp-row cfp-headline">';
-		$content .= '        <div class="cfp-field">Title</div>';
-		$content .= '        <div class="cfp-field cfp-speaker">Speakers</div>';
-		$content .= '        <div class="cfp-field">Track</div>';
-		$content .= '        <div class="cfp-field"></div>';
-		$content .= '    </div>';
-		return $content;
-	}
-
-	/**
-	 * Renders one table row per talk (title, speakers, track image, view link).
-	 *
-	 * @param array|null $talks  Talks from the API, or null on failure.
-	 * @return string
-	 */
-	function generateTalkArticles( $talks ) {
-		if ( empty( $talks ) || ! is_array( $talks ) ) {
-			return '';
-		}
-		$use_slugs = ( 'no' === get_option( 'cfp_dev_content_by_id', 'yes' ) );
-		$content   = '';
-		foreach ( $talks as $talk ) {
-			$content .= '<article class="cfp-article cfp-row cfp-event">';
-			$content .= '    <div class="cfp-field">' . esc_html( $talk->title ) . '</div>';
-			$content .= '    <div class="cfp-field cfp-speaker">';
-			foreach ( $talk->speakers as $speaker ) {
-				if ( $use_slugs ) {
-					$speaker_slug = generate_slug( $speaker->firstName . '-' . $speaker->lastName );
-					$content     .= '<a class="cfp-a" href="' . esc_url( cfp_dev_url( "/speaker/{$speaker_slug}" ) ) . '">' . esc_html( $speaker->firstName ) . '&nbsp;' . esc_html( $speaker->lastName ) . '</a>';
-				} else {
-					$content .= '<a class="cfp-a" href="' . esc_url( cfp_dev_url( '/speaker?id=' . absint( $speaker->id ) ) ) . '">' . esc_html( $speaker->firstName ) . '&nbsp;' . esc_html( $speaker->lastName ) . '</a>';
-				}
-			}
-			$content .= '    </div>';
-			$content .= '    <div class="cfp-field">';
-			if ( empty( $talk->trackImageURL ) ) {
-				$trackImageURL = $talk->track->imageURL ?? '';
-			} else {
-				$trackImageURL = $talk->trackImageURL;
-			}
-			$content .= '        <div class="cfp-track" style="background-image: url(' . esc_url( $trackImageURL ) . ')"></div>';
-			$content .= '    </div>';
-			$content .= '    <div class="cfp-field">';
-			if ( $use_slugs ) {
-				$content .= '        <a class="cfp-a" href="' . esc_url( cfp_dev_url( '/talk/' . generate_slug( $talk->title ) ) ) . '">View</a>';
-			} else {
-				$content .= '        <a class="cfp-a" href="' . esc_url( cfp_dev_url( '/talk?id=' . absint( $talk->id ) ) ) . '">View</a>';
-			}
-			$content .= '    </div>';
-			$content .= '</article>';
-		}
-		return $content;
 	}
 
 	/**

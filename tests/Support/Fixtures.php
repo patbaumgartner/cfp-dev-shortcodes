@@ -255,6 +255,17 @@ final class Fixtures {
 		];
 	}
 
+	/**
+	 * A talk as the API returns it when every optional field is omitted:
+	 * no speakers array, no track image, no audience level, no description.
+	 */
+	public static function sparseTalk(): array {
+		return [
+			'id'    => 202,
+			'title' => 'Bare Minimum Talk',
+		];
+	}
+
 	/** Time slots for one conference day (`public/schedules/{Day}`). */
 	public static function daySchedule(): array {
 		return [
