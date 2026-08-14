@@ -222,6 +222,30 @@ final class OfflineCrawlerTest extends PluginTestCase {
 		$this->assertStringContainsString( $local_name, $speakers );
 	}
 
+	/**
+	 * A rewrite is a promise that the file is there. Made unconditionally it
+	 * replaced a working CDN URL with a snapshot path nothing had written, so
+	 * every failed download became a permanently broken image with no way back
+	 * to the original.
+	 */
+	public function test_an_image_that_failed_to_download_keeps_its_original_url(): void {
+		$this->registerCrawlableApi();
+		$this->image( self::IMAGE_URL, '', 'text/html', 500 );
+		cfp_dev_start_crawl();
+		$snapshot = get_option( 'cfp_dev_crawl_state' )['snapshot'];
+
+		cfp_dev_do_crawl();
+
+		$this->assertFileDoesNotExist( $snapshot . '/images/' . md5( self::IMAGE_URL ) . '.jpg' );
+
+		$speakers = json_decode( (string) file_get_contents( $snapshot . '/api/public/speakers.json' ) );
+		$this->assertSame(
+			self::IMAGE_URL,
+			$speakers[0]->imageUrl,
+			'the snapshot must keep the URL it could not localise'
+		);
+	}
+
 	public function test_after_a_crawl_reads_are_served_from_the_snapshot(): void {
 		$this->registerCrawlableApi();
 		cfp_dev_start_crawl();
