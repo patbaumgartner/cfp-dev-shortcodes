@@ -271,6 +271,10 @@ function cfp_dev_page_header( string $title, string $subtitle = '', bool $show_s
  * Emits the inline script that swaps the cfp-* classes on the root element.
  * Shared by every shortcode (was duplicated six times).
  *
+ * When the theme toggle is enabled the script also applies the visitor's
+ * stored preference here, before first paint — applying it later from the
+ * footer script made every page flash the default theme first.
+ *
  * @param string $page  Page key, e.g. 'speaker', 'schedule', 'session', 'search'.
  * @param string $view  Optional view key, e.g. 'detail'.
  */
@@ -281,11 +285,35 @@ function cfp_dev_root_class_script( string $page, string $view = '' ): string {
 		$classes[] = 'cfp-view:' . $view;
 	}
 
+	$restore_theme = '';
+	if ( cfp_dev_theme_switch_enabled() ) {
+		$restore_theme = 'var saved = null;'
+			. 'try { saved = window.localStorage.getItem("cfp-theme"); } catch (error) { saved = null; }'
+			. 'if ("light" === saved || "dark" === saved) {'
+			. 'root.classList.remove(' . wp_json_encode( 'cfp-theme:' . $theme ) . ');'
+			. 'root.classList.add("cfp-theme:" + saved);'
+			. '}';
+	}
+
 	return '<script>(function () {'
 		. 'var root = document.documentElement;'
 		. 'Array.prototype.slice.call(root.classList).forEach(function (c) { if (0 === c.indexOf("cfp-")) { root.classList.remove(c); } });'
 		. wp_json_encode( $classes ) . '.forEach(function (c) { root.classList.add(c); });'
+		. $restore_theme
 		. '})();</script>';
+}
+
+/** The shortcode tags this plugin registers. */
+function cfp_dev_shortcode_tags(): array {
+	return [
+		'cfp_speakers',
+		'cfp_speaker_details',
+		'cfp_talk_details',
+		'cfp_schedule',
+		'cfp_talks_by_tracks',
+		'cfp_talks_by_sessions',
+		'cfp_search_results',
+	];
 }
 
 // Load the offline crawler and all shortcode modules.
@@ -309,10 +337,44 @@ foreach ( $cfp_dev_modules as $cfp_dev_module ) {
 unset( $cfp_dev_modules, $cfp_dev_module );
 
 /**
- * Enqueues the front-end script and stylesheet shared by all shortcodes.
+ * Whether the current request renders a page that uses a plugin shortcode.
+ *
+ * The stylesheet is large and the script is only useful on plugin pages, so
+ * they are not loaded across the rest of the site. Shortcodes rendered from
+ * somewhere other than the post content (a widget, a template part) are not
+ * detectable here — themes can force the assets on with the
+ * `cfp_dev_enqueue_assets` filter.
+ */
+function cfp_dev_page_uses_shortcodes(): bool {
+	$post = is_admin() ? null : get_post();
+	$uses = false;
+
+	if ( $post instanceof WP_Post ) {
+		foreach ( cfp_dev_shortcode_tags() as $tag ) {
+			if ( has_shortcode( $post->post_content, $tag ) ) {
+				$uses = true;
+				break;
+			}
+		}
+	}
+
+	/**
+	 * Filters whether the CFP.DEV front-end assets are enqueued.
+	 *
+	 * @param bool         $uses  Whether a plugin shortcode was found in the post content.
+	 * @param WP_Post|null $post  The queried post, when there is one.
+	 */
+	return (bool) apply_filters( 'cfp_dev_enqueue_assets', $uses, $post );
+}
+
+/**
+ * Enqueues the front-end script and stylesheet on pages that use a shortcode.
  */
 function cfp_ajax_load_scripts() {
-	wp_enqueue_script( 'site-cfp', plugin_dir_url( __FILE__ ) . 'js/site.js', [ 'jquery' ], CFP_DEV_VERSION, true );
+	if ( ! cfp_dev_page_uses_shortcodes() ) {
+		return;
+	}
+	wp_enqueue_script( 'site-cfp', plugin_dir_url( __FILE__ ) . 'js/site.js', [], CFP_DEV_VERSION, true );
 	wp_enqueue_style( 'cfp-dev-style', plugin_dir_url( __FILE__ ) . 'shortcode/' . CFP_DEV_CSS, [], CFP_DEV_VERSION );
 }
 

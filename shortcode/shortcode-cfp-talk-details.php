@@ -164,7 +164,7 @@ if ( ! function_exists( 'cfp_talk_details_shortcode' ) ) {
 		}
 
 		$content  = '<div class="cfp-podcast">';
-		$content .= '<iframe style="border-radius:12px" src="' . esc_url( $talk->podcastURL . '?utm_source=WordPress' ) . '"
+		$content .= '<iframe style="border-radius:12px" title="' . esc_attr( 'Podcast: ' . (string) ( $talk->title ?? '' ) ) . '" src="' . esc_url( $talk->podcastURL . '?utm_source=WordPress' ) . '"
 					 width="100%" height="80"
 					 frameBorder="0" allowfullscreen=""
 					 allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
@@ -230,7 +230,7 @@ if ( ! function_exists( 'cfp_talk_details_shortcode' ) ) {
 	function getVideo( $talk, $content ) {
 		if ( ! empty( $talk->videoURL ) ) {
 			$content .= '<div class="cfp-text">';
-			$content .= '	<iframe width="560" height="315" src="' . esc_url( $talk->videoURL ) . '" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
+			$content .= '	<iframe width="560" height="315" src="' . esc_url( $talk->videoURL ) . '" title="' . esc_attr( 'Video: ' . (string) ( $talk->title ?? '' ) ) . '" loading="lazy" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
 			$content .= '	<br>';
 			$content .= '</div>';
 		}
