@@ -45,3 +45,7 @@ require_once dirname( __DIR__ ) . '/cfp-dev-wordpress-shortcodes.php';
 // WordPress fires this after all plugins are loaded; the shortcode modules
 // register their tags on it.
 do_action( 'plugins_loaded' );
+
+// Everything hooked from here on belongs to a test, and is dropped between
+// tests so one cannot change the next through a filter it forgot to remove.
+WP_Test_State::rememberPluginHooks();

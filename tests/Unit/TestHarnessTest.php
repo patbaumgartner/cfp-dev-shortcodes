@@ -47,4 +47,25 @@ final class TestHarnessTest extends PluginTestCase {
 
 		$this->assertStringStartsWith( ABSPATH, cfp_dev_offline_dir() );
 	}
+
+	/**
+	 * Hooks are global, and nothing removed the ones a test added, so a filter
+	 * registered to prove one behaviour went on quietly changing every test
+	 * that ran afterwards — a whole suite's worth of results depending on the
+	 * order they happened to run in.
+	 */
+	public function test_a_test_starts_with_only_the_plugin_hooks_registered(): void {
+		$this->assertSame( \WP_Test_State::$plugin_hooks, \WP_Test_State::$hooks );
+
+		add_filter( 'cfp_dev_api_timeout', static fn( $timeout ) => $timeout );
+
+		$this->assertNotSame( \WP_Test_State::$plugin_hooks, \WP_Test_State::$hooks, 'the fixture proves nothing if the filter did not register' );
+	}
+
+	/** The plugin's own hooks must survive that reset, or nothing renders. */
+	public function test_the_plugin_hooks_themselves_survive(): void {
+		$this->assertNotSame( [], \WP_Test_State::$plugin_hooks );
+		$this->assertArrayHasKey( 'wp_head', \WP_Test_State::$hooks );
+		$this->assertTrue( shortcode_exists( 'cfp_speakers' ) );
+	}
 }

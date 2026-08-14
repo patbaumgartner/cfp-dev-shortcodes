@@ -4,6 +4,7 @@
          bootstrap="tests/bootstrap.php"
          colors="true"
          cacheDirectory=".phpunit.cache"
+         executionOrder="random"
          beStrictAboutOutputDuringTests="true"
          failOnRisky="true"
          failOnWarning="true"

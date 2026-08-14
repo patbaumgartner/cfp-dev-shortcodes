@@ -77,6 +77,17 @@ final class WP_Test_State { // phpcs:ignore
 	/** @var array<string,array<int,array{callback:callable,priority:int}>> Hook name => callbacks. */
 	public static array $hooks = [];
 
+	/**
+	 * The hooks the plugin registered while loading.
+	 *
+	 * Restored between tests so a filter one test adds cannot silently change
+	 * the next — while the plugin's own registrations, made once at bootstrap,
+	 * survive. See WP_Test_State::rememberPluginHooks().
+	 *
+	 * @var array<string,array<int,array{callback:callable,priority:int}>>
+	 */
+	public static array $plugin_hooks = [];
+
 	/** @var array<string,callable> Shortcode tag => callback. */
 	public static array $shortcodes = [];
 
@@ -94,6 +105,16 @@ final class WP_Test_State { // phpcs:ignore
 
 	/** @var mixed[] Payloads passed to wp_send_json_success()/wp_send_json_error(). */
 	public static array $json_responses = [];
+
+	/** Records the hooks the plugin registered, once loading is complete. */
+	public static function rememberPluginHooks(): void {
+		self::$plugin_hooks = self::$hooks;
+	}
+
+	/** Drops every hook a test added, keeping the plugin's own. */
+	public static function resetHooks(): void {
+		self::$hooks = self::$plugin_hooks;
+	}
 }
 
 // ─────────────────────────────────────────────────────────────────────────
