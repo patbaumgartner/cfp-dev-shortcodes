@@ -67,13 +67,17 @@ if ( ! function_exists( 'cfp_dev_talks_by_tracks_shortcode' ) ) {
 			return null;
 		}
 
+		// Sort first: the filter nav below is ordered by name, so choosing the
+		// default from the API's own order highlighted a tab that was usually
+		// not the one the reader saw first.
+		usort( $tracks, 'cfp_dev_compare_name' );
+
 		$track_descr = '';
 
 		if ( empty( $track_id ) ) {
 			if ( ! empty( $_atts['all'] ) ) {
 				$track_id = -1;
 			} else {
-				// Default to the first track.
 				$track_id    = absint( $tracks[0]->id ?? 0 );
 				$track_descr = $tracks[0]->description ?? '';
 			}
@@ -96,12 +100,7 @@ if ( ! function_exists( 'cfp_dev_talks_by_tracks_shortcode' ) ) {
 		$content .= '<div class="cfp-main">';
 		$content .= '<section class="cfp-list">';
 
-		if ( ! empty( $tracks ) ) {
-			usort( $tracks, 'cfp_dev_compare_name' );
-			$content .= cfp_dev_render_track_filter( $tracks, $track_id, $_atts );
-		} else {
-			$content .= cfp_dev_render_no_tracks();
-		}
+		$content .= cfp_dev_render_track_filter( $tracks, $track_id, $_atts );
 
 		$content .= '<div class="cfp-group">';
 		$content .= '    <div class="cfp-foreword">';
