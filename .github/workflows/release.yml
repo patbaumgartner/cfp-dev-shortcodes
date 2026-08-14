@@ -27,14 +27,28 @@ jobs:
           echo "slug=$SLUG"       >> "$GITHUB_OUTPUT"
           echo "zip=${SLUG}-${VERSION}.zip" >> "$GITHUB_OUTPUT"
 
-      - name: Verify plugin header version matches tag
+      - name: Verify plugin version matches the tag
         run: |
-          HEADER_VERSION=$(grep -Po "(?<=Version:\s{11})\S+" cfp-dev-wordpress-shortcodes.php)
           TAG_VERSION="${{ steps.meta.outputs.version }}"
+          PLUGIN_FILE="cfp-dev-wordpress-shortcodes.php"
+
+          HEADER_VERSION=$(grep -oP '^ \* Version:\s+\K\S+' "$PLUGIN_FILE")
+          CONST_VERSION=$(grep -oP "define\(\s*'CFP_DEV_VERSION',\s*'\K[^']+" "$PLUGIN_FILE")
+
+          fail=0
           if [ "$HEADER_VERSION" != "$TAG_VERSION" ]; then
-            echo "ERROR: Plugin header version ($HEADER_VERSION) does not match tag ($TAG_VERSION)"
-            exit 1
+            echo "ERROR: plugin header version ($HEADER_VERSION) does not match tag ($TAG_VERSION)"
+            fail=1
           fi
+          if [ "$CONST_VERSION" != "$TAG_VERSION" ]; then
+            echo "ERROR: CFP_DEV_VERSION ($CONST_VERSION) does not match tag ($TAG_VERSION)"
+            fail=1
+          fi
+          if ! grep -q "^## \[$TAG_VERSION\]" CHANGELOG.md; then
+            echo "ERROR: CHANGELOG.md has no entry for $TAG_VERSION"
+            fail=1
+          fi
+          exit "$fail"
 
       - name: Build ZIP (production files only, no vendor/ or dev artifacts)
         run: |
@@ -48,14 +62,23 @@ jobs:
             --exclude='.git' \
             --exclude='.github' \
             --exclude='dist' \
+            --exclude='tests' \
             --exclude='vendor' \
             --exclude='composer.json' \
             --exclude='composer.lock' \
             --exclude='phpcs.xml.dist' \
+            --exclude='phpunit.xml.dist' \
+            --exclude='.phpunit.cache' \
             --exclude='*.md' \
-            --exclude='README.txt' \
-            --exclude='ChangeLog.md' \
             ./ "dist/${SLUG}/"
+
+          # A stray test or dev artifact in a released ZIP is shipped code.
+          for unwanted in tests vendor composer.json phpunit.xml.dist; do
+            if [ -e "dist/${SLUG}/${unwanted}" ]; then
+              echo "ERROR: ${unwanted} leaked into the release ZIP"
+              exit 1
+            fi
+          done
 
           cd dist
           zip -r "../${ZIP}" "${SLUG}/"
