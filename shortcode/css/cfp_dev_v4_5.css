@@ -13,9 +13,27 @@
  *     schedule, search (cfp-page:index rules are legacy — the plugin does
  *     not emit that class), plus .cfp-view:detail on detail pages.
  *   - Theming via .cfp-theme:light / .cfp-theme:dark on the root element.
+ *   - Colours that differ per theme come from the custom properties in the
+ *     THEME section. Writing one as a literal picks whichever theme the
+ *     author had on screen and makes it unreadable in the other — which is
+ *     what happened to the table column headers and the search placeholders.
  *   - The page wrapper is matched as :is(main, div).cfp-main — the plugin
  *     emits <div class="cfp-main"> (themes own the <main> landmark), while
  *     main.cfp-main keeps older cached markup styled.
+ *
+ * About "unused" rules: roughly a third of the classes here are never written
+ * by the plugin's PHP, and they are not dead. They are reached three other
+ * ways, so check which before removing any:
+ *   - API-supplied HTML. Talk descriptions and speaker bios are injected into
+ *     .cfp-text through wp_kses_post(), which keeps class attributes, so the
+ *     .cfp-text em.cfp-em / strong.cfp-strong / a.cfp-a rules style content
+ *     the CFP.DEV editor produced.
+ *   - Theme scripts. .cfp-now marks the session happening now, driven from
+ *     the cfpTimezone / cfpTalkFrom / cfpTalkExpiry inputs the talk page
+ *     emits; .cfp-browser:load and .cfp-browser:resize suppress transitions
+ *     and are set on the root element.
+ *   - Regeneration. This file is compiled output, so anything deleted here
+ *     comes back on the next compile from the design system's SCSS.
  */
 
 /* ////////////////////////////////////////////////////////////////////////////// */
