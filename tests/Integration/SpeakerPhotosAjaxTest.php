@@ -85,6 +85,21 @@ final class SpeakerPhotosAjaxTest extends PluginTestCase {
 		$this->assertStringContainsString( 'No photos found', $html );
 	}
 
+	/**
+	 * This endpoint is unauthenticated, so a failing album must cost exactly
+	 * one upstream request. A retry loop here once slept between attempts that
+	 * the request memo made identical, pinning a worker for a quarter second
+	 * per anonymous call and asking the API nothing extra.
+	 */
+	public function test_a_failing_album_costs_exactly_one_upstream_request(): void {
+		$this->registerDefaultApi();
+		$this->api( 'public/album/100', null, 500 );
+
+		$this->request( [ 'speaker_id' => '100' ] );
+
+		$this->assertSame( 1, $this->apiCallCount( 'public/album/100' ) );
+	}
+
 	public function test_photos_without_a_thumbnail_are_skipped(): void {
 		$this->registerDefaultApi();
 		$this->api(

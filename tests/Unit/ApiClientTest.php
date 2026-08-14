@@ -112,13 +112,18 @@ final class ApiClientTest extends PluginTestCase {
 		$this->assertSame( [], $this->httpLog() );
 	}
 
-	public function test_offline_mode_without_a_snapshot_falls_back_to_the_live_api(): void {
+	/**
+	 * The site keeps working, but a page view is a read: it must not rewrite
+	 * the operator's setting or discard every cached page. Both are visible
+	 * side effects of an anonymous GET, and racing requests repeat them.
+	 */
+	public function test_offline_mode_without_a_snapshot_serves_live_without_touching_settings(): void {
 		$this->option( 'cfp_dev_offline_mode', 1 );
 		$this->api( 'public/event', [ 'name' => 'Devoxx' ] );
 
 		$this->assertSame( 'Devoxx', cfp_dev_get_json( 'public/event' )->name );
-		$this->assertSame( 0, (int) get_option( 'cfp_dev_offline_mode' ), 'offline mode should switch itself off' );
-		$this->assertSame( 2, (int) get_option( 'cfp_dev_cache_version' ), 'stale rendered HTML should be invalidated' );
+		$this->assertSame( 1, (int) get_option( 'cfp_dev_offline_mode' ), 'a read must not rewrite the setting' );
+		$this->assertSame( 1, (int) get_option( 'cfp_dev_cache_version' ), 'a read must not invalidate every cache' );
 	}
 
 	public function test_clear_cache_bumps_the_cache_version(): void {

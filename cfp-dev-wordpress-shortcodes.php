@@ -98,9 +98,10 @@ $cfp_dev_modules = [
 	'shortcode/shortcode-cfp-search-results.php',
 ];
 foreach ( $cfp_dev_modules as $cfp_dev_module ) {
-	if ( file_exists( CFP_DEV_DIR . '/' . $cfp_dev_module ) ) {
-		require_once CFP_DEV_DIR . '/' . $cfp_dev_module;
-	}
+	// Deliberately unguarded: a module missing from an install is a corrupt
+	// deployment, and skipping it silently starts a plugin that half works and
+	// fails later, far from the cause.
+	require_once CFP_DEV_DIR . '/' . $cfp_dev_module;
 }
 unset( $cfp_dev_modules, $cfp_dev_module );
 
