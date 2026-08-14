@@ -46,7 +46,7 @@ if ( ! function_exists( 'cfp_dev_talks_by_sessions_shortcode' ) ) {
 			static function () use ( $session_id, $_atts ) {
 				return cfp_dev_render_talks_by_sessions( $session_id, $_atts );
 			},
-			cfp_dev_root_class_script( 'session' ) . '<div class="cfp-main"><section class="cfp-list">' . cfp_dev_render_no_session_types() . '</section></div>'
+			cfp_dev_empty_list_page( __( 'No session types found', 'cfp-dev-shortcodes' ) )
 		);
 	}
 
@@ -118,20 +118,6 @@ if ( ! function_exists( 'cfp_dev_talks_by_sessions_shortcode' ) ) {
 		$content .= '</div>';
 		$content .= cfp_dev_footer();
 
-		return $content;
-	}
-
-	/**
-	 * Renders the "no session types found" placeholder.
-	 *
-	 * @return string
-	 */
-	function cfp_dev_render_no_session_types() {
-		$content  = '<div class="dev-cfp-row">';
-		$content .= '    <div class="dev-cfp-column">';
-		$content .= '        <p>' . esc_html__( 'No session types found', 'cfp-dev-shortcodes' ) . '</p>';
-		$content .= '    </div>';
-		$content .= '</div>';
 		return $content;
 	}
 }

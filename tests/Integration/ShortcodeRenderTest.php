@@ -232,6 +232,32 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		$this->assertStringContainsString( 'No tracks found', $html );
 	}
 
+	/**
+	 * The fallback page is what a visitor sees when the list cannot be
+	 * fetched, so it has to be a page — laid out with the classes the
+	 * stylesheet knows, not the dev-cfp-* ones it has no rules for.
+	 *
+	 * @dataProvider emptyListPageProvider
+	 */
+	public function test_a_list_page_falls_back_to_a_laid_out_message( string $shortcode, string $path, string $message ): void {
+		$this->api( $path, null, 500 );
+
+		$html = $shortcode( [] );
+
+		$this->assertHtmlBalanced( $html );
+		$this->assertStringContainsString( $message, $html );
+		$this->assertStringContainsString( '<div class="cfp-main">', $html );
+		$this->assertStringContainsString( 'class="cfp-text"', $html );
+		$this->assertStringNotContainsString( 'dev-cfp-', $html, 'the stylesheet has no rules for these classes' );
+	}
+
+	public static function emptyListPageProvider(): array {
+		return [
+			'tracks'        => [ 'cfp_dev_talks_by_tracks_shortcode', 'public/tracks', 'No tracks found' ],
+			'session types' => [ 'cfp_dev_talks_by_sessions_shortcode', 'public/session-types', 'No session types found' ],
+		];
+	}
+
 	public function test_talks_by_sessions_skips_pause_session_types(): void {
 		$this->registerDefaultApi();
 		$this->api( 'public/talks/session-type/20', [ Fixtures::talks()[0] ] );
