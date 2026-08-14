@@ -87,6 +87,45 @@ final class UninstallTest extends PluginTestCase {
 		$this->assertSame( 'keep me', get_transient( 'unrelated_plugin_cache' ) );
 	}
 
+	/**
+	 * Uninstall deletes cache entries by matching name prefixes in SQL, which
+	 * only works for the prefixes somebody remembered to list. The keys here
+	 * are built by the plugin's own key functions rather than written out, so
+	 * a cache group whose name does not match what uninstall looks for is
+	 * caught here instead of being left behind on every site that removes the
+	 * plugin.
+	 *
+	 * @dataProvider cacheKeyProvider
+	 */
+	public function test_every_key_the_plugin_writes_is_removed( string $key ): void {
+		set_transient( $key, 'cached', 3600 );
+
+		$this->runUninstall();
+
+		$this->assertFalse( get_transient( $key ), $key . ' survived uninstall' );
+	}
+
+	public static function cacheKeyProvider(): array {
+		$keys = [
+			'entity'            => cfp_dev_group_cache_key( 'cfp_entity_talk_' . md5( '200' ) ),
+			'known speaker ids' => cfp_dev_group_cache_key( 'cfp_known_speaker_ids' ),
+			'track meta'        => cfp_dev_group_cache_key( 'cfp_meta_tracks_10' ),
+			'session meta'      => cfp_dev_group_cache_key( 'cfp_meta_sessions_20' ),
+			'sitemap'           => cfp_dev_group_cache_key( 'cfp_sitemap_urls' ),
+			'speaker slug'      => cfp_dev_group_cache_key( 'cfp_speaker_slug_' . md5( 'jane-doe' ) ),
+			'talk slug'         => cfp_dev_group_cache_key( 'cfp_talk_slug_' . md5( 'a-talk' ) ),
+			'talks by track'    => cfp_dev_group_cache_key( 'talks_by_tracks_cache_group_10' ),
+			'talks by session'  => cfp_dev_group_cache_key( 'talks_by_sessions_cache_group_20' ),
+			'schedule day'      => cfp_dev_schedule_cache_key( 'Monday', [], [] ),
+			'speaker grid'      => cfp_dev_speakers_cache_key( cfp_dev_speakers_default_atts() ),
+			'speaker detail'    => cfp_dev_detail_cache_key( 'speaker', 100 ),
+			'talk detail'       => cfp_dev_detail_cache_key( 'talk', 200 ),
+			'photo gallery'     => cfp_dev_detail_cache_key( 'photo', 100 ),
+		];
+
+		return array_map( static fn( string $key ): array => [ $key ], $keys );
+	}
+
 	public function test_legacy_settings_transients_are_removed(): void {
 		set_transient( 'CFP_DEV_KEY', 'dvbe23', 0 );
 		set_transient( 'CFP_DEV_CACHE', 3600, 0 );
