@@ -85,13 +85,13 @@ if ( ! function_exists( 'cfp_talk_details_shortcode' ) ) {
 			$content .= '<section class="cfp-session">';
 			$content .= '    <div class="cfp-foreword">';
 
-			$content .= '		<a class="cfp-a" href="' . esc_url( cfp_dev_url( '/talks-by-tracks/?id=' . absint( $talk->trackId ) ) ) . '">';
-			$content .= '			<div class="cfp-track" title="' . esc_attr( $talk->trackName ) . '"  style="background-image: url(' . esc_url( $talk->trackImageURL ) . ')"></div>';
+			$content .= '		<a class="cfp-a" href="' . esc_url( cfp_dev_url( '/talks-by-tracks/?id=' . absint( $talk->trackId ?? 0 ) ) ) . '">';
+			$content .= '			<div class="cfp-track" title="' . esc_attr( (string) ( $talk->trackName ?? '' ) ) . '"  style="background-image: url(\'' . esc_url( (string) ( $talk->trackImageURL ?? '' ) ) . '\')"></div>';
 			$content .= '		</a>';
-			$content .= '		<div class="cfp-name">' . esc_html( $talk->title ) . '</div>';
+			$content .= '		<div class="cfp-name">' . esc_html( (string) ( $talk->title ?? '' ) ) . '</div>';
 			$content .= '       <div class="cfp-type">';
-			$content .= '			<a href="' . esc_url( cfp_dev_url( '/talks-by-sessions/?id=' . absint( $talk->sessionTypeId ) ) ) . '">'
-				. esc_html( $talk->sessionTypeName ) . '</a> <em>(' . esc_html( $talk->audienceLevel ) . ' level)</em>';
+			$content .= '			<a href="' . esc_url( cfp_dev_url( '/talks-by-sessions/?id=' . absint( $talk->sessionTypeId ?? 0 ) ) ) . '">'
+				. esc_html( (string) ( $talk->sessionTypeName ?? '' ) ) . '</a> <em>(' . esc_html( (string) ( $talk->audienceLevel ?? '' ) ) . ' level)</em>';
 			$content .= '       </div>';
 
 			$content .= getScheduleInfo( $talk );
@@ -108,7 +108,7 @@ if ( ! function_exists( 'cfp_talk_details_shortcode' ) ) {
 
 			$content .= '<div class="cfp-text">';
 
-			$content .= wp_kses_post( $talk->description );
+			$content .= wp_kses_post( (string) ( $talk->description ?? '' ) );
 
 			$content .= '</div>';
 
@@ -245,22 +245,23 @@ if ( ! function_exists( 'cfp_talk_details_shortcode' ) ) {
 
 		// Fetch the semantic results first (truncate the query — full descriptions
 		// produce excessively long URLs).
-		$semanticResult = searchJSON( mb_substr( $talk->title . ' ' . wp_strip_all_tags( (string) $talk->description ), 0, 500 ) );
+		$semanticResult = searchJSON( mb_substr( trim( ( $talk->title ?? '' ) . ' ' . wp_strip_all_tags( (string) ( $talk->description ?? '' ) ) ), 0, 500 ) );
 
 		if ( ! empty( $semanticResult ) && count( $semanticResult ) > 0 ) {
 			// Sort the fetched results by score, best (lowest) first.
-			usort( $semanticResult, fn( $a, $b ) => $a->score <=> $b->score );
+			usort( $semanticResult, fn( $a, $b ) => ( $a->score ?? 0 ) <=> ( $b->score ?? 0 ) );
 
 			$use_slugs = ( 'no' === get_option( 'cfp_dev_content_by_id', 'yes' ) );
 
 			$content .= '<div class="cfp-related-title">Related</div>';
 			foreach ( $semanticResult as $item ) {
-				if ( absint( $item->id ) !== absint( $talk->id ) && ! str_contains( strtolower( $item->title ), 'overflow' ) ) {
+				$item_title = (string) ( $item->title ?? '' );
+				if ( absint( $item->id ?? 0 ) !== absint( $talk->id ?? 0 ) && ! str_contains( strtolower( $item_title ), 'overflow' ) ) {
 					$content .= '    <div class="cfp-related">';
 					if ( $use_slugs ) {
-						$content .= '       <a href="' . esc_url( cfp_dev_url( '/talk/' . generate_slug( $item->title ) ) ) . '">' . esc_html( $item->title ) . '</a>';
+						$content .= '       <a href="' . esc_url( cfp_dev_url( '/talk/' . generate_slug( $item_title ) ) ) . '">' . esc_html( $item_title ) . '</a>';
 					} else {
-						$content .= '       <a href="' . esc_url( cfp_dev_url( '/talk?id=' . absint( $item->id ) ) ) . '">' . esc_html( $item->title ) . '</a>';
+						$content .= '       <a href="' . esc_url( cfp_dev_url( '/talk?id=' . absint( $item->id ?? 0 ) ) ) . '">' . esc_html( $item_title ) . '</a>';
 					}
 					$content .= '    </div>';
 				}
@@ -281,22 +282,22 @@ if ( ! function_exists( 'cfp_talk_details_shortcode' ) ) {
 			return $content;
 		}
 		$use_slugs = ( 'no' === get_option( 'cfp_dev_content_by_id', 'yes' ) );
-		foreach ( $talk->speakers as $speaker ) {
+		foreach ( (array) ( $talk->speakers ?? [] ) as $speaker ) {
 			$content .= '		<div class="cfp-profile">';
 			if ( $use_slugs ) {
-				$speaker_slug = generate_slug( $speaker->firstName . '-' . $speaker->lastName );
+				$speaker_slug = generate_slug( ( $speaker->firstName ?? '' ) . '-' . ( $speaker->lastName ?? '' ) );
 				$content     .= '<a class="cfp-a" href="' . esc_url( cfp_dev_url( "/speaker/{$speaker_slug}" ) ) . '">';
 			} else {
-				$content .= '<a class="cfp-a" href="' . esc_url( cfp_dev_url( '/speaker?id=' . absint( $speaker->id ) ) ) . '">';
+				$content .= '<a class="cfp-a" href="' . esc_url( cfp_dev_url( '/speaker?id=' . absint( $speaker->id ?? 0 ) ) ) . '">';
 			}
 			if ( empty( $speaker->imageUrl ) ) {
-				$content .= '			<div class="cfp-picture" title="' . esc_attr( $speaker->company ) . '" style="background-image: url(' . esc_url( plugins_url( 'shortcode/gfx/avatar.jpg', __DIR__ ) ) . ')"></div>';
+				$content .= '			<div class="cfp-picture" title="' . esc_attr( (string) ( $speaker->company ?? '' ) ) . '" style="background-image: url(\'' . esc_url( plugins_url( 'shortcode/gfx/avatar.jpg', __DIR__ ) ) . '\')"></div>';
 			} else {
-				$content .= '			<div class="cfp-picture" title="' . esc_attr( $speaker->company ) . '" style="background-image: url(' . esc_url( $speaker->imageUrl ) . ')"></div>';
+				$content .= '			<div class="cfp-picture" title="' . esc_attr( (string) ( $speaker->company ?? '' ) ) . '" style="background-image: url(\'' . esc_url( (string) ( $speaker->imageUrl ?? '' ) ) . '\')"></div>';
 			}
 			$content .= '		</a>';
 			$content .= '		<div class="cfp-detail">';
-			$content .= '		<div class="cfp-name">' . esc_html( $speaker->firstName . ' ' . $speaker->lastName ) . '</div>';
+			$content .= '		<div class="cfp-name">' . esc_html( trim( ( $speaker->firstName ?? '' ) . ' ' . ( $speaker->lastName ?? '' ) ) ) . '</div>';
 			$content .= getSocialLinks( $speaker );
 			$content .= '          </div>';
 			if ( ! empty( $speaker->company ) ) {
@@ -304,7 +305,7 @@ if ( ! function_exists( 'cfp_talk_details_shortcode' ) ) {
 			}
 			$content .= '          <div class="cfp-text">';
 
-			$content .= wp_kses_post( $speaker->bio );
+			$content .= wp_kses_post( (string) ( $speaker->bio ?? '' ) );
 
 			$content .= '           </div>';
 			$content .= '       </div>';

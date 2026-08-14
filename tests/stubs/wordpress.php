@@ -317,8 +317,12 @@ function wp_strip_all_tags( $text, $remove_breaks = false ) {
 	return trim( $text );
 }
 
-function wp_kses_post( $content ) {
-	$content = (string) $content;
+/**
+ * Declared with a non-nullable string so tests fail on a null argument:
+ * WordPress' own wp_kses_post() passes it straight to preg_replace(),
+ * which has emitted a deprecation for null since PHP 8.1.
+ */
+function wp_kses_post( string $content ) {
 	$content = preg_replace( '@<(script|style|iframe|object|embed)[^>]*?>.*?</\\1>@si', '', $content );
 	$content = preg_replace( '@<(script|style|iframe|object|embed)\b[^>]*/?>@si', '', $content );
 	$content = preg_replace( '/\son[a-z]+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $content );

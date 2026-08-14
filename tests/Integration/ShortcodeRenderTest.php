@@ -224,6 +224,113 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		$this->assertSame( [], $this->httpLog(), 'an empty query must not hit the search API' );
 	}
 
+	public function test_talk_details_survives_a_talk_with_no_optional_fields(): void {
+		$this->registerDefaultApi();
+		$this->api( 'public/talks/202', Fixtures::sparseTalk() );
+		$this->search( 'Bare Minimum Talk ', [] );
+		$this->queryVar( 'id', 202 );
+
+		$html = cfp_talk_details_shortcode();
+
+		$this->assertHtmlBalanced( $html );
+		$this->assertStringContainsString( 'Bare Minimum Talk', $html );
+	}
+
+	public function test_related_talks_are_ordered_by_score_and_exclude_the_current_talk(): void {
+		$this->registerDefaultApi();
+		$this->queryVar( 'id', 200 );
+		$this->search(
+			'Modern Java in Practice A talk about Java.',
+			[
+				[
+					'id'    => 201,
+					'title' => 'Far Match',
+					'score' => 0.9,
+				],
+				[
+					'id'    => 200,
+					'title' => 'Modern Java in Practice',
+					'score' => 0.0,
+				],
+				[
+					'id'    => 203,
+					'title' => 'Close Match',
+					'score' => 0.1,
+				],
+				[
+					'id'    => 204,
+					'title' => 'Overflow Room',
+					'score' => 0.2,
+				],
+			]
+		);
+
+		$html = cfp_talk_details_shortcode();
+
+		$this->assertStringNotContainsString( 'Overflow Room', $html, 'overflow entries are not real talks' );
+		$this->assertSame( 1, substr_count( $html, 'Modern Java in Practice' ), 'the current talk must not link to itself' );
+		$this->assertLessThan(
+			(int) strpos( $html, 'Far Match' ),
+			(int) strpos( $html, 'Close Match' ),
+			'related talks must be ordered best match first'
+		);
+	}
+
+	public function test_an_api_image_url_cannot_break_out_of_a_css_url_value(): void {
+		$this->registerDefaultApi();
+		$this->api( 'public/speakers?size=300', Fixtures::speakers() );
+
+		$this->assertNoCssBreakout( cfp_speakers_shortcode( [] ) );
+	}
+
+	public function test_speaker_details_survives_a_profile_with_no_optional_fields(): void {
+		$this->registerDefaultApi();
+		$this->queryVar( 'id', 101 );
+
+		$html = cfp_speaker_details_shortcode();
+
+		$this->assertHtmlBalanced( $html );
+		$this->assertNoCssBreakout( $html );
+		$this->assertStringContainsString( 'Ilya Šumailov', $html );
+	}
+
+	/**
+	 * @dataProvider sparseTalkListProvider
+	 */
+	public function test_talk_lists_survive_a_talk_with_no_optional_fields( string $shortcode, string $path ): void {
+		$this->registerDefaultApi();
+		$this->api( $path, [ Fixtures::sparseTalk() ] );
+
+		$html = $shortcode( [] );
+
+		$this->assertHtmlBalanced( $html );
+		$this->assertStringContainsString( 'Bare Minimum Talk', $html );
+	}
+
+	public static function sparseTalkListProvider(): array {
+		return [
+			'by track'        => [ 'cfp_talks_by_tracks_shortcode', 'public/talks/track/10' ],
+			'by session type' => [ 'cfp_talks_by_sessions_shortcode', 'public/talks/session-type/20' ],
+		];
+	}
+
+	public function test_search_results_survive_a_result_with_no_optional_fields(): void {
+		$this->queryVar( 'query', 'bare' );
+		$this->api(
+			'public/search?query=bare',
+			[
+				'proposals' => [ Fixtures::sparseTalk() + [ 'sessionType' => [ 'name' => 'Conference' ] ] ],
+				'speakers'  => [],
+			]
+		);
+		$this->search( 'bare', [ [ 'title' => 'Bare Minimum Talk' ] ] );
+
+		$html = cfp_search_results_shortcode();
+
+		$this->assertHtmlBalanced( $html );
+		$this->assertStringContainsString( 'Bare Minimum Talk', $html );
+	}
+
 	public function test_schedule_renders_day_tabs_rooms_and_sessions(): void {
 		$this->registerScheduleApi();
 

@@ -128,45 +128,11 @@ if ( ! function_exists( 'cfp_talks_by_sessions_shortcode' ) ) {
 
 		$content .= '<div class="cfp-group">';
 		$content .= '    <div class="cfp-foreword">';
-		$content .= '       <div class="cfp-text">' . wp_kses_post( $sessionDescr ) . '</div>';
+		$content .= '       <div class="cfp-text">' . wp_kses_post( (string) $sessionDescr ) . '</div>';
 		$content .= '    </div>';
 
-		// Table heading
-		$content .= '    <div class="cfp-row cfp-headline">';
-		$content .= '        <div class="cfp-field">Title</div>';
-		$content .= '        <div class="cfp-field cfp-speaker">Speakers</div>';
-		$content .= '        <div class="cfp-field">Track</div>';
-		$content .= '        <div class="cfp-field"></div>';
-		$content .= '    </div>';
-
-		if ( ! empty( $talks ) && is_array( $talks ) ) {
-			$use_slugs = ( 'no' === get_option( 'cfp_dev_content_by_id', 'yes' ) );
-			foreach ( $talks as $talk ) {
-				$content .= '<article class="cfp-article cfp-row cfp-event">';
-				$content .= '    <div class="cfp-field">' . esc_html( $talk->title ) . '</div>';
-				$content .= '    <div class="cfp-field cfp-speaker">';
-				foreach ( $talk->speakers as $speaker ) {
-					if ( $use_slugs ) {
-						$speaker_slug = generate_slug( $speaker->firstName . '-' . $speaker->lastName );
-						$content     .= '<a class="cfp-a" href="' . esc_url( cfp_dev_url( "/speaker/{$speaker_slug}" ) ) . '">' . esc_html( $speaker->firstName ) . '&nbsp;' . esc_html( $speaker->lastName ) . '</a>';
-					} else {
-						$content .= '<a class="cfp-a" href="' . esc_url( cfp_dev_url( '/speaker?id=' . absint( $speaker->id ) ) ) . '">' . esc_html( $speaker->firstName ) . '&nbsp;' . esc_html( $speaker->lastName ) . '</a>';
-					}
-				}
-				$content .= '    </div>';
-				$content .= '    <div class="cfp-field">';
-				$content .= '        <div class="cfp-track" style="background-image: url(' . esc_url( $talk->trackImageURL ) . ')"></div>';
-				$content .= '    </div>';
-				$content .= '    <div class="cfp-field">';
-				if ( $use_slugs ) {
-					$content .= '        <a class="cfp-a" href="' . esc_url( cfp_dev_url( '/talk/' . generate_slug( $talk->title ) ) ) . '">View</a>';
-				} else {
-					$content .= '        <a class="cfp-a" href="' . esc_url( cfp_dev_url( '/talk?id=' . absint( $talk->id ) ) ) . '">View</a>';
-				}
-				$content .= '    </div>';
-				$content .= '</article>';
-			}
-		}
+		$content .= cfp_dev_talk_table_heading();
+		$content .= cfp_dev_talk_table_rows( $talks );
 
 		$content .= '</div>';
 

@@ -292,6 +292,7 @@ function cfp_dev_root_class_script( string $page, string $view = '' ): string {
 $cfp_dev_modules = [
 	'shortcode/include/offline-crawler.php',
 	'shortcode/include/class-cfp-dev-sitemaps-provider.php',
+	'shortcode/include/talk-table.php',
 	'shortcode/shortcode-cfp-speakers.php',
 	'shortcode/shortcode-cfp-speaker-details.php',
 	'shortcode/shortcode-cfp-schedule.php',

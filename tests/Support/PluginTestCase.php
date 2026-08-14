@@ -167,4 +167,24 @@ abstract class PluginTestCase extends TestCase {
 	private function stripScripts( string $html ): string {
 		return (string) preg_replace( '#<script\b[^>]*>.*?</script>#si', '', $html );
 	}
+
+	/**
+	 * Asserts that no API-supplied value escaped a CSS `url()` token.
+	 *
+	 * Quoted strings are removed first, so anything left in a style attribute
+	 * is markup the plugin wrote itself rather than data it interpolated.
+	 */
+	protected function assertNoCssBreakout( string $html ): void {
+		preg_match_all( '#style="([^"]*)"#', $html, $matches );
+		$this->assertNotEmpty( $matches[1], 'expected inline styles to inspect' );
+
+		foreach ( $matches[1] as $style ) {
+			$unquoted = (string) preg_replace( "#'[^']*'#", '', $style );
+			$this->assertStringNotContainsString(
+				'background:red',
+				$unquoted,
+				'an API image URL broke out of its url() value: ' . $style
+			);
+		}
+	}
 }
