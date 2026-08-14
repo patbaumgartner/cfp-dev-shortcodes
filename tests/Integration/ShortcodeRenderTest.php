@@ -858,6 +858,62 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		$this->assertStringNotContainsString( 'xyz?theme=0?utm_source', $html, 'a second ? was appended' );
 	}
 
+	/**
+	 * The plugin renders whole pages of content as `<div>`s, so until it said
+	 * which of them were headings a screen reader met an undifferentiated run
+	 * of text with nothing to navigate by — axe-core found not one heading on
+	 * any page. Themes own the `<h1>`, so the plugin starts at level 2.
+	 */
+	public function test_every_shortcode_page_offers_a_heading_outline(): void {
+		$this->registerDefaultApi();
+		$this->registerScheduleApi();
+		$this->api( 'public/speakers?size=300', Fixtures::speakers() );
+		$this->search( 'Modern Java in Practice A talk about Java.', [] );
+		$this->queryVar( 'id', 200 );
+
+		$this->assertHeadingOutline( cfp_dev_talk_details_shortcode(), '[cfp_talk_details]' );
+		$this->assertHeadingOutline( cfp_dev_talks_by_tracks_shortcode( [] ), '[cfp_talks_by_tracks]' );
+		$this->assertHeadingOutline( cfp_dev_talks_by_sessions_shortcode( [] ), '[cfp_talks_by_sessions]' );
+		$this->assertHeadingOutline( cfp_dev_speakers_shortcode( [] ), '[cfp_speakers]' );
+		$this->assertHeadingOutline( cfp_dev_schedule_shortcode( [] ), '[cfp_schedule]' );
+	}
+
+	public function test_the_speaker_page_heads_its_talks_under_the_speaker(): void {
+		$this->registerDefaultApi();
+		$this->queryVar( 'id', 100 );
+
+		$html = cfp_dev_speaker_details_shortcode();
+
+		$this->assertHeadingOutline( $html, '[cfp_speaker_details]' );
+		$this->assertMatchesRegularExpression( '#aria-level="2">Jane Doe<#', $html );
+		$this->assertMatchesRegularExpression( '#aria-level="3">Modern Java in Practice<#', $html );
+	}
+
+	public function test_the_search_page_heads_each_result_under_the_query(): void {
+		$this->queryVar( 'query', 'java' );
+		$this->api(
+			'public/search?query=java',
+			[
+				'proposals' => [ Fixtures::talks()[0] ],
+				'speakers'  => [ Fixtures::speakers()[0] ],
+			]
+		);
+		$this->search( 'java', [] );
+
+		$this->assertHeadingOutline( cfp_dev_search_results_shortcode(), '[cfp_search_results]' );
+	}
+
+	/** A hidden title must not leave the page with no heading at all. */
+	public function test_hiding_the_title_still_heads_the_entries(): void {
+		$this->registerDefaultApi();
+		$this->api( 'public/speakers?size=300', Fixtures::speakers() );
+
+		$html = cfp_dev_speakers_shortcode( [ 'hide_title' => 'yes' ] );
+
+		$this->assertStringNotContainsString( 'aria-level="2"', $html );
+		$this->assertStringContainsString( 'aria-level="3"', $html );
+	}
+
 	public function test_shortcodes_are_registered_on_plugins_loaded(): void {
 		foreach (
 			[

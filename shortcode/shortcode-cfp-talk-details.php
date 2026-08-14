@@ -70,7 +70,7 @@ if ( ! function_exists( 'cfp_dev_talk_details_shortcode' ) ) {
 		$content .= '		<a class="cfp-a" href="' . esc_url( cfp_dev_url( '/talks-by-tracks/?id=' . absint( $talk->trackId ?? 0 ) ) ) . '">';
 		$content .= '			<div class="cfp-track" title="' . esc_attr( (string) ( $talk->trackName ?? '' ) ) . '"  style="background-image: url(\'' . esc_url( (string) ( $talk->trackImageURL ?? '' ) ) . '\')"></div>';
 		$content .= '		</a>';
-		$content .= '		<div class="cfp-name">' . esc_html( (string) ( $talk->title ?? '' ) ) . '</div>';
+		$content .= '		<div class="cfp-name"' . cfp_dev_heading( 2 ) . '>' . esc_html( (string) ( $talk->title ?? '' ) ) . '</div>';
 		$content .= '       <div class="cfp-type">';
 		$content .= '			<a href="' . esc_url( cfp_dev_url( '/talks-by-sessions/?id=' . absint( $talk->sessionTypeId ?? 0 ) ) ) . '">'
 			. esc_html( (string) ( $talk->sessionTypeName ?? '' ) ) . '</a> <em>(' . esc_html( $audience_level ) . ')</em>';
@@ -211,7 +211,7 @@ if ( ! function_exists( 'cfp_dev_talk_details_shortcode' ) ) {
 			// Sort the fetched results by score, best (lowest) first.
 			usort( $semantic_result, fn( $a, $b ) => ( $a->score ?? 0 ) <=> ( $b->score ?? 0 ) );
 
-			$content .= '<div class="cfp-related-title">' . esc_html__( 'Related', 'cfp-dev-shortcodes' ) . '</div>';
+			$content .= '<div class="cfp-related-title"' . cfp_dev_heading( 3 ) . '>' . esc_html__( 'Related', 'cfp-dev-shortcodes' ) . '</div>';
 			foreach ( $semantic_result as $item ) {
 				$item_title = (string) ( $item->title ?? '' );
 				if ( absint( $item->id ?? 0 ) !== absint( $talk->id ?? 0 ) && ! str_contains( strtolower( $item_title ), 'overflow' ) ) {
@@ -243,7 +243,7 @@ if ( ! function_exists( 'cfp_dev_talk_details_shortcode' ) ) {
 			}
 			$content .= '		</a>';
 			$content .= '		<div class="cfp-detail">';
-			$content .= '		<div class="cfp-name">' . esc_html( trim( ( $speaker->firstName ?? '' ) . ' ' . ( $speaker->lastName ?? '' ) ) ) . '</div>';
+			$content .= '		<div class="cfp-name"' . cfp_dev_heading( 3 ) . '>' . esc_html( trim( ( $speaker->firstName ?? '' ) . ' ' . ( $speaker->lastName ?? '' ) ) ) . '</div>';
 			$content .= cfp_dev_social_links( $speaker );
 			$content .= '          </div>';
 			if ( ! empty( $speaker->company ) ) {
