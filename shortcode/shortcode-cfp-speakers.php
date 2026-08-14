@@ -27,7 +27,7 @@ if ( ! function_exists( 'cfp_dev_speakers_shortcode' ) ) {
 	 * @return string
 	 * @since  1.0.0
 	 */
-	function cfp_dev_speakers_shortcode( $atts ) {
+	function cfp_dev_speakers_shortcode( $atts = [] ) {
 		$_atts = shortcode_atts( cfp_dev_speakers_default_atts(), $atts );
 
 		$_atts['random']      = cfp_dev_attr_bool( $_atts['random'] );
@@ -35,24 +35,16 @@ if ( ! function_exists( 'cfp_dev_speakers_shortcode' ) ) {
 		$_atts['hide_search'] = cfp_dev_attr_bool( $_atts['hide_search'] );
 		$_atts['size']        = absint( $_atts['size'] );
 
-		$ttl = cfp_dev_get_cache_ttl();
-
-		if ( 0 === $ttl ) {
-			$data    = cfp_dev_get_json( 'public/speakers?size=' . $_atts['size'] );
-			$content = cfp_dev_render_speakers( $data, $_atts );
-		} else {
-			$cache_key = cfp_dev_speakers_cache_key( $_atts );
-			$cache     = get_transient( $cache_key );
-			if ( false === $cache ) {
-				$data    = cfp_dev_get_json( 'public/speakers?size=' . $_atts['size'] );
-				$content = cfp_dev_render_speakers( $data, $_atts );
-				set_transient( $cache_key, $content, $ttl );
-			} else {
-				$content = $cache;
-			}
-		}
-
-		return $content;
+		return cfp_dev_cached_markup(
+			cfp_dev_speakers_cache_key( $_atts ),
+			static function () use ( $_atts ) {
+				// An empty list is an answer worth caching; a null is the API
+				// having failed to give one.
+				$data = cfp_dev_get_json( 'public/speakers?size=' . $_atts['size'] );
+				return is_array( $data ) ? cfp_dev_render_speakers( $data, $_atts ) : null;
+			},
+			'<p>' . esc_html__( 'No speakers found.', 'cfp-dev-shortcodes' ) . '</p>'
+		);
 	}
 
 	/**

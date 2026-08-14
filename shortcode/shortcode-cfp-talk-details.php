@@ -41,48 +41,27 @@ if ( ! function_exists( 'cfp_dev_talk_details_shortcode' ) ) {
 			return esc_html__( 'Talk not found.', 'cfp-dev-shortcodes' );
 		}
 
-		$ttl = cfp_dev_get_cache_ttl();
-
-		if ( 0 === $ttl ) {
-			cfp_dev_log( 'talk-details: cache disabled for id=' . $talk_id );
-			return cfp_dev_render_talk_details( $talk_id );
-		}
-
-		$cache_key = cfp_dev_detail_cache_key( 'talk', $talk_id );
-		$cache     = get_transient( $cache_key );
-		if ( false !== $cache ) {
-			cfp_dev_log( 'talk-details: cache hit for id=' . $talk_id );
-			return $cache;
-		}
-
-		cfp_dev_log( 'talk-details: cache miss for id=' . $talk_id );
-		$content = cfp_dev_render_talk_details( $talk_id );
-		set_transient( $cache_key, $content, $ttl );
-		return $content;
+		return cfp_dev_cached_markup(
+			cfp_dev_detail_cache_key( 'talk', $talk_id ),
+			static function () use ( $talk_id ) {
+				$talk = cfp_dev_get_talk_by_id( $talk_id );
+				return empty( $talk ) ? null : cfp_dev_render_talk_details( $talk );
+			},
+			esc_html__( 'Talk not found.', 'cfp-dev-shortcodes' )
+		);
 	}
 
 	/**
 	 * Renders the full talk detail page: track, title, schedule, tags, related
 	 * talks, video, description, podcast, and speaker cards.
 	 *
-	 * @param int $_talk_id  Talk id.
+	 * @param object $talk  Talk detail object from the API.
 	 * @return string
 	 */
-	function cfp_dev_render_talk_details( $_talk_id ) {
-
-		$talk = cfp_dev_get_talk_by_id( $_talk_id );
-
-		if ( empty( $talk ) ) {
-			return esc_html__( 'Talk not found.', 'cfp-dev-shortcodes' );
-		}
-
-		$content = cfp_dev_root_class_script( 'session', 'detail' );
-
-		$content .= '<div class="cfp-main">';
-
-		if ( ! empty( $talk ) ) {
-
-			$content .= '<section class="cfp-session">';
+	function cfp_dev_render_talk_details( $talk ) {
+		$content      = cfp_dev_root_class_script( 'session', 'detail' );
+		$content     .= '<div class="cfp-main">';
+		$content     .= '<section class="cfp-session">';
 			$content .= '    <div class="cfp-foreword">';
 
 			$content .= '		<a class="cfp-a" href="' . esc_url( cfp_dev_url( '/talks-by-tracks/?id=' . absint( $talk->trackId ?? 0 ) ) ) . '">';
@@ -118,13 +97,10 @@ if ( ! function_exists( 'cfp_dev_talk_details_shortcode' ) ) {
 
 			$content = cfp_dev_render_talk_speakers( $talk, $content );
 
-			$content .= '   </div>';
-			$content .= '</section>';
-
-			$content .= '</div>';
-
-			$content .= cfp_dev_footer();
-		}
+		$content .= '   </div>';
+		$content .= '</section>';
+		$content .= '</div>';
+		$content .= cfp_dev_footer();
 
 		return $content;
 	}

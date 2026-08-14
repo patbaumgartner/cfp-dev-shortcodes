@@ -26,7 +26,7 @@ if ( ! function_exists( 'cfp_dev_talks_by_tracks_shortcode' ) ) {
 	 * @return string
 	 * @since  1.0.0
 	 */
-	function cfp_dev_talks_by_tracks_shortcode( $atts ) {
+	function cfp_dev_talks_by_tracks_shortcode( $atts = [] ) {
 		$defaults = [
 			'all'         => false,
 			'title'       => __( 'Talks grouped by Track', 'cfp-dev-shortcodes' ),
@@ -43,20 +43,13 @@ if ( ! function_exists( 'cfp_dev_talks_by_tracks_shortcode' ) ) {
 		// absint: the id is user input and becomes part of API paths and cache keys.
 		$track_id = absint( get_query_var( 'id' ) );
 
-		$ttl = cfp_dev_get_cache_ttl();
-		if ( 0 === $ttl ) {
-			return cfp_dev_render_talks_by_tracks( $track_id, $_atts );
-		}
-
-		$cache_group = cfp_dev_group_cache_key( 'talks_by_tracks_cache_group_' . $track_id . cfp_dev_atts_cache_suffix( $_atts, $defaults ) );
-		$cache       = get_transient( $cache_group );
-		if ( false === $cache ) {
-			$content = cfp_dev_render_talks_by_tracks( $track_id, $_atts );
-			set_transient( $cache_group, $content, $ttl );
-		} else {
-			$content = $cache;
-		}
-		return $content;
+		return cfp_dev_cached_markup(
+			cfp_dev_group_cache_key( 'talks_by_tracks_cache_group_' . $track_id . cfp_dev_atts_cache_suffix( $_atts, $defaults ) ),
+			static function () use ( $track_id, $_atts ) {
+				return cfp_dev_render_talks_by_tracks( $track_id, $_atts );
+			},
+			cfp_dev_root_class_script( 'session' ) . '<div class="cfp-main"><section class="cfp-list">' . cfp_dev_render_no_tracks() . '</section></div>'
+		);
 	}
 
 	/**
@@ -65,13 +58,13 @@ if ( ! function_exists( 'cfp_dev_talks_by_tracks_shortcode' ) ) {
 	 *
 	 * @param int   $track_id  Selected track id (0 → first track, -1 → all tracks).
 	 * @param array $_atts    Normalised shortcode attributes (all, title, hide_title, hide_search).
-	 * @return string
+	 * @return string|null  Null when the track list could not be fetched.
 	 */
 	function cfp_dev_render_talks_by_tracks( $track_id, $_atts ) {
 		$tracks = cfp_dev_get_json( 'public/tracks' );
 
 		if ( empty( $tracks ) || ! is_array( $tracks ) ) {
-			return cfp_dev_session_root_class_script() . '<div class="cfp-main"><section class="cfp-list">' . cfp_dev_render_no_tracks() . '</section></div>';
+			return null;
 		}
 
 		$track_descr = '';
