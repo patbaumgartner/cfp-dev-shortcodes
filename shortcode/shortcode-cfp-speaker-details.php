@@ -105,7 +105,7 @@ if ( ! function_exists( 'cfp_dev_speaker_details_shortcode' ) ) {
 		$photos_url = add_query_arg(
 			[
 				'action'     => 'cfp_dev_speaker_photos',
-				'speaker_id' => absint( $speaker->id ),
+				'speaker_id' => absint( $speaker->id ?? 0 ),
 			],
 			admin_url( 'admin-ajax.php' )
 		);

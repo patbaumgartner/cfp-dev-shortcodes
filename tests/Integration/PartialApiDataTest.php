@@ -133,4 +133,34 @@ final class PartialApiDataTest extends PluginTestCase {
 		$this->assertSame( 'https://example.test/speaker/jane/', $meta['url'] );
 		$this->assertContains( 'https://example.test/speaker/jane/', array_column( cfp_dev_sitemap_urls(), 'loc' ) );
 	}
+
+	/** The speaker page also renders that record, and links its photo album. */
+	public function test_the_speaker_page_renders_a_profile_with_no_id(): void {
+		$this->registerDefaultApi();
+		$speaker = Fixtures::speakerDetail( 100 );
+		unset( $speaker['id'] );
+		$this->api( 'public/speakers/100', $speaker );
+		$this->queryVar( 'id', 100 );
+
+		$html = cfp_dev_speaker_details_shortcode();
+
+		$this->assertHtmlBalanced( $html );
+		$this->assertStringContainsString( 'Jane Doe', $html );
+	}
+
+	/** The schedule heading falls back to the event's own name. */
+	public function test_the_schedule_renders_an_event_with_no_name(): void {
+		$event = Fixtures::event();
+		unset( $event['name'] );
+		$this->api( 'public/event', $event );
+		$this->api( 'public/rooms', Fixtures::rooms() );
+		$this->api( 'public/schedules/Monday', Fixtures::daySchedule() );
+		$this->api( 'public/schedules/Monday/1', Fixtures::roomSchedule() );
+		$this->api( 'public/schedules/Monday/2', [] );
+
+		$html = cfp_dev_schedule_shortcode( [] );
+
+		$this->assertHtmlBalanced( $html );
+		$this->assertStringContainsString( '?id=Monday', $html );
+	}
 }
