@@ -29,7 +29,7 @@ if ( ! function_exists( 'cfp_dev_talks_by_tracks_shortcode' ) ) {
 	function cfp_dev_talks_by_tracks_shortcode( $atts ) {
 		$defaults = [
 			'all'         => false,
-			'title'       => 'Talks grouped by Track',
+			'title'       => __( 'Talks grouped by Track', 'cfp-dev-shortcodes' ),
 			'hide_title'  => false,
 			'hide_search' => false,
 		];
@@ -41,18 +41,18 @@ if ( ! function_exists( 'cfp_dev_talks_by_tracks_shortcode' ) ) {
 		$_atts['hide_search'] = cfp_dev_attr_bool( $_atts['hide_search'] );
 
 		// absint: the id is user input and becomes part of API paths and cache keys.
-		$trackId = absint( get_query_var( 'id' ) );
+		$track_id = absint( get_query_var( 'id' ) );
 
 		$ttl = cfp_dev_get_cache_ttl();
 		if ( 0 === $ttl ) {
-			return cfp_dev_render_talks_by_tracks( $trackId, $_atts );
+			return cfp_dev_render_talks_by_tracks( $track_id, $_atts );
 		}
 
-		$cacheGroup = cfp_dev_group_cache_key( 'talks_by_tracks_cache_group_' . $trackId . cfp_dev_atts_cache_suffix( $_atts, $defaults ) );
-		$cache      = get_transient( $cacheGroup );
+		$cache_group = cfp_dev_group_cache_key( 'talks_by_tracks_cache_group_' . $track_id . cfp_dev_atts_cache_suffix( $_atts, $defaults ) );
+		$cache       = get_transient( $cache_group );
 		if ( false === $cache ) {
-			$content = cfp_dev_render_talks_by_tracks( $trackId, $_atts );
-			set_transient( $cacheGroup, $content, $ttl );
+			$content = cfp_dev_render_talks_by_tracks( $track_id, $_atts );
+			set_transient( $cache_group, $content, $ttl );
 		} else {
 			$content = $cache;
 		}
@@ -63,40 +63,40 @@ if ( ! function_exists( 'cfp_dev_talks_by_tracks_shortcode' ) ) {
 	 * Renders the talks-by-track page: filter navigation, track description,
 	 * and one table row per talk.
 	 *
-	 * @param int   $trackId  Selected track id (0 → first track, -1 → all tracks).
+	 * @param int   $track_id  Selected track id (0 → first track, -1 → all tracks).
 	 * @param array $_atts    Normalised shortcode attributes (all, title, hide_title, hide_search).
 	 * @return string
 	 */
-	function cfp_dev_render_talks_by_tracks( $trackId, $_atts ) {
+	function cfp_dev_render_talks_by_tracks( $track_id, $_atts ) {
 		$tracks = cfp_dev_get_json( 'public/tracks' );
 
 		if ( empty( $tracks ) || ! is_array( $tracks ) ) {
 			return cfp_dev_session_root_class_script() . '<div class="cfp-main"><section class="cfp-list">' . cfp_dev_render_no_tracks() . '</section></div>';
 		}
 
-		$trackDescr = '';
+		$track_descr = '';
 
-		if ( empty( $trackId ) ) {
+		if ( empty( $track_id ) ) {
 			if ( ! empty( $_atts['all'] ) ) {
-				$trackId = -1;
+				$track_id = -1;
 			} else {
 				// Default to the first track.
-				$trackId    = $tracks[0]->id;
-				$trackDescr = $tracks[0]->description ?? '';
+				$track_id    = $tracks[0]->id;
+				$track_descr = $tracks[0]->description ?? '';
 			}
 		} else {
 			foreach ( $tracks as $track ) {
-				if ( (int) $track->id === (int) $trackId ) {
-					$trackDescr = $track->description ?? '';
+				if ( (int) $track->id === (int) $track_id ) {
+					$track_descr = $track->description ?? '';
 					break;
 				}
 			}
 		}
 
-		if ( -1 === $trackId ) {
+		if ( -1 === $track_id ) {
 			$talks = cfp_dev_get_json( 'public/talks' );
 		} else {
-			$talks = cfp_dev_get_json( 'public/talks/track/' . absint( $trackId ) );
+			$talks = cfp_dev_get_json( 'public/talks/track/' . absint( $track_id ) );
 		}
 
 		$content  = cfp_dev_session_root_class_script();
@@ -105,15 +105,15 @@ if ( ! function_exists( 'cfp_dev_talks_by_tracks_shortcode' ) ) {
 
 		if ( ! empty( $tracks ) ) {
 			usort( $tracks, 'cfp_dev_compare_name' );
-			$content .= cfp_dev_render_track_filter( $tracks, $trackId, $_atts );
+			$content .= cfp_dev_render_track_filter( $tracks, $track_id, $_atts );
 		} else {
 			$content .= cfp_dev_render_no_tracks();
 		}
 
 		$content .= '<div class="cfp-group">';
 		$content .= '    <div class="cfp-foreword">';
-		if ( ! empty( $trackDescr ) ) {
-			$content .= '       <div class="cfp-text">' . wp_kses_post( (string) $trackDescr ) . '</div>';
+		if ( ! empty( $track_descr ) ) {
+			$content .= '       <div class="cfp-text">' . wp_kses_post( (string) $track_descr ) . '</div>';
 		}
 		$content .= '    </div>';
 
@@ -145,7 +145,7 @@ if ( ! function_exists( 'cfp_dev_talks_by_tracks_shortcode' ) ) {
 	function cfp_dev_render_no_tracks() {
 		$content  = '<div class="dev-cfp-row">';
 		$content .= '    <div class="dev-cfp-column">';
-		$content .= '        <p>No tracks found</p>';
+		$content .= '        <p>' . esc_html__( 'No tracks found', 'cfp-dev-shortcodes' ) . '</p>';
 		$content .= '    </div>';
 		$content .= '</div>';
 		return $content;
@@ -155,20 +155,20 @@ if ( ! function_exists( 'cfp_dev_talks_by_tracks_shortcode' ) ) {
 	 * Renders the page heading, search form, and track filter navigation.
 	 *
 	 * @param array $tracks   All tracks from the API.
-	 * @param int   $trackId  Currently selected track id.
+	 * @param int   $track_id  Currently selected track id.
 	 * @param array $_atts    Normalised shortcode attributes (title, hide_title, hide_search).
 	 * @return string
 	 */
-	function cfp_dev_render_track_filter( $tracks, $trackId, $_atts = [] ) {
-		$title = empty( $_atts['hide_title'] ) ? (string) ( $_atts['title'] ?? 'Talks grouped by Track' ) : '';
+	function cfp_dev_render_track_filter( $tracks, $track_id, $_atts = [] ) {
+		$title = empty( $_atts['hide_title'] ) ? (string) ( $_atts['title'] ?? __( 'Talks grouped by Track', 'cfp-dev-shortcodes' ) ) : '';
 
 		$content  = '<div class="cfp-subject">';
 		$content .= cfp_dev_page_header( $title, '', empty( $_atts['hide_search'] ) );
 		$content .= '    <nav class="cfp-filter">';
 		foreach ( $tracks as $track ) {
-			$isActive = ( (int) $track->id === (int) $trackId ) ? 'cfp-active' : '';
-			$content .= '<a class="cfp-a ' . $isActive . '" href="' . esc_url( '?id=' . absint( $track->id ) ) . '">';
-			$content .= esc_html( $track->name ) . '</a>';
+			$is_active = ( (int) $track->id === (int) $track_id ) ? 'cfp-active' : '';
+			$content  .= '<a class="cfp-a ' . $is_active . '" href="' . esc_url( '?id=' . absint( $track->id ) ) . '">';
+			$content  .= esc_html( $track->name ) . '</a>';
 		}
 		$content .= '    </nav>';
 		$content .= '</div>';

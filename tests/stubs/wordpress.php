@@ -38,6 +38,7 @@ define( 'MINUTE_IN_SECONDS', 60 );
 define( 'HOUR_IN_SECONDS', 3600 );
 define( 'DAY_IN_SECONDS', 86400 );
 define( 'WEEK_IN_SECONDS', 604800 );
+define( 'MB_IN_BYTES', 1048576 );
 define( 'OBJECT', 'OBJECT' );
 
 /**
@@ -58,11 +59,14 @@ final class WP_Test_State { // phpcs:ignore
 	/** @var string[] Slugs the current request is considered to be. */
 	public static array $current_page = [];
 
-	/** @var array<string,array{code:int,body:string}> URL => canned response. */
+	/** @var array<string,array{code:int,body:string,headers?:array<string,string>}> URL => canned response. */
 	public static array $http_responses = [];
 
 	/** @var string[] Every URL passed to wp_remote_get(), in order. */
 	public static array $http_log = [];
+
+	/** @var array<int,array{url:string,args:array,safe:bool}> Every request with its arguments, in order. */
+	public static array $http_requests = [];
 
 	/** @var array<string,array<int,array{callback:callable,priority:int}>> Hook name => callbacks. */
 	public static array $hooks = [];
@@ -72,6 +76,9 @@ final class WP_Test_State { // phpcs:ignore
 
 	/** @var string[] Handles passed to wp_enqueue_script()/wp_enqueue_style(). */
 	public static array $enqueued = [];
+
+	/** @var array<string,array<string,mixed>> Handle => the arguments it was registered with. */
+	public static array $enqueued_assets = [];
 
 	/** @var string[] Theme features registered via add_theme_support(). */
 	public static array $theme_support = [];
@@ -188,10 +195,18 @@ function has_shortcode( $content, $tag ) {
 }
 
 function register_activation_hook( $file, $callback ) {
-	unset( $file );
 	WP_Test_State::$hooks['activate'][] = [
 		'callback' => $callback,
 		'priority' => 10,
+		'file'     => $file,
+	];
+}
+
+function register_deactivation_hook( $file, $callback ) {
+	WP_Test_State::$hooks['deactivate'][] = [
+		'callback' => $callback,
+		'priority' => 10,
+		'file'     => $file,
 	];
 }
 
@@ -226,8 +241,40 @@ function is_wp_error( $thing ) {
 }
 
 function wp_remote_get( $url, $args = [] ) {
-	unset( $args );
-	WP_Test_State::$http_log[] = $url;
+	return cfp_dev_test_http_request( $url, $args, false );
+}
+
+/**
+ * wp_safe_remote_get() differs from wp_remote_get() by running the URL through
+ * wp_http_validate_url(), which rejects loopback and private-range hosts. The
+ * stub models that rejection so SSRF guards are actually exercised.
+ */
+function wp_safe_remote_get( $url, $args = [] ) {
+	$host = (string) wp_parse_url( $url, PHP_URL_HOST );
+
+	$is_blocked = in_array( $host, [ 'localhost', '127.0.0.1', '::1', '0.0.0.0' ], true )
+		|| ( filter_var( $host, FILTER_VALIDATE_IP ) && ! filter_var( $host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) );
+
+	if ( $is_blocked ) {
+		WP_Test_State::$http_requests[] = [
+			'url'  => $url,
+			'args' => $args,
+			'safe' => true,
+		];
+		return new WP_Error( 'http_request_failed', 'A valid URL was not provided.' );
+	}
+
+	return cfp_dev_test_http_request( $url, $args, true );
+}
+
+/** Shared request handling for the wp_remote_get()/wp_safe_remote_get() stubs. */
+function cfp_dev_test_http_request( $url, $args, $safe ) {
+	WP_Test_State::$http_log[]      = $url;
+	WP_Test_State::$http_requests[] = [
+		'url'  => $url,
+		'args' => is_array( $args ) ? $args : [],
+		'safe' => (bool) $safe,
+	];
 
 	if ( ! isset( WP_Test_State::$http_responses[ $url ] ) ) {
 		return new WP_Error( 'http_request_failed', 'No canned response registered for ' . $url );
@@ -241,6 +288,15 @@ function wp_remote_retrieve_response_code( $response ) {
 
 function wp_remote_retrieve_body( $response ) {
 	return is_array( $response ) ? ( $response['body'] ?? '' ) : '';
+}
+
+function wp_remote_retrieve_header( $response, $name ) {
+	if ( ! is_array( $response ) || ! isset( $response['headers'] ) ) {
+		return '';
+	}
+	// Real WordPress lower-cases header names on retrieval.
+	$headers = array_change_key_case( (array) $response['headers'], CASE_LOWER );
+	return $headers[ strtolower( (string) $name ) ] ?? '';
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -272,6 +328,42 @@ function esc_html_e( $text, $domain = '' ) {
 function __( $text, $domain = '' ) { // phpcs:ignore
 	unset( $domain );
 	return $text;
+}
+
+function _e( $text, $domain = '' ) { // phpcs:ignore
+	unset( $domain );
+	echo $text; // phpcs:ignore
+}
+
+function esc_attr__( $text, $domain = '' ) {
+	unset( $domain );
+	return esc_attr( $text );
+}
+
+function esc_attr_e( $text, $domain = '' ) {
+	unset( $domain );
+	echo esc_attr( $text ); // phpcs:ignore
+}
+
+function _x( $text, $context, $domain = '' ) { // phpcs:ignore
+	unset( $context, $domain );
+	return $text;
+}
+
+function esc_html_x( $text, $context, $domain = '' ) {
+	unset( $context, $domain );
+	return esc_html( $text );
+}
+
+function _n( $single, $plural, $number, $domain = '' ) { // phpcs:ignore
+	unset( $domain );
+	return 1 === (int) $number ? $single : $plural;
+}
+
+function load_plugin_textdomain( $domain, $deprecated = false, $plugin_rel_path = '' ) {
+	unset( $deprecated, $plugin_rel_path );
+	WP_Test_State::$env['textdomain'] = $domain;
+	return true;
 }
 
 /**
@@ -525,6 +617,74 @@ function plugin_basename( $file ) {
 	return 'cfp-dev-shortcodes/cfp-dev-wordpress-shortcodes.php';
 }
 
+function plugin_dir_path( $file ) {
+	return rtrim( str_replace( '\\', '/', dirname( (string) $file ) ), '/' ) . '/';
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Multisite & database
+// ─────────────────────────────────────────────────────────────────────────
+
+function is_multisite() {
+	return (bool) ( WP_Test_State::$env['multisite'] ?? false );
+}
+
+function get_sites( $args = [] ) {
+	unset( $args );
+	return WP_Test_State::$env['site_ids'] ?? [ 1 ];
+}
+
+function switch_to_blog( $site_id ) {
+	WP_Test_State::$env['current_blog'] = $site_id;
+	return true;
+}
+
+function restore_current_blog() {
+	WP_Test_State::$env['current_blog'] = 1;
+	return true;
+}
+
+/**
+ * Minimal $wpdb stand-in: records queries and applies the transient-cleanup
+ * DELETE against the in-memory option store, so uninstall behaviour is
+ * assertable without a database.
+ */
+class WP_Test_Wpdb { // phpcs:ignore
+	/** @var string */
+	public string $options = 'wp_options';
+
+	/** @var string[] Every query passed to query(). */
+	public array $queries = [];
+
+	public function query( $sql ) {
+		$this->queries[] = $sql;
+
+		if ( ! preg_match_all( "/option_name LIKE '([^']+)'/", $sql, $matches ) ) {
+			return 0;
+		}
+
+		$deleted = 0;
+		foreach ( $matches[1] as $pattern ) {
+			// MySQL LIKE: '\_' is a literal underscore, '%' matches anything.
+			$regex = '/^' . str_replace(
+				[ '\\\\_', '%' ],
+				[ '_', '.*' ],
+				preg_quote( $pattern, '/' )
+			) . '$/';
+			// preg_quote escaped the wildcards too; undo that.
+			$regex = str_replace( [ '\\\\_', '\\%', '\\.\\*' ], [ '_', '%', '.*' ], $regex );
+
+			foreach ( array_keys( WP_Test_State::$transients ) as $name ) {
+				if ( preg_match( $regex, '_transient_' . $name ) ) {
+					unset( WP_Test_State::$transients[ $name ] );
+					++$deleted;
+				}
+			}
+		}
+		return $deleted;
+	}
+}
+
 function user_trailingslashit( $path, $type = '' ) {
 	unset( $type );
 	return rtrim( (string) $path, '/' ) . '/';
@@ -631,13 +791,25 @@ function wp_timezone() {
 // ─────────────────────────────────────────────────────────────────────────
 
 function wp_enqueue_script( $handle, $src = '', $deps = [], $ver = false, $args = [] ) {
-	unset( $src, $deps, $ver, $args );
-	WP_Test_State::$enqueued[] = $handle;
+	WP_Test_State::$enqueued[]                 = $handle;
+	WP_Test_State::$enqueued_assets[ $handle ] = [
+		'type' => 'script',
+		'src'  => $src,
+		'deps' => $deps,
+		'ver'  => $ver,
+		'args' => $args,
+	];
 }
 
 function wp_enqueue_style( $handle, $src = '', $deps = [], $ver = false, $media = 'all' ) {
-	unset( $src, $deps, $ver, $media );
-	WP_Test_State::$enqueued[] = $handle;
+	WP_Test_State::$enqueued[]                 = $handle;
+	WP_Test_State::$enqueued_assets[ $handle ] = [
+		'type'  => 'style',
+		'src'   => $src,
+		'deps'  => $deps,
+		'ver'   => $ver,
+		'media' => $media,
+	];
 }
 
 function wp_register_script( $handle, $src = '', $deps = [], $ver = false, $args = [] ) {
@@ -710,6 +882,19 @@ function wp_mkdir_p( $target ) {
 	return is_dir( $target ) || mkdir( $target, 0777, true );
 }
 
+/**
+ * Normalises a filesystem path: backslashes to forward slashes and collapsed
+ * duplicate slashes, matching WordPress' own implementation.
+ */
+function wp_normalize_path( $path ) {
+	$path = str_replace( '\\', '/', (string) $path );
+	$path = preg_replace( '|(?<=.)/+|', '/', $path );
+	if ( ':' === substr( $path, 1, 1 ) ) {
+		$path = ucfirst( $path );
+	}
+	return $path;
+}
+
 /** Minimal stand-in for WP_Filesystem_Direct — only delete() is used. */
 class WP_Test_Filesystem { // phpcs:ignore
 	public function delete( $path, $recursive = false, $type = false ) {
@@ -752,8 +937,34 @@ function wp_schedule_single_event( $timestamp, $hook, $args = [] ) {
 }
 
 function wp_clear_scheduled_hook( $hook, $args = [] ) {
-	unset( $hook, $args );
-	return 0;
+	unset( $args );
+
+	$scheduled = WP_Test_State::$env['scheduled'] ?? [];
+	$remaining = array_values(
+		array_filter(
+			$scheduled,
+			static function ( $event ) use ( $hook ) {
+				return $event['hook'] !== $hook;
+			}
+		)
+	);
+
+	WP_Test_State::$env['scheduled'] = $remaining;
+
+	return count( $scheduled ) - count( $remaining );
+}
+
+function wp_next_scheduled( $hook, $args = [] ) {
+	unset( $args );
+
+	$timestamps = [];
+	foreach ( WP_Test_State::$env['scheduled'] ?? [] as $event ) {
+		if ( $event['hook'] === $hook ) {
+			$timestamps[] = $event['timestamp'];
+		}
+	}
+
+	return empty( $timestamps ) ? false : min( $timestamps );
 }
 
 function spawn_cron( $gmt_time = 0 ) {

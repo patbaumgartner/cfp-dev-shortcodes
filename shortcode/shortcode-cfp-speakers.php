@@ -64,7 +64,7 @@ if ( ! function_exists( 'cfp_dev_speakers_shortcode' ) ) {
 	 */
 	function cfp_dev_render_speakers( $data, $_atts ) {
 		if ( empty( $data ) || ! is_array( $data ) ) {
-			return '<p>No speakers found.</p>';
+			return '<p>' . esc_html__( 'No speakers found.', 'cfp-dev-shortcodes' ) . '</p>';
 		}
 
 		if ( $_atts['random'] ) {
@@ -86,7 +86,7 @@ if ( ! function_exists( 'cfp_dev_speakers_shortcode' ) ) {
 
 		$_title   = trim( (string) $_atts['title'] );
 		$content .= cfp_dev_page_header(
-			$_atts['hide_title'] ? '' : ( '' !== $_title ? $_title : 'Speakers' ),
+			$_atts['hide_title'] ? '' : ( '' !== $_title ? $_title : __( 'Speakers', 'cfp-dev-shortcodes' ) ),
 			trim( (string) $_atts['subtitle'] ),
 			! $_atts['hide_search']
 		);

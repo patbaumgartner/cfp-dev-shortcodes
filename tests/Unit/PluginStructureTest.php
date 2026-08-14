@@ -125,6 +125,142 @@ final class PluginStructureTest extends PluginTestCase {
 		}
 	}
 
+	/**
+	 * Lifecycle hooks are keyed by plugin file. The functions that register
+	 * them live in shortcode/include/, so passing their own __FILE__ would
+	 * register against a path WordPress does not know as a plugin — the hook
+	 * then simply never fires, with no error anywhere.
+	 *
+	 * @dataProvider lifecycleHookProvider
+	 */
+	public function test_lifecycle_hooks_are_registered_against_the_main_plugin_file( string $stage ): void {
+		$registered = \WP_Test_State::$hooks[ $stage ] ?? [];
+
+		$this->assertNotEmpty( $registered, 'no ' . $stage . ' hook is registered at all' );
+
+		foreach ( $registered as $hook ) {
+			$this->assertSame(
+				dirname( __DIR__, 2 ) . '/cfp-dev-wordpress-shortcodes.php',
+				$hook['file'],
+				$hook['callback'] . '() is hooked against the wrong file'
+			);
+		}
+	}
+
+	public static function lifecycleHookProvider(): array {
+		return [
+			'activation'   => [ 'activate' ],
+			'deactivation' => [ 'deactivate' ],
+		];
+	}
+
+	/** Every module the main file loads must exist — a typo would silently skip it. */
+	public function test_every_declared_module_exists(): void {
+		$root   = dirname( __DIR__, 2 );
+		$source = (string) file_get_contents( $root . '/cfp-dev-wordpress-shortcodes.php' );
+
+		$this->assertSame( 1, preg_match( '/\$cfp_dev_modules = \[(.*?)\];/s', $source, $matches ) );
+		preg_match_all( "/'([^']+\.php)'/", $matches[1], $modules );
+
+		$this->assertNotEmpty( $modules[1] );
+		foreach ( $modules[1] as $module ) {
+			$this->assertFileExists( $root . '/' . $module, $module . ' is loaded but does not exist' );
+		}
+	}
+
+	/** Directory listings must stay closed on every shipped directory. */
+	public function test_every_shipped_directory_has_a_silence_file(): void {
+		$root    = dirname( __DIR__, 2 );
+		$missing = [];
+
+		foreach ( [ 'shortcode', 'shortcode/include', 'js', 'images', 'languages' ] as $dir ) {
+			if ( ! file_exists( $root . '/' . $dir . '/index.php' ) ) {
+				$missing[] = $dir;
+			}
+		}
+
+		$this->assertSame( [], $missing, 'directories without index.php: ' . implode( ', ', $missing ) );
+	}
+
+	/**
+	 * The release ZIP is built with `git archive`, so .gitattributes is the
+	 * packaging manifest. A dev file without export-ignore ships to every user;
+	 * a runtime file with one breaks the plugin after install.
+	 *
+	 * @dataProvider excludedFromReleaseProvider
+	 */
+	public function test_development_files_are_excluded_from_the_release( string $path ): void {
+		$this->assertContains(
+			$path,
+			$this->exportIgnoredPaths(),
+			$path . ' would ship inside the release ZIP'
+		);
+	}
+
+	public static function excludedFromReleaseProvider(): array {
+		return array_map(
+			static fn( $p ) => [ $p ],
+			[
+				'.gitattributes',
+				'.gitignore',
+				'.editorconfig',
+				'.github/',
+				'tests/',
+				'phpcs.xml.dist',
+				'phpunit.xml.dist',
+				'composer.json',
+				'composer.lock',
+				'CHANGELOG.md',
+				'CODE_OF_CONDUCT.md',
+				'SECURITY.md',
+			]
+		);
+	}
+
+	/**
+	 * @dataProvider requiredInReleaseProvider
+	 */
+	public function test_runtime_paths_are_not_excluded_from_the_release( string $path ): void {
+		$ignored = $this->exportIgnoredPaths();
+
+		foreach ( $ignored as $pattern ) {
+			$this->assertStringStartsNotWith(
+				rtrim( $pattern, '/' ),
+				$path,
+				$path . ' is needed at runtime but export-ignored by "' . $pattern . '"'
+			);
+		}
+
+		$this->assertFileExists( dirname( __DIR__, 2 ) . '/' . $path );
+	}
+
+	public static function requiredInReleaseProvider(): array {
+		return array_map(
+			static fn( $p ) => [ $p ],
+			[
+				'cfp-dev-wordpress-shortcodes.php',
+				'uninstall.php',
+				'index.php',
+				'LICENSE.txt',
+				'README.md',
+				'shortcode/include/api-client.php',
+				'shortcode/css/cfp_dev_v4_5.css',
+				'js/site.js',
+				'images/loading-spinner.svg',
+				'languages/cfp-dev-shortcodes.pot',
+			]
+		);
+	}
+
+	/** @return string[] Paths marked export-ignore in .gitattributes. */
+	private function exportIgnoredPaths(): array {
+		$attributes = (string) file_get_contents( dirname( __DIR__, 2 ) . '/.gitattributes' );
+
+		preg_match_all( '/^(\S+)\s+export-ignore\s*$/m', $attributes, $matches );
+
+		return $matches[1];
+	}
+
 	/** Every module listed for loading must exist and parse. */
 	public function test_the_plugin_header_version_matches_the_version_constant(): void {
 		$header = (string) file_get_contents( dirname( __DIR__, 2 ) . '/cfp-dev-wordpress-shortcodes.php' );

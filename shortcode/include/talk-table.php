@@ -23,9 +23,9 @@ if ( ! defined( 'WPINC' ) ) {
  */
 function cfp_dev_talk_table_heading() {
 	$content  = '    <div class="cfp-row cfp-headline">';
-	$content .= '        <div class="cfp-field">Title</div>';
-	$content .= '        <div class="cfp-field cfp-speaker">Speakers</div>';
-	$content .= '        <div class="cfp-field">Track</div>';
+	$content .= '        <div class="cfp-field">' . esc_html__( 'Title', 'cfp-dev-shortcodes' ) . '</div>';
+	$content .= '        <div class="cfp-field cfp-speaker">' . esc_html__( 'Speakers', 'cfp-dev-shortcodes' ) . '</div>';
+	$content .= '        <div class="cfp-field">' . esc_html__( 'Track', 'cfp-dev-shortcodes' ) . '</div>';
 	$content .= '        <div class="cfp-field"></div>';
 	$content .= '    </div>';
 	return $content;
@@ -69,7 +69,7 @@ function cfp_dev_talk_table_rows( $talks ) {
 		$content .= '        <div class="cfp-track" style="background-image: url(\'' . esc_url( $track_image ) . '\')"></div>';
 		$content .= '    </div>';
 		$content .= '    <div class="cfp-field">';
-		$content .= '        <a class="cfp-a" href="' . esc_url( $talk_url ) . '">View</a>';
+		$content .= '        <a class="cfp-a" href="' . esc_url( $talk_url ) . '">' . esc_html__( 'View', 'cfp-dev-shortcodes' ) . '</a>';
 		$content .= '    </div>';
 		$content .= '</article>';
 	}

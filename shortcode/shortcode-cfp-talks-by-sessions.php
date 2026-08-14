@@ -28,7 +28,7 @@ if ( ! function_exists( 'cfp_dev_talks_by_sessions_shortcode' ) ) {
 	 */
 	function cfp_dev_talks_by_sessions_shortcode( $atts = [] ) {
 		$defaults = [
-			'title'       => 'Talks grouped by Session Types',
+			'title'       => __( 'Talks grouped by Session Types', 'cfp-dev-shortcodes' ),
 			'hide_title'  => false,
 			'hide_search' => false,
 		];
@@ -39,17 +39,17 @@ if ( ! function_exists( 'cfp_dev_talks_by_sessions_shortcode' ) ) {
 		$_atts['hide_search'] = cfp_dev_attr_bool( $_atts['hide_search'] );
 
 		// absint: the id is user input and becomes part of API paths and cache keys.
-		$sessionId = absint( get_query_var( 'id' ) );
+		$session_id = absint( get_query_var( 'id' ) );
 
 		$ttl = cfp_dev_get_cache_ttl();
 		if ( 0 === $ttl ) {
-			return cfp_dev_render_talks_by_sessions( $sessionId, $_atts );
+			return cfp_dev_render_talks_by_sessions( $session_id, $_atts );
 		}
 
-		$_cache_group = cfp_dev_group_cache_key( 'talks_by_sessions_cache_group_' . $sessionId . cfp_dev_atts_cache_suffix( $_atts, $defaults ) );
+		$_cache_group = cfp_dev_group_cache_key( 'talks_by_sessions_cache_group_' . $session_id . cfp_dev_atts_cache_suffix( $_atts, $defaults ) );
 		$cache        = get_transient( $_cache_group );
 		if ( false === $cache ) {
-			$content = cfp_dev_render_talks_by_sessions( $sessionId, $_atts );
+			$content = cfp_dev_render_talks_by_sessions( $session_id, $_atts );
 			set_transient( $_cache_group, $content, $ttl );
 		} else {
 			$content = $cache;
@@ -61,28 +61,28 @@ if ( ! function_exists( 'cfp_dev_talks_by_sessions_shortcode' ) ) {
 	 * Renders the talks-by-session-type page: filter navigation, session
 	 * description, and one table row per talk.
 	 *
-	 * @param int   $sessionId  Selected session-type id (0 → first non-pause type).
+	 * @param int   $session_id  Selected session-type id (0 → first non-pause type).
 	 * @param array $_atts      Normalised shortcode attributes (title, hide_title, hide_search).
 	 * @return string
 	 */
-	function cfp_dev_render_talks_by_sessions( $sessionId, $_atts = [] ) {
+	function cfp_dev_render_talks_by_sessions( $session_id, $_atts = [] ) {
 		$sessions = cfp_dev_get_json( 'public/session-types' );
 
-		$sessionDescr = '';
+		$session_descr = '';
 
 		if ( ! empty( $sessions ) && is_array( $sessions ) ) {
-			if ( empty( $sessionId ) ) {
+			if ( empty( $session_id ) ) {
 				foreach ( $sessions as $session ) {
 					if ( ! $session->pause ) {
-						$sessionId    = $session->id;
-						$sessionDescr = $session->description ?? '';
+						$session_id    = $session->id;
+						$session_descr = $session->description ?? '';
 						break;
 					}
 				}
 			} else {
 				foreach ( $sessions as $session ) {
-					if ( absint( $session->id ) === $sessionId ) {
-						$sessionDescr = $session->description ?? '';
+					if ( absint( $session->id ) === $session_id ) {
+						$session_descr = $session->description ?? '';
 						break;
 					}
 				}
@@ -90,7 +90,7 @@ if ( ! function_exists( 'cfp_dev_talks_by_sessions_shortcode' ) ) {
 		}
 
 		// Get talks by session type.
-		$talks = ! empty( $sessionId ) ? cfp_dev_get_json( 'public/talks/session-type/' . absint( $sessionId ) ) : null;
+		$talks = ! empty( $session_id ) ? cfp_dev_get_json( 'public/talks/session-type/' . absint( $session_id ) ) : null;
 
 		$content = cfp_dev_root_class_script( 'session' );
 
@@ -100,7 +100,7 @@ if ( ! function_exists( 'cfp_dev_talks_by_sessions_shortcode' ) ) {
 
 		if ( ! empty( $sessions ) ) {
 
-			$title = empty( $_atts['hide_title'] ) ? (string) ( $_atts['title'] ?? 'Talks grouped by Session Types' ) : '';
+			$title = empty( $_atts['hide_title'] ) ? (string) ( $_atts['title'] ?? __( 'Talks grouped by Session Types', 'cfp-dev-shortcodes' ) ) : '';
 
 			$content .= '<div class="cfp-subject">';
 			$content .= cfp_dev_page_header( $title, '', empty( $_atts['hide_search'] ) );
@@ -111,9 +111,9 @@ if ( ! function_exists( 'cfp_dev_talks_by_sessions_shortcode' ) ) {
 					continue;
 				}
 
-				$isActive = ( absint( $session->id ) === absint( $sessionId ) ) ? 'cfp-active' : '';
+				$is_active = ( absint( $session->id ) === absint( $session_id ) ) ? 'cfp-active' : '';
 
-				$content .= '<a class="cfp-a ' . $isActive . '" href="' . esc_url( '?id=' . absint( $session->id ) ) . '">';
+				$content .= '<a class="cfp-a ' . $is_active . '" href="' . esc_url( '?id=' . absint( $session->id ) ) . '">';
 				$content .= esc_html( $session->name ) . '</a>';
 			}
 			$content .= '    </nav>';
@@ -121,14 +121,14 @@ if ( ! function_exists( 'cfp_dev_talks_by_sessions_shortcode' ) ) {
 		} else {
 			$content .= '<div class="dev-cfp-row">';
 			$content .= '    <div class="dev-cfp-column">';
-			$content .= '        <p>No session types found</p>';
+			$content .= '        <p>' . esc_html__( 'No session types found', 'cfp-dev-shortcodes' ) . '</p>';
 			$content .= '    </div>';
 		}
 		$content .= '</div>';
 
 		$content .= '<div class="cfp-group">';
 		$content .= '    <div class="cfp-foreword">';
-		$content .= '       <div class="cfp-text">' . wp_kses_post( (string) $sessionDescr ) . '</div>';
+		$content .= '       <div class="cfp-text">' . wp_kses_post( (string) $session_descr ) . '</div>';
 		$content .= '    </div>';
 
 		$content .= cfp_dev_talk_table_heading();

@@ -37,7 +37,7 @@ if ( ! function_exists( 'cfp_dev_speaker_details_shortcode' ) ) {
 		}
 
 		if ( empty( $speaker_id ) ) {
-			return 'Speaker not found.';
+			return esc_html__( 'Speaker not found.', 'cfp-dev-shortcodes' );
 		}
 
 		$ttl = cfp_dev_get_cache_ttl();
@@ -47,14 +47,14 @@ if ( ! function_exists( 'cfp_dev_speaker_details_shortcode' ) ) {
 			$speaker_info = cfp_dev_get_speaker_by_id( $speaker_id );
 			if ( empty( $speaker_info ) ) {
 				cfp_dev_log( 'speaker-details: speaker not found for id=' . $speaker_id );
-				return 'Speaker not found.';
+				return esc_html__( 'Speaker not found.', 'cfp-dev-shortcodes' );
 			}
 			return cfp_dev_render_speaker_page( $speaker_info );
 		}
 
-		$speakerCacheKey = cfp_dev_detail_cache_key( 'speaker', $speaker_id );
+		$speaker_cache_key = cfp_dev_detail_cache_key( 'speaker', $speaker_id );
 
-		$cache = get_transient( $speakerCacheKey );
+		$cache = get_transient( $speaker_cache_key );
 		if ( false !== $cache ) {
 			cfp_dev_log( 'speaker-details: cache hit for id=' . $speaker_id );
 			return $cache;
@@ -65,11 +65,11 @@ if ( ! function_exists( 'cfp_dev_speaker_details_shortcode' ) ) {
 		if ( empty( $speaker_info ) ) {
 			// Do not cache failures — the API may just be temporarily unavailable.
 			cfp_dev_log( 'speaker-details: speaker not found for id=' . $speaker_id );
-			return 'Speaker not found.';
+			return esc_html__( 'Speaker not found.', 'cfp-dev-shortcodes' );
 		}
 
 		$content = cfp_dev_render_speaker_page( $speaker_info );
-		set_transient( $speakerCacheKey, $content, $ttl );
+		set_transient( $speaker_cache_key, $content, $ttl );
 		return $content;
 	}
 
@@ -96,7 +96,7 @@ if ( ! function_exists( 'cfp_dev_speaker_details_shortcode' ) ) {
 			$content .= '    ' . file_get_contents( $spinner_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local file, not remote URL
 		}
 		$content .= '        </div>';
-		$content .= '        <p id="photo-loading-message">Searching for speaker images...</p>';
+		$content .= '        <p id="photo-loading-message">' . esc_html__( 'Searching for speaker images...', 'cfp-dev-shortcodes' ) . '</p>';
 		$content .= '    </div>';
 		$content .= '</div>';
 
@@ -125,7 +125,7 @@ if ( ! function_exists( 'cfp_dev_speaker_details_shortcode' ) ) {
 								 loadingMessage.style.display = "none";
 
  								if (data.trim() === "") {
-									 photoAlbum.innerHTML = "<p>Couldn\'t find any photos</p>";
+									 photoAlbum.innerHTML = ' . wp_json_encode( '<p>' . esc_html__( 'Couldn\'t find any photos', 'cfp-dev-shortcodes' ) . '</p>' ) . ';
 								 } else {
 									 photoAlbum.innerHTML = data;
 								 }
@@ -133,7 +133,7 @@ if ( ! function_exists( 'cfp_dev_speaker_details_shortcode' ) ) {
 							 .catch(error => {
 								 loadingMessage.style.display = "none";
 								 loadingSpinner.style.display = "none";
- 								photoAlbum.innerHTML = "<p>Error loading speaker photos</p>";
+								photoAlbum.innerHTML = ' . wp_json_encode( '<p>' . esc_html__( 'Error loading speaker photos', 'cfp-dev-shortcodes' ) . '</p>' ) . ';
 							 });
 					 });
 				 </script>';
@@ -198,7 +198,8 @@ if ( ! function_exists( 'cfp_dev_speaker_details_shortcode' ) ) {
 		$content .= '            <div class="cfp-name">' . esc_html( (string) ( $talk->title ?? '' ) ) . '</div>';
 		$content .= '        </a>';
 		$content .= '        <div class="cfp-type">';
-		$content .= '            <a href="' . esc_url( cfp_dev_url( '/talks-by-sessions/?id=' . absint( $talk->sessionType->id ?? 0 ) ) ) . '">' . esc_html( (string) ( $talk->sessionType->name ?? '' ) ) . '</a> <em>(' . esc_html( (string) ( $talk->audienceLevel ?? '' ) ) . ' level)</em>';
+		/* translators: %s: audience level. */
+		$content .= '            <a href="' . esc_url( cfp_dev_url( '/talks-by-sessions/?id=' . absint( $talk->sessionType->id ?? 0 ) ) ) . '">' . esc_html( (string) ( $talk->sessionType->name ?? '' ) ) . '</a> <em>(' . esc_html( sprintf( __( '%s level', 'cfp-dev-shortcodes' ), (string) ( $talk->audienceLevel ?? '' ) ) ) . ')</em>';
 		$content .= '        </div>';
 
 		$content .= cfp_dev_render_proposal_schedule( $talk );
@@ -209,7 +210,7 @@ if ( ! function_exists( 'cfp_dev_speaker_details_shortcode' ) ) {
 		$content .= '        <div class="cfp-text">';
 		$content .= wp_kses_post( cfp_dev_clean_description( (string) ( $talk->description ?? '' ) ) );
 		$content .= '        </div>';
-		$content .= '        <a class="cfp-a" href="' . esc_url( $talk_url ) . '">More</a>';
+		$content .= '        <a class="cfp-a" href="' . esc_url( $talk_url ) . '">' . esc_html__( 'More', 'cfp-dev-shortcodes' ) . '</a>';
 
 		$content .= '    </div>';
 
@@ -228,31 +229,32 @@ if ( ! function_exists( 'cfp_dev_speaker_details_shortcode' ) ) {
 	 * @return string
 	 */
 	function cfp_dev_render_proposal_schedule( $talk ) {
-		$content     = '';
-		$talkDetails = cfp_dev_get_json( 'public/talks/' . absint( $talk->id ?? 0 ) );
-		if ( empty( $talkDetails ) || empty( $talkDetails->timeSlots ) || ! is_array( $talkDetails->timeSlots ) ) {
+		$content      = '';
+		$talk_details = cfp_dev_get_json( 'public/talks/' . absint( $talk->id ?? 0 ) );
+		if ( empty( $talk_details ) || empty( $talk_details->timeSlots ) || ! is_array( $talk_details->timeSlots ) ) {
 			return $content;
 		}
 
 		// end() on a local copy: array_pop() would consume the slots on the
 		// shared, memoised talk object.
-		$slots = (array) $talkDetails->timeSlots;
+		$slots = (array) $talk_details->timeSlots;
 		$slot  = end( $slots );
 		if ( ! empty( $slot->fromDate ) && ! empty( $slot->toDate ) ) {
 			try {
-				$timeZone = new DateTimeZone( $slot->timezone );
-				$fromDate = new DateTime( $slot->fromDate, $timeZone );
-				$fromDate->setTimezone( $timeZone );
-				$toDate = new DateTime( $slot->toDate, $timeZone );
-				$toDate->setTimezone( $timeZone );
+				$time_zone = new DateTimeZone( $slot->timezone );
+				$from_date = new DateTime( $slot->fromDate, $time_zone );
+				$from_date->setTimezone( $time_zone );
+				$to_date = new DateTime( $slot->toDate, $time_zone );
+				$to_date->setTimezone( $time_zone );
 			} catch ( Exception $e ) {
 				cfp_dev_log( 'speaker-details: invalid slot date/timezone — ' . $e->getMessage() );
 				return $content;
 			}
 
 			$content .= '        <div class="cfp-datetime">';
-			$content .= '            <time class="cfp-time" datetime="' . esc_attr( $fromDate->format( 'c' ) ) . '">' . esc_html( $fromDate->format( 'l' ) . ' from ' . $fromDate->format( 'H:i' ) ) . '</time>';
-			$content .= '            <time class="cfp-time" datetime="' . esc_attr( $toDate->format( 'c' ) ) . '">' . esc_html( $toDate->format( 'H:i' ) ) . '</time>';
+			/* translators: 1: weekday, 2: start time. */
+			$content .= '            <time class="cfp-time" datetime="' . esc_attr( $from_date->format( 'c' ) ) . '">' . esc_html( sprintf( __( '%1$s from %2$s', 'cfp-dev-shortcodes' ), $from_date->format( 'l' ), $from_date->format( 'H:i' ) ) ) . '</time>';
+			$content .= '            <time class="cfp-time" datetime="' . esc_attr( $to_date->format( 'c' ) ) . '">' . esc_html( $to_date->format( 'H:i' ) ) . '</time>';
 			$content .= '        </div>';
 
 			if ( 'yes' === get_option( 'cfp_dev_show_rooms', 'yes' ) && ! empty( $slot->roomName ) ) {
@@ -260,8 +262,8 @@ if ( ! function_exists( 'cfp_dev_speaker_details_shortcode' ) ) {
 			}
 
 			$content .= '        <input type="hidden" id="cfpTimezone" value="' . esc_attr( $slot->timezone ) . '">';
-			$content .= '        <input type="hidden" id="cfpTalkFrom" value="' . esc_attr( $fromDate->getTimestamp() ) . '">';
-			$content .= '        <input type="hidden" id="cfpTalkExpiry" value="' . esc_attr( $toDate->getTimestamp() ) . '">';
+			$content .= '        <input type="hidden" id="cfpTalkFrom" value="' . esc_attr( $from_date->getTimestamp() ) . '">';
+			$content .= '        <input type="hidden" id="cfpTalkExpiry" value="' . esc_attr( $to_date->getTimestamp() ) . '">';
 		}
 		return $content;
 	}
@@ -313,7 +315,10 @@ if ( ! function_exists( 'cfp_dev_speaker_details_shortcode' ) ) {
 			$content .= '    <div class="cfp-video">';
 			$content .= '        <div class="cfp-picture"></div>';
 			$content .= '        <iframe width="560" height="315" style="z-index: 9999999;" src="' . esc_url( $talk->videoURL ) .
-				'" title="' . esc_attr( 'Video: ' . (string) ( $talk->title ?? '' ) ) . '" loading="lazy" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
+				'" title="' . esc_attr(
+					/* translators: %s: talk title. */
+					sprintf( __( 'Video: %s', 'cfp-dev-shortcodes' ), (string) ( $talk->title ?? '' ) )
+				) . '" loading="lazy" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
 			$content .= '        <div class="cfp-player"></div>';
 			$content .= '    </div>';
 		}
@@ -326,13 +331,25 @@ if ( ! function_exists( 'cfp_dev_speaker_details_shortcode' ) ) {
 	 */
 	function cfp_dev_speaker_photos_handler() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only AJAX endpoint, no state change
-		$speakerId = isset( $_GET['speaker_id'] ) ? absint( wp_unslash( $_GET['speaker_id'] ) ) : 0;
-		if ( 0 === $speakerId ) {
-			wp_send_json_error( 'Invalid speaker ID' );
+		$speaker_id = isset( $_GET['speaker_id'] ) ? absint( wp_unslash( $_GET['speaker_id'] ) ) : 0;
+		if ( 0 === $speaker_id ) {
+			wp_send_json_error( __( 'Invalid speaker ID', 'cfp-dev-shortcodes' ) );
 			return;
 		}
 
-		$cache_key      = cfp_dev_detail_cache_key( 'photo', $speakerId );
+		// Unauthenticated endpoint: without this check, walking speaker_id from
+		// 1 upwards mints one upstream request and one transient per value.
+		// A nonce is the usual answer but is wrong here — the gallery URL is
+		// embedded in page HTML that full-page caches serve to everyone, so the
+		// nonce would be stale or foreign. Bounding the id to speakers that
+		// actually exist costs one cached list lookup and caps the blast radius
+		// at the real speaker count.
+		if ( ! cfp_dev_speaker_exists( $speaker_id ) ) {
+			wp_send_json_error( __( 'Unknown speaker ID', 'cfp-dev-shortcodes' ) );
+			return;
+		}
+
+		$cache_key      = cfp_dev_detail_cache_key( 'photo', $speaker_id );
 		$cached_content = get_transient( $cache_key );
 
 		if ( false !== $cached_content ) {
@@ -345,15 +362,15 @@ if ( ! function_exists( 'cfp_dev_speaker_details_shortcode' ) ) {
 		// request: it is baked into the gallery markup, and that markup is
 		// cached under the speaker id alone — so a caller-supplied name would
 		// be served to every later visitor of this speaker's page.
-		$speaker     = cfp_dev_get_speaker_by_id( $speakerId );
-		$speakerName = ! empty( $speaker->firstName )
+		$speaker      = cfp_dev_get_speaker_by_id( $speaker_id );
+		$speaker_name = ! empty( $speaker->firstName )
 			? trim( $speaker->firstName . ' ' . ( $speaker->lastName ?? '' ) )
 			: '';
 
-		$photos  = '' !== $speakerName ? cfp_dev_get_json_with_retry( 'public/album/' . $speakerId ) : null;
+		$photos  = '' !== $speaker_name ? cfp_dev_get_json_with_retry( 'public/album/' . $speaker_id ) : null;
 		$content = empty( $photos )
-			? '<p>No photos found</p>'
-			: cfp_dev_render_photo_gallery( $photos, $speakerName );
+			? '<p>' . esc_html__( 'No photos found', 'cfp-dev-shortcodes' ) . '</p>'
+			: cfp_dev_render_photo_gallery( $photos, $speaker_name );
 
 		$ttl = cfp_dev_get_cache_ttl();
 		if ( empty( $photos ) ) {
@@ -374,17 +391,17 @@ if ( ! function_exists( 'cfp_dev_speaker_details_shortcode' ) ) {
 	/**
 	 * cfp_dev_get_json() with a bounded retry — the album endpoint is occasionally flaky.
 	 *
-	 * @param string $queryPath    Relative API path.
-	 * @param int    $maxAttempts  Maximum number of attempts (brief pause between).
+	 * @param string $query_path    Relative API path.
+	 * @param int    $max_attempts  Maximum number of attempts (brief pause between).
 	 * @return mixed  Decoded JSON or null when all attempts fail.
 	 */
-	function cfp_dev_get_json_with_retry( $queryPath, $maxAttempts = 2 ) {
-		for ( $attempt = 1; $attempt <= $maxAttempts; $attempt++ ) {
-			$result = cfp_dev_get_json( $queryPath );
+	function cfp_dev_get_json_with_retry( $query_path, $max_attempts = 2 ) {
+		for ( $attempt = 1; $attempt <= $max_attempts; $attempt++ ) {
+			$result = cfp_dev_get_json( $query_path );
 			if ( ! empty( $result ) ) {
 				return $result;
 			}
-			if ( $attempt < $maxAttempts ) {
+			if ( $attempt < $max_attempts ) {
 				// Brief pause only — sleep()ing seconds here would pin a PHP-FPM
 				// worker per anonymous request (trivial DoS amplifier).
 				usleep( 250000 );
@@ -397,11 +414,12 @@ if ( ! function_exists( 'cfp_dev_speaker_details_shortcode' ) ) {
 	 * Renders the Flickr photo gallery for a speaker.
 	 *
 	 * @param array  $photos       Album photos from the API.
-	 * @param string $speakerName  Display name, resolved from the API.
+	 * @param string $speaker_name  Display name, resolved from the API.
 	 * @return string
 	 */
-	function cfp_dev_render_photo_gallery( $photos, $speakerName ) {
-		$speakerImageAlt = $speakerName . ' speaking at ' . cfp_dev_get_event_name();
+	function cfp_dev_render_photo_gallery( $photos, $speaker_name ) {
+		/* translators: 1: speaker name, 2: event name. */
+		$speaker_image_alt = sprintf( __( '%1$s speaking at %2$s', 'cfp-dev-shortcodes' ), $speaker_name, cfp_dev_get_event_name() );
 
 		$content  = '<section class="cfp-gallery">';
 		$content .= '    <div class="cfp-frame">';
@@ -410,7 +428,7 @@ if ( ! function_exists( 'cfp_dev_speaker_details_shortcode' ) ) {
 				continue;
 			}
 			$content .= '<a href="' . esc_url( 'https://www.flickr.com/photos/bejug/' . $photo->photoId . '/in/album-' . $photo->albumId . '/' ) . '" target="_blank" rel="noopener noreferrer">';
-			$content .= '<img class="cfp-picture" src="' . esc_url( $photo->thumbnailUrl ) . '" alt="' . esc_attr( $speakerImageAlt ) . '" loading="lazy">';
+			$content .= '<img class="cfp-picture" src="' . esc_url( $photo->thumbnailUrl ) . '" alt="' . esc_attr( $speaker_image_alt ) . '" loading="lazy">';
 			$content .= '</a>';
 		}
 		$content .= '    </div>';

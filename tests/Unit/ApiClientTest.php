@@ -17,6 +17,43 @@ use WP_Test_State;
 
 final class ApiClientTest extends PluginTestCase {
 
+	public function test_a_live_request_carries_a_timeout_and_a_json_accept_header(): void {
+		$this->api( 'public/talks', [] );
+
+		cfp_dev_get_json( 'public/talks' );
+
+		$args = $this->lastRequestArgs( cfp_dev_api_base() . 'public/talks' );
+		$this->assertSame( 30, $args['timeout'] );
+		$this->assertSame( CFP_DEV_APPLICATION_JSON, $args['headers']['Accept'] );
+	}
+
+	public function test_admin_requests_use_a_shorter_timeout(): void {
+		// The settings screen fetches the speaker and talk lists just to show
+		// which caches exist; a 30 s timeout per list froze the page whenever
+		// the API was unreachable.
+		WP_Test_State::$env['is_admin'] = true;
+		$this->api( 'public/talks', [] );
+
+		cfp_dev_get_json( 'public/talks' );
+
+		$args = $this->lastRequestArgs( cfp_dev_api_base() . 'public/talks' );
+		$this->assertLessThan( 30, $args['timeout'] );
+	}
+
+	public function test_the_timeout_is_filterable(): void {
+		add_filter(
+			'cfp_dev_api_timeout',
+			static function () {
+				return 3;
+			}
+		);
+		$this->api( 'public/talks', [] );
+
+		cfp_dev_get_json( 'public/talks' );
+
+		$this->assertSame( 3, $this->lastRequestArgs( cfp_dev_api_base() . 'public/talks' )['timeout'] );
+	}
+
 	public function test_get_json_decodes_a_successful_response(): void {
 		$this->api( 'public/event', [ 'name' => 'Devoxx' ] );
 
