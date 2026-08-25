@@ -949,9 +949,13 @@ function cfp_dev_do_crawl(): void {
 	foreach ( $json_files as $json_file ) {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local snapshot file
 		$content = file_get_contents( $json_file );
-		$data    = json_decode( $content, true ); // assoc arrays for recursive walk
+		$data    = false === $content ? null : json_decode( $content, true ); // assoc arrays for recursive walk
 		if ( is_array( $data ) ) {
 			cfp_dev_collect_image_urls( $data, $image_keys, $image_url_map );
+		} else {
+			// A skipped file only costs image localisation — step 3 keeps the CDN
+			// URL — but a silent skip leaves nothing to diagnose that with.
+			cfp_dev_log( 'crawl: could not read image URLs from ' . basename( $json_file ) );
 		}
 	}
 

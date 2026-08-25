@@ -105,7 +105,7 @@ if ( ! function_exists( 'cfp_dev_talk_details_shortcode' ) ) {
 	 */
 	function cfp_dev_render_tags( $talk ) {
 		$content = '        <div class="cfp-category">';
-		if ( ! empty( $talk->tags ) ) {
+		if ( ! empty( $talk->tags ) && is_array( $talk->tags ) ) {
 			foreach ( $talk->tags as $tag ) {
 				$tag_name = (string) ( $tag->name ?? '' );
 				$content .= '<span class="cfp-span">';
