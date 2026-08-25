@@ -325,6 +325,19 @@ final class PluginStructureTest extends PluginTestCase {
 		$this->assertSame( CFP_DEV_VERSION, $matches[1] );
 	}
 
+	/**
+	 * The release workflow checks the header, the constant and the changelog
+	 * against the tag, but the README badge is none of those — it drifted to a
+	 * stale version once already, quietly telling visitors an old release was
+	 * the current one.
+	 */
+	public function test_the_readme_stable_badge_matches_the_version_constant(): void {
+		$readme = (string) file_get_contents( dirname( __DIR__, 2 ) . '/README.md' );
+
+		$this->assertSame( 1, preg_match( '/badge\/stable-([0-9.]+)-/', $readme, $matches ) );
+		$this->assertSame( CFP_DEV_VERSION, $matches[1] );
+	}
+
 	/** @return string[] */
 	private function pluginSources(): array {
 		$root = dirname( __DIR__, 2 );
