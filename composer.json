@@ -1,56 +1,58 @@
 {
-    "name": "cfp-dev/cfp-dev-shortcodes",
-    "description": "CFP.DEV WordPress shortcodes plugin",
-    "type": "wordpress-plugin",
-    "license": "GPL-2.0-or-later",
-    "authors": [
-        {
-            "name": "Stephan Janssen",
-            "homepage": "https://x.com/stephan007"
-        },
-        {
-            "name": "Patrick Baumgartner",
-            "homepage": "https://x.com/patbaumgartner"
-        }
-    ],
-    "require": {
-        "php": ">=8.1"
+  "name": "cfp-dev/cfp-dev-shortcodes",
+  "description": "CFP.DEV WordPress shortcodes plugin",
+  "type": "wordpress-plugin",
+  "license": "GPL-2.0-or-later",
+  "authors": [
+    {
+      "name": "Stephan Janssen",
+      "homepage": "https://x.com/stephan007"
     },
-    "require-dev": {
-        "squizlabs/php_codesniffer": "^3.10",
-        "wp-coding-standards/wpcs": "^3.1",
-        "phpcompatibility/phpcompatibility-wp": "^2.1",
-        "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
-        "phpunit/phpunit": "^10.5"
-    },
-    "scripts": {
-        "lint": "phpcs",
-        "lint-fix": "phpcbf",
-        "test": "phpunit",
-        "coverage": "XDEBUG_MODE=coverage phpunit --coverage-text --coverage-html=.phpunit.cache/coverage",
-        "i18n": "wp i18n make-pot . languages/cfp-dev-shortcodes.pot --exclude=tests,vendor,.github --domain=cfp-dev-shortcodes --file-comment=\"Copyright (C) 2026 Stephan Janssen, Patrick Baumgartner\nThis file is distributed under the GPL-2.0-or-later license.\" --headers='{\"Report-Msgid-Bugs-To\":\"https://github.com/patbaumgartner/cfp-dev-shortcodes/issues\",\"Plural-Forms\":\"nplurals=2; plural=(n != 1);\"}'",
-        "check": [
-            "@lint",
-            "@test"
-        ]
-    },
-    "scripts-descriptions": {
-        "lint": "Check coding standards with PHP_CodeSniffer",
-        "lint-fix": "Auto-fix coding standard violations with phpcbf",
-        "test": "Run the PHPUnit suite",
-        "coverage": "Run the suite with coverage (needs Xdebug)",
-        "i18n": "Regenerate languages/cfp-dev-shortcodes.pot (needs WP-CLI)",
-        "check": "Run lint and tests, as CI does"
-    },
-    "config": {
-        "allow-plugins": {
-            "dealerdirect/phpcodesniffer-composer-installer": true
-        },
-        "sort-packages": true
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "CfpDev\\Tests\\": "tests/Support/"
-        }
+    {
+      "name": "Patrick Baumgartner",
+      "homepage": "https://x.com/patbaumgartner"
     }
+  ],
+  "require": {
+    "php": ">=8.1"
+  },
+  "require-dev": {
+    "squizlabs/php_codesniffer": "^3.10",
+    "wp-coding-standards/wpcs": "^3.1",
+    "phpcompatibility/phpcompatibility-wp": "^2.1",
+    "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+    "phpunit/phpunit": "^10.5"
+  },
+  "scripts": {
+    "lint": "phpcs",
+    "lint-fix": "phpcbf",
+    "test": "phpunit",
+    "coverage": "XDEBUG_MODE=coverage phpunit --coverage-text --coverage-html=.phpunit.cache/coverage",
+    "i18n": "wp i18n make-pot . languages/cfp-dev-shortcodes.pot --exclude=tests,vendor,.github --domain=cfp-dev-shortcodes --file-comment=\"Copyright (C) 2026 Stephan Janssen, Patrick Baumgartner\nThis file is distributed under the GPL-2.0-or-later license.\" --headers='{\"Report-Msgid-Bugs-To\":\"https://github.com/patbaumgartner/cfp-dev-shortcodes/issues\",\"Plural-Forms\":\"nplurals=2; plural=(n != 1);\"}'",
+    "prepare-release": "bin/prepare-release.sh",
+    "check": [
+      "@lint",
+      "@test"
+    ]
+  },
+  "scripts-descriptions": {
+    "lint": "Check coding standards with PHP_CodeSniffer",
+    "lint-fix": "Auto-fix coding standard violations with phpcbf",
+    "test": "Run the PHPUnit suite",
+    "coverage": "Run the suite with coverage (needs Xdebug)",
+    "i18n": "Regenerate languages/cfp-dev-shortcodes.pot (needs WP-CLI)",
+    "prepare-release": "Bump every version location and verify the release gates (pass X.Y.Z)",
+    "check": "Run lint and tests, as CI does"
+  },
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    },
+    "sort-packages": true
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "CfpDev\\Tests\\": "tests/Support/"
+    }
+  }
 }

@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.7.1] — 2026-08-25
+
+### Fixed
+- **The README still promised 4.6.0 was the newest release.** The release workflow verifies the plugin header, the version constant and the changelog against the tag, but the README's stable badge is none of those, so nothing noticed when it stopped being updated. The badge now reads the current version — and a structure test ties it to the version constant, so the next stale badge fails the build instead of misleading visitors
+- **A talk whose tags were not a list raised a PHP warning.** `timeSlots` and `speakers` already guard against the API changing shape under them; the tag pills now do the same
+- **A snapshot file the crawler could not re-read was skipped without a word.** Step 2 of a crawl re-reads every saved JSON file to collect image URLs; a file that fails to read or decode only costs image localisation — step 3 keeps the CDN URL for anything it could not localise — but the silence left nothing to diagnose a partially localised snapshot with. The skip is now logged
+
+### CI
+- **Every workflow job now has a timeout, and no checkout keeps its credentials.** A hung job used to hold its runner for GitHub's six-hour default, and every checkout persisted a token into the working copy that no later step needed
+- **Releases are prepared by a script instead of from memory.** `composer prepare-release X.Y.Z` bumps the four places the version lives — plugin header, version constant, README badge and translation template — after refusing a dirty tree, a branch other than `main`, a stale local `main`, and a changelog whose newest entry is not a dated entry for the new version. It then runs the same lint-and-test gate as CI and prints the commit, push and tag steps that remain. The new maintainer `bin/` directory is excluded from the release ZIP, and the ZIP verification now refuses it alongside the other development files
+
 ## [4.7.0] — 2026-08-14
 
 ### Accessibility

@@ -105,7 +105,7 @@ jobs:
             exit 1
           fi
 
-          if printf '%s\n' "$entries" | grep -Eq "^${SLUG}/(\.gitattributes|\.gitignore|\.github/|tests/|vendor/|composer\.json|composer\.lock|phpcs\.xml\.dist|phpunit\.xml\.dist)(/|$)"; then
+          if printf '%s\n' "$entries" | grep -Eq "^${SLUG}/(\.gitattributes|\.gitignore|\.github/|bin/|tests/|vendor/|composer\.json|composer\.lock|phpcs\.xml\.dist|phpunit\.xml\.dist)(/|$)"; then
             echo "ERROR: release ZIP contains development or repository files"
             exit 1
           fi
