@@ -2,14 +2,14 @@
 # This file is distributed under the GPL-2.0-or-later license.
 msgid ""
 msgstr ""
-"Project-Id-Version: CFP.DEV shortcodes 4.7.0\n"
+"Project-Id-Version: CFP.DEV shortcodes 4.7.1\n"
 "Report-Msgid-Bugs-To: https://github.com/patbaumgartner/cfp-dev-shortcodes/issues\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-14T21:39:11+00:00\n"
+"POT-Creation-Date: 2026-08-25T18:12:40+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
@@ -508,33 +508,33 @@ msgstr ""
 msgid "Collecting image URLs from saved JSON..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:966
+#: shortcode/include/offline-crawler.php:970
 msgid "Downloading images..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:1023
+#: shortcode/include/offline-crawler.php:1027
 msgid "Rewriting image URLs in JSON files..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:1056
+#: shortcode/include/offline-crawler.php:1060
 msgid "Finalizing snapshot..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:1075
+#: shortcode/include/offline-crawler.php:1079
 msgid "Crawl produced no talks or speakers — offline mode was left off. Check the CFP.DEV key and that the API is reachable."
 msgstr ""
 
 #. translators: %s: number of endpoints that could not be captured.
-#: shortcode/include/offline-crawler.php:1078
+#: shortcode/include/offline-crawler.php:1082
 #, php-format
 msgid "Crawl could not capture %s required endpoint(s) — offline mode was left off and the previous snapshot is untouched. See the log for which."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:1113
+#: shortcode/include/offline-crawler.php:1117
 msgid "Could not write manifest.json — offline mode was left off. Check filesystem permissions on wp-content/uploads."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:1137
+#: shortcode/include/offline-crawler.php:1141
 msgid "Crawl complete! Offline mode is now active."
 msgstr ""
 
@@ -642,7 +642,7 @@ msgid "Search talks and speakers at %s."
 msgstr ""
 
 #: shortcode/include/talk-table.php:27
-#: shortcode/shortcode-cfp-speakers.php:81
+#: shortcode/shortcode-cfp-speakers.php:82
 msgid "Speakers"
 msgstr ""
 
@@ -651,7 +651,7 @@ msgid "Track"
 msgstr ""
 
 #: shortcode/include/talk-table.php:69
-#: shortcode/shortcode-cfp-search-results.php:90
+#: shortcode/shortcode-cfp-search-results.php:91
 msgid "View"
 msgstr ""
 
@@ -701,174 +701,174 @@ msgstr ""
 msgid "Social media profiles"
 msgstr ""
 
-#: shortcode/shortcode-cfp-schedule.php:71
+#: shortcode/shortcode-cfp-schedule.php:72
 msgid "Failed to retrieve current event"
 msgstr ""
 
-#: shortcode/shortcode-cfp-schedule.php:79
+#: shortcode/shortcode-cfp-schedule.php:80
 msgid "Event timezone is not set."
 msgstr ""
 
-#: shortcode/shortcode-cfp-schedule.php:88
+#: shortcode/shortcode-cfp-schedule.php:89
 msgid "Event dates are not set."
 msgstr ""
 
-#: shortcode/shortcode-cfp-schedule.php:107
+#: shortcode/shortcode-cfp-schedule.php:108
 msgid "Failed to retrieve rooms"
 msgstr ""
 
 #. translators: %s: day name.
-#: shortcode/shortcode-cfp-schedule.php:115
+#: shortcode/shortcode-cfp-schedule.php:116
 #, php-format
 msgid "No schedule available for %s."
 msgstr ""
 
-#: shortcode/shortcode-cfp-schedule.php:176
+#: shortcode/shortcode-cfp-schedule.php:177
 msgid "Conference days"
 msgstr ""
 
-#: shortcode/shortcode-cfp-schedule.php:185
+#: shortcode/shortcode-cfp-schedule.php:186
 msgid "Mobile Schedule"
 msgstr ""
 
-#: shortcode/shortcode-cfp-schedule.php:401
+#: shortcode/shortcode-cfp-schedule.php:402
 msgid "OVERFLOW"
 msgstr ""
 
 #. translators: %s: search query.
-#: shortcode/shortcode-cfp-search-results.php:37
+#: shortcode/shortcode-cfp-search-results.php:38
 #, php-format
 msgid "Search results for <em>%s</em>"
 msgstr ""
 
-#: shortcode/shortcode-cfp-search-results.php:40
+#: shortcode/shortcode-cfp-search-results.php:41
 msgid "Search the programme"
 msgstr ""
 
-#: shortcode/shortcode-cfp-search-results.php:55
+#: shortcode/shortcode-cfp-search-results.php:56
 msgid "Enter a search term to find talks and speakers."
 msgstr ""
 
 #. translators: %s: audience level.
-#: shortcode/shortcode-cfp-search-results.php:82
+#: shortcode/shortcode-cfp-search-results.php:83
 #, php-format
 msgid "%s LEVEL"
 msgstr ""
 
-#: shortcode/shortcode-cfp-search-results.php:107
+#: shortcode/shortcode-cfp-search-results.php:108
 msgid "No semantic results"
 msgstr ""
 
 #. translators: %s: similarity score.
-#: shortcode/shortcode-cfp-search-results.php:118
+#: shortcode/shortcode-cfp-search-results.php:119
 #, php-format
 msgid "Similarity score = %s"
 msgstr ""
 
-#: shortcode/shortcode-cfp-search-results.php:119
-#: shortcode/shortcode-cfp-speaker-details.php:190
+#: shortcode/shortcode-cfp-search-results.php:120
+#: shortcode/shortcode-cfp-speaker-details.php:191
 msgid "More"
 msgstr ""
 
-#: shortcode/shortcode-cfp-search-results.php:127
+#: shortcode/shortcode-cfp-search-results.php:128
 msgid "As the similarity <strong>score</strong> approaches zero, the match becomes increasingly accurate."
 msgstr ""
 
-#: shortcode/shortcode-cfp-speaker-details.php:40
-#: shortcode/shortcode-cfp-speaker-details.php:52
+#: shortcode/shortcode-cfp-speaker-details.php:41
+#: shortcode/shortcode-cfp-speaker-details.php:53
 msgid "Speaker not found."
 msgstr ""
 
-#: shortcode/shortcode-cfp-speaker-details.php:79
+#: shortcode/shortcode-cfp-speaker-details.php:80
 msgid "Searching for speaker images..."
 msgstr ""
 
-#: shortcode/shortcode-cfp-speaker-details.php:108
+#: shortcode/shortcode-cfp-speaker-details.php:109
 msgid "Couldn't find any photos"
 msgstr ""
 
-#: shortcode/shortcode-cfp-speaker-details.php:116
+#: shortcode/shortcode-cfp-speaker-details.php:117
 msgid "Error loading speaker photos"
 msgstr ""
 
 #. translators: %s: audience level.
-#: shortcode/shortcode-cfp-speaker-details.php:179
-#: shortcode/shortcode-cfp-talk-details.php:63
+#: shortcode/shortcode-cfp-speaker-details.php:180
+#: shortcode/shortcode-cfp-talk-details.php:64
 #, php-format
 msgid "%s level"
 msgstr ""
 
 #. translators: %s: talk title.
-#: shortcode/shortcode-cfp-speaker-details.php:273
-#: shortcode/shortcode-cfp-talk-details.php:189
+#: shortcode/shortcode-cfp-speaker-details.php:274
+#: shortcode/shortcode-cfp-talk-details.php:190
 #, php-format
 msgid "Video: %s"
 msgstr ""
 
-#: shortcode/shortcode-cfp-speaker-details.php:289
+#: shortcode/shortcode-cfp-speaker-details.php:290
 msgid "Invalid speaker ID"
 msgstr ""
 
-#: shortcode/shortcode-cfp-speaker-details.php:301
+#: shortcode/shortcode-cfp-speaker-details.php:302
 msgid "Unknown speaker ID"
 msgstr ""
 
-#: shortcode/shortcode-cfp-speaker-details.php:325
+#: shortcode/shortcode-cfp-speaker-details.php:326
 msgid "No photos found"
 msgstr ""
 
 #. translators: 1: speaker name, 2: event name.
-#: shortcode/shortcode-cfp-speaker-details.php:353
+#: shortcode/shortcode-cfp-speaker-details.php:354
 #, php-format
 msgid "%1$s speaking at %2$s"
 msgstr ""
 
-#: shortcode/shortcode-cfp-speakers.php:46
-#: shortcode/shortcode-cfp-speakers.php:59
+#: shortcode/shortcode-cfp-speakers.php:47
+#: shortcode/shortcode-cfp-speakers.php:60
 msgid "No speakers found."
 msgstr ""
 
-#: shortcode/shortcode-cfp-talk-details.php:41
-#: shortcode/shortcode-cfp-talk-details.php:50
+#: shortcode/shortcode-cfp-talk-details.php:42
+#: shortcode/shortcode-cfp-talk-details.php:51
 msgid "Talk not found."
 msgstr ""
 
 #. translators: %s: talk title.
-#: shortcode/shortcode-cfp-talk-details.php:140
+#: shortcode/shortcode-cfp-talk-details.php:141
 #, php-format
 msgid "Podcast: %s"
 msgstr ""
 
-#: shortcode/shortcode-cfp-talk-details.php:146
+#: shortcode/shortcode-cfp-talk-details.php:147
 msgid "AI-generated (Experimental): may contain inaccuracies, please verify facts."
 msgstr ""
 
-#: shortcode/shortcode-cfp-talk-details.php:214
+#: shortcode/shortcode-cfp-talk-details.php:215
 msgid "Related"
 msgstr ""
 
-#: shortcode/shortcode-cfp-talks-by-sessions.php:31
-#: shortcode/shortcode-cfp-talks-by-sessions.php:85
+#: shortcode/shortcode-cfp-talks-by-sessions.php:32
+#: shortcode/shortcode-cfp-talks-by-sessions.php:86
 msgid "Talks grouped by Session Types"
 msgstr ""
 
-#: shortcode/shortcode-cfp-talks-by-sessions.php:49
+#: shortcode/shortcode-cfp-talks-by-sessions.php:50
 msgid "No session types found"
 msgstr ""
 
-#: shortcode/shortcode-cfp-talks-by-sessions.php:93
+#: shortcode/shortcode-cfp-talks-by-sessions.php:94
 msgid "Session types"
 msgstr ""
 
-#: shortcode/shortcode-cfp-talks-by-tracks.php:32
-#: shortcode/shortcode-cfp-talks-by-tracks.php:132
+#: shortcode/shortcode-cfp-talks-by-tracks.php:33
+#: shortcode/shortcode-cfp-talks-by-tracks.php:133
 msgid "Talks grouped by Track"
 msgstr ""
 
-#: shortcode/shortcode-cfp-talks-by-tracks.php:51
+#: shortcode/shortcode-cfp-talks-by-tracks.php:52
 msgid "No tracks found"
 msgstr ""
 
-#: shortcode/shortcode-cfp-talks-by-tracks.php:136
+#: shortcode/shortcode-cfp-talks-by-tracks.php:137
 msgid "Tracks"
 msgstr ""
