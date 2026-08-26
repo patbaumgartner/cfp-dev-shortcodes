@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-25T18:12:40+00:00\n"
+"POT-Creation-Date: 2026-08-26T06:44:54+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
@@ -41,7 +41,7 @@ msgid "https://x.com/stephan007"
 msgstr ""
 
 #: shortcode/include/admin.php:18
-#: shortcode/include/admin.php:144
+#: shortcode/include/admin.php:149
 msgid "CFP.DEV Settings"
 msgstr ""
 
@@ -54,413 +54,441 @@ msgid "Settings saved."
 msgstr ""
 
 #: shortcode/include/admin.php:79
+msgid "All caches deleted."
+msgstr ""
+
+#: shortcode/include/admin.php:84
 msgid "Speakers cache deleted."
 msgstr ""
 
 #. translators: %s: weekday name.
-#: shortcode/include/admin.php:89
+#: shortcode/include/admin.php:94
 #, php-format
 msgid "Schedule cache for %s deleted."
 msgstr ""
 
 #. translators: 1: cache type, 2: cache ID.
-#: shortcode/include/admin.php:97
+#: shortcode/include/admin.php:102
 #, php-format
 msgid "Cache deleted for %1$s with ID: %2$s (including any photo cache)."
 msgstr ""
 
-#: shortcode/include/admin.php:130
+#: shortcode/include/admin.php:135
 msgid "You do not have sufficient permissions to access this page."
 msgstr ""
 
-#: shortcode/include/admin.php:135
-#: shortcode/include/admin.php:538
-#: shortcode/include/admin.php:577
-#: shortcode/include/admin.php:598
+#: shortcode/include/admin.php:140
+#: shortcode/include/admin.php:553
+#: shortcode/include/admin.php:592
+#: shortcode/include/admin.php:613
 msgid "Security check failed."
 msgstr ""
 
-#: shortcode/include/admin.php:152
+#: shortcode/include/admin.php:158
 msgid "General Settings"
 msgstr ""
 
-#: shortcode/include/admin.php:157
+#: shortcode/include/admin.php:159
+msgid "Connection and display options for your CFP.DEV instance. Saving also clears all caches."
+msgstr ""
+
+#: shortcode/include/admin.php:164
 msgid "CFP.DEV Key"
 msgstr ""
 
-#: shortcode/include/admin.php:159
+#: shortcode/include/admin.php:166
 msgid "Only letters, digits and dashes (the subdomain of your CFP.DEV instance)."
 msgstr ""
 
-#: shortcode/include/admin.php:162
+#: shortcode/include/admin.php:169
 msgid "Event name"
 msgstr ""
 
-#: shortcode/include/admin.php:166
+#: shortcode/include/admin.php:173
 msgid "URL Path Prefix"
 msgstr ""
 
-#: shortcode/include/admin.php:168
+#: shortcode/include/admin.php:175
 msgid "For example https://voxxeddays.com/trieste would have \"trieste\" as url path prefix"
 msgstr ""
 
-#: shortcode/include/admin.php:172
+#: shortcode/include/admin.php:179
 msgid "Permalinks with Id"
 msgstr ""
 
-#: shortcode/include/admin.php:175
-#: shortcode/include/admin.php:187
+#: shortcode/include/admin.php:182
+#: shortcode/include/admin.php:193
 msgid "Yes"
 msgstr ""
 
-#: shortcode/include/admin.php:176
-#: shortcode/include/admin.php:188
+#: shortcode/include/admin.php:183
+#: shortcode/include/admin.php:194
 msgid "No"
 msgstr ""
 
-#: shortcode/include/admin.php:179
+#: shortcode/include/admin.php:185
 msgid "Must be \"Yes\" for multisite WordPress installs."
 msgstr ""
 
-#: shortcode/include/admin.php:180
+#: shortcode/include/admin.php:186
 msgid "When \"Yes\" the content links look as follows https://voxxeddays.com/trieste/speaker?id=123"
 msgstr ""
 
-#: shortcode/include/admin.php:184
+#: shortcode/include/admin.php:190
 msgid "Show Rooms"
 msgstr ""
 
-#: shortcode/include/admin.php:191
+#: shortcode/include/admin.php:196
 msgid "When \"No\" rooms will not be displayed on any page"
 msgstr ""
 
-#: shortcode/include/admin.php:195
+#: shortcode/include/admin.php:200
 msgid "Cache Duration"
 msgstr ""
 
-#: shortcode/include/admin.php:198
+#: shortcode/include/admin.php:203
 msgid "No Cache"
 msgstr ""
 
-#: shortcode/include/admin.php:199
+#: shortcode/include/admin.php:204
 msgid "One Hour"
 msgstr ""
 
-#: shortcode/include/admin.php:200
+#: shortcode/include/admin.php:205
 msgid "One Day"
 msgstr ""
 
-#: shortcode/include/admin.php:201
+#: shortcode/include/admin.php:206
 msgid "One Week"
 msgstr ""
 
-#: shortcode/include/admin.php:202
+#: shortcode/include/admin.php:207
 msgid "One Month"
 msgstr ""
 
-#: shortcode/include/admin.php:207
+#: shortcode/include/admin.php:209
+msgid "How long API responses and rendered pages are kept before they are fetched again."
+msgstr ""
+
+#: shortcode/include/admin.php:213
 msgid "Default Theme"
 msgstr ""
 
-#: shortcode/include/admin.php:210
+#: shortcode/include/admin.php:216
 #: shortcode/include/ui.php:128
 msgid "Light"
 msgstr ""
 
-#: shortcode/include/admin.php:211
+#: shortcode/include/admin.php:217
 #: shortcode/include/ui.php:130
 msgid "Dark"
 msgstr ""
 
-#: shortcode/include/admin.php:216
+#: shortcode/include/admin.php:222
 msgid "Enable Theme Switching"
 msgstr ""
 
-#: shortcode/include/admin.php:220
+#: shortcode/include/admin.php:224
+msgid "Show a light/dark toggle on the public pages."
+msgstr ""
+
+#: shortcode/include/admin.php:227
 msgid "Save Changes"
 msgstr ""
 
-#: shortcode/include/admin.php:225
+#: shortcode/include/admin.php:234
 msgid "Manage Caches"
 msgstr ""
 
-#: shortcode/include/admin.php:226
+#: shortcode/include/admin.php:235
 msgid "Here you can view and delete various caches used by the plugin."
 msgstr ""
 
-#: shortcode/include/admin.php:229
-msgid "Speakers Cache"
+#: shortcode/include/admin.php:240
+msgid "Delete All Caches"
 msgstr ""
 
-#: shortcode/include/admin.php:235
-msgid "Delete Speakers Cache"
-msgstr ""
-
-#: shortcode/include/admin.php:238
-msgid "No speakers cache available."
-msgstr ""
-
-#: shortcode/include/admin.php:242
-msgid "Schedule Caches"
+#: shortcode/include/admin.php:241
+msgid "Invalidates every cached speaker, talk, schedule and photo at once."
 msgstr ""
 
 #: shortcode/include/admin.php:245
-msgid "Monday"
-msgstr ""
-
-#: shortcode/include/admin.php:246
-msgid "Tuesday"
-msgstr ""
-
-#: shortcode/include/admin.php:247
-msgid "Wednesday"
-msgstr ""
-
-#: shortcode/include/admin.php:248
-msgid "Thursday"
-msgstr ""
-
-#: shortcode/include/admin.php:249
-msgid "Friday"
-msgstr ""
-
-#: shortcode/include/admin.php:250
-msgid "Saturday"
+msgid "Speakers Cache"
 msgstr ""
 
 #: shortcode/include/admin.php:251
+msgid "Delete Speakers Cache"
+msgstr ""
+
+#: shortcode/include/admin.php:254
+msgid "No speakers cache available."
+msgstr ""
+
+#: shortcode/include/admin.php:258
+msgid "Schedule Caches"
+msgstr ""
+
+#: shortcode/include/admin.php:261
+msgid "Monday"
+msgstr ""
+
+#: shortcode/include/admin.php:262
+msgid "Tuesday"
+msgstr ""
+
+#: shortcode/include/admin.php:263
+msgid "Wednesday"
+msgstr ""
+
+#: shortcode/include/admin.php:264
+msgid "Thursday"
+msgstr ""
+
+#: shortcode/include/admin.php:265
+msgid "Friday"
+msgstr ""
+
+#: shortcode/include/admin.php:266
+msgid "Saturday"
+msgstr ""
+
+#: shortcode/include/admin.php:267
 msgid "Sunday"
 msgstr ""
 
-#: shortcode/include/admin.php:256
-msgid "Day"
-msgstr ""
-
-#: shortcode/include/admin.php:256
-#: shortcode/include/admin.php:291
-#: shortcode/include/admin.php:332
-msgid "Action"
-msgstr ""
-
-#: shortcode/include/admin.php:271
-#: shortcode/include/admin.php:311
-#: shortcode/include/admin.php:348
-#: shortcode/include/admin.php:485
+#: shortcode/include/admin.php:284
+#: shortcode/include/admin.php:325
+#: shortcode/include/admin.php:362
+#: shortcode/include/admin.php:499
 msgid "Delete Cache"
 msgstr ""
 
-#: shortcode/include/admin.php:281
+#: shortcode/include/admin.php:295
+msgid "Day"
+msgstr ""
+
+#: shortcode/include/admin.php:295
+#: shortcode/include/admin.php:336
+#: shortcode/include/admin.php:373
+msgid "Action"
+msgstr ""
+
+#: shortcode/include/admin.php:298
 msgid "No schedule caches available."
 msgstr ""
 
-#: shortcode/include/admin.php:285
+#: shortcode/include/admin.php:302
 msgid "Speaker Detail Caches"
 msgstr ""
 
-#: shortcode/include/admin.php:291
+#: shortcode/include/admin.php:336
 msgid "Speaker ID"
 msgstr ""
 
-#: shortcode/include/admin.php:291
+#: shortcode/include/admin.php:336
 msgid "Name"
 msgstr ""
 
-#: shortcode/include/admin.php:322
+#: shortcode/include/admin.php:339
 msgid "No speaker detail caches available."
 msgstr ""
 
-#: shortcode/include/admin.php:326
+#: shortcode/include/admin.php:343
 msgid "Talk Detail Caches"
 msgstr ""
 
-#: shortcode/include/admin.php:332
+#: shortcode/include/admin.php:373
 msgid "Talk ID"
 msgstr ""
 
-#: shortcode/include/admin.php:332
+#: shortcode/include/admin.php:373
 #: shortcode/include/talk-table.php:26
 msgid "Title"
 msgstr ""
 
-#: shortcode/include/admin.php:359
+#: shortcode/include/admin.php:376
 msgid "No talk detail caches available."
 msgstr ""
 
-#: shortcode/include/admin.php:391
+#: shortcode/include/admin.php:405
 msgid "Offline Mode"
 msgstr ""
 
-#: shortcode/include/admin.php:392
+#: shortcode/include/admin.php:406
 msgid "When enabled, all API data and images are served from a local snapshot — no external requests are made."
 msgstr ""
 
-#: shortcode/include/admin.php:393
+#: shortcode/include/admin.php:407
 msgid "Checking the box starts a fresh crawl. Unchecking disables offline mode but keeps the snapshot data. Re-checking creates a new snapshot."
 msgstr ""
 
-#: shortcode/include/admin.php:400
+#: shortcode/include/admin.php:414
 msgid "Enable Offline Mode"
 msgstr ""
 
-#: shortcode/include/admin.php:403
+#: shortcode/include/admin.php:417
 msgid "Check to start a new crawl. Offline mode activates automatically when the crawl finishes."
 msgstr ""
 
-#: shortcode/include/admin.php:407
+#: shortcode/include/admin.php:421
 msgid "Save Offline Mode"
 msgstr ""
 
-#: shortcode/include/admin.php:411
+#: shortcode/include/admin.php:425
 msgid "Snapshot Status"
 msgstr ""
 
-#: shortcode/include/admin.php:415
-#: shortcode/include/admin.php:422
+#: shortcode/include/admin.php:429
 #: shortcode/include/admin.php:436
-#: shortcode/include/admin.php:441
-#: shortcode/include/admin.php:503
+#: shortcode/include/admin.php:450
+#: shortcode/include/admin.php:455
+#: shortcode/include/admin.php:518
 msgid "Status:"
 msgstr ""
 
-#: shortcode/include/admin.php:415
-#: shortcode/include/admin.php:504
+#: shortcode/include/admin.php:429
+#: shortcode/include/admin.php:519
 msgid "Running"
 msgstr ""
 
-#: shortcode/include/admin.php:415
-#: shortcode/include/admin.php:505
+#: shortcode/include/admin.php:429
+#: shortcode/include/admin.php:520
 msgid "Pending"
 msgstr ""
 
-#: shortcode/include/admin.php:422
-#: shortcode/include/admin.php:506
+#: shortcode/include/admin.php:436
+#: shortcode/include/admin.php:521
 msgid "Complete"
 msgstr ""
 
-#: shortcode/include/admin.php:424
-#: shortcode/include/admin.php:510
+#: shortcode/include/admin.php:438
+#: shortcode/include/admin.php:525
 msgid "Active snapshot:"
 msgstr ""
 
 #. translators: %s: number of items with errors.
-#: shortcode/include/admin.php:430
-#: shortcode/include/admin.php:515
+#: shortcode/include/admin.php:444
+#: shortcode/include/admin.php:530
 #, php-format
 msgid "Warnings: %s item(s) had errors (see manifest.json)."
 msgstr ""
 
-#: shortcode/include/admin.php:436
-#: shortcode/include/admin.php:507
+#: shortcode/include/admin.php:450
+#: shortcode/include/admin.php:522
 msgid "Error"
 msgstr ""
 
-#: shortcode/include/admin.php:441
-#: shortcode/include/admin.php:508
+#: shortcode/include/admin.php:455
+#: shortcode/include/admin.php:523
 msgid "Stopped"
 msgstr ""
 
-#: shortcode/include/admin.php:442
-#: shortcode/include/admin.php:509
+#: shortcode/include/admin.php:456
+#: shortcode/include/admin.php:524
 msgid "the last crawl did not finish. Use Re-crawl Now to try again."
 msgstr ""
 
-#: shortcode/include/admin.php:444
+#: shortcode/include/admin.php:458
 msgid "Last snapshot:"
 msgstr ""
 
 #. translators: %s: re-crawl button label.
-#: shortcode/include/admin.php:449
+#: shortcode/include/admin.php:463
 #, php-format
 msgid "No snapshot available. Enable offline mode or click <strong>%s</strong> to create one."
 msgstr ""
 
-#: shortcode/include/admin.php:450
-#: shortcode/include/admin.php:456
-#: shortcode/include/admin.php:520
+#: shortcode/include/admin.php:464
+#: shortcode/include/admin.php:470
+#: shortcode/include/admin.php:535
 msgid "Re-crawl Now"
 msgstr ""
 
-#: shortcode/include/admin.php:484
+#: shortcode/include/admin.php:498
 msgid "Deleting..."
 msgstr ""
 
+#: shortcode/include/admin.php:500
+msgid "Delete all caches? Every cached speaker, talk, schedule and photo will be fetched again from the API."
+msgstr ""
+
 #. translators: %s: error message.
-#: shortcode/include/admin.php:487
+#: shortcode/include/admin.php:502
 #, php-format
 msgid "Error: %s"
 msgstr ""
 
-#: shortcode/include/admin.php:488
+#: shortcode/include/admin.php:503
 msgid "Unknown error"
 msgstr ""
 
-#: shortcode/include/admin.php:489
-#: shortcode/include/admin.php:524
+#: shortcode/include/admin.php:504
+#: shortcode/include/admin.php:539
 msgid "Request failed. Please try again."
 msgstr ""
 
-#: shortcode/include/admin.php:511
+#: shortcode/include/admin.php:526
 msgid "Finished:"
 msgstr ""
 
 #. translators: 1: percentage, 2: items done, 3: items total.
-#: shortcode/include/admin.php:513
+#: shortcode/include/admin.php:528
 #, php-format
 msgid "%1$s%% (%2$s / %3$s)"
 msgstr ""
 
 #. translators: %s: number of errors so far.
-#: shortcode/include/admin.php:517
+#: shortcode/include/admin.php:532
 #, php-format
 msgid "%s error(s) so far"
 msgstr ""
 
-#: shortcode/include/admin.php:518
+#: shortcode/include/admin.php:533
 msgid "Start a new crawl? This will fetch all API data and images from the live API and create a new snapshot."
 msgstr ""
 
-#: shortcode/include/admin.php:519
+#: shortcode/include/admin.php:534
 msgid "Starting..."
 msgstr ""
 
 #. translators: %s: error message.
-#: shortcode/include/admin.php:522
+#: shortcode/include/admin.php:537
 #, php-format
 msgid "Failed to start crawl: %s"
 msgstr ""
 
-#: shortcode/include/admin.php:523
+#: shortcode/include/admin.php:538
 msgid "Unknown error."
 msgstr ""
 
-#: shortcode/include/admin.php:543
+#: shortcode/include/admin.php:558
 msgid "You do not have permission to perform this action."
 msgstr ""
 
-#: shortcode/include/admin.php:548
+#: shortcode/include/admin.php:563
 msgid "Missing required parameters"
 msgstr ""
 
 #. translators: 1: cache type, 2: cache ID.
-#: shortcode/include/admin.php:564
+#: shortcode/include/admin.php:579
 #, php-format
 msgid "Cache deleted for %1$s with ID: %2$s"
 msgstr ""
 
-#: shortcode/include/admin.php:566
+#: shortcode/include/admin.php:581
 msgid "Invalid cache type"
 msgstr ""
 
-#: shortcode/include/admin.php:581
-#: shortcode/include/admin.php:602
+#: shortcode/include/admin.php:596
+#: shortcode/include/admin.php:617
 msgid "Insufficient permissions."
 msgstr ""
 
-#: shortcode/include/admin.php:606
+#: shortcode/include/admin.php:621
 msgid "A crawl is already running. Wait for it to finish."
 msgstr ""
 
-#: shortcode/include/admin.php:609
+#: shortcode/include/admin.php:624
 msgid "Crawl started."
 msgstr ""
 

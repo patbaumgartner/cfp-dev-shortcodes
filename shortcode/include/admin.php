@@ -74,6 +74,11 @@ function cfp_dev_handle_settings_post( array $post ): string {
 function cfp_dev_handle_cache_deletion( array $post ): string {
 	$cache_type = sanitize_key( $post['delete_cache'] );
 
+	if ( 'all' === $cache_type ) {
+		cfp_dev_clear_cache();
+		return __( 'All caches deleted.', 'cfp-dev-shortcodes' );
+	}
+
 	if ( 'speakers' === $cache_type ) {
 		delete_transient( cfp_dev_speakers_cache_key( cfp_dev_speakers_default_atts() ) );
 		return __( 'Speakers cache deleted.', 'cfp-dev-shortcodes' );
@@ -144,89 +149,100 @@ function cfp_dev_plugin_options() {
 	echo '<h1>' . esc_html__( 'CFP.DEV Settings', 'cfp-dev-shortcodes' ) . '</h1>';
 
 	if ( '' !== $cache_notice ) {
-		echo '<div class="updated"><p>' . esc_html( $cache_notice ) . '</p></div>';
+		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $cache_notice ) . '</p></div>';
 	}
 
+	// ─────────────────────────────────────────────────────────────────────────
 	// General Settings Section
-	echo '<hr style="border-color: black">';
-	echo '<h3>' . esc_html__( 'General Settings', 'cfp-dev-shortcodes' ) . '</h3>';
+	// ─────────────────────────────────────────────────────────────────────────
+	echo '<h2 class="title">' . esc_html__( 'General Settings', 'cfp-dev-shortcodes' ) . '</h2>';
+	echo '<p>' . esc_html__( 'Connection and display options for your CFP.DEV instance. Saving also clears all caches.', 'cfp-dev-shortcodes' ) . '</p>';
 	echo '<form name="form1" method="post" action="">';
 	wp_nonce_field( 'cfp_dev_options', 'cfp_dev_nonce' );
-	echo '<table class="form-table">';
+	echo '<table class="form-table" role="presentation">';
 	echo '<tr>
-			<th scope="row"><label>' . esc_html__( 'CFP.DEV Key', 'cfp-dev-shortcodes' ) . '</label></th>
-			<td><input name="cfp_dev_key" size=20 value="' . esc_attr( cfp_dev_get_key() ) . '" minlength="3" pattern="[A-Za-z0-9-]+" required="true">
-			<br><small>' . esc_html__( 'Only letters, digits and dashes (the subdomain of your CFP.DEV instance).', 'cfp-dev-shortcodes' ) . '</small></td>
+			<th scope="row"><label for="cfp_dev_key">' . esc_html__( 'CFP.DEV Key', 'cfp-dev-shortcodes' ) . '</label></th>
+			<td><input type="text" id="cfp_dev_key" name="cfp_dev_key" class="regular-text" value="' . esc_attr( cfp_dev_get_key() ) . '" minlength="3" pattern="[A-Za-z0-9-]+" required="true">
+			<p class="description">' . esc_html__( 'Only letters, digits and dashes (the subdomain of your CFP.DEV instance).', 'cfp-dev-shortcodes' ) . '</p></td>
 		  </tr>';
 	echo '<tr>
-			<th scope="row"><label>' . esc_html__( 'Event name', 'cfp-dev-shortcodes' ) . '</label></th>
-			<td><input name="cfp_dev_event_name" size=50 value="' . esc_attr( cfp_dev_get_event_name() ) . '" minlength="3" required="true"></td>
+			<th scope="row"><label for="cfp_dev_event_name">' . esc_html__( 'Event name', 'cfp-dev-shortcodes' ) . '</label></th>
+			<td><input type="text" id="cfp_dev_event_name" name="cfp_dev_event_name" class="regular-text" value="' . esc_attr( cfp_dev_get_event_name() ) . '" minlength="3" required="true"></td>
 		  </tr>';
 	echo '<tr>
-			<th scope="row"><label>' . esc_html__( 'URL Path Prefix', 'cfp-dev-shortcodes' ) . '</label></th>
-			<td><input name="cfp_dev_path_prefix" size=20 value="' . esc_attr( get_option( 'cfp_dev_path_prefix', '' ) ) . '"><br>
-			<small>' . esc_html__( 'For example https://voxxeddays.com/trieste would have "trieste" as url path prefix', 'cfp-dev-shortcodes' ) . '</small>
+			<th scope="row"><label for="cfp_dev_path_prefix">' . esc_html__( 'URL Path Prefix', 'cfp-dev-shortcodes' ) . '</label></th>
+			<td><input type="text" id="cfp_dev_path_prefix" name="cfp_dev_path_prefix" class="regular-text" value="' . esc_attr( get_option( 'cfp_dev_path_prefix', '' ) ) . '">
+			<p class="description">' . esc_html__( 'For example https://voxxeddays.com/trieste would have "trieste" as url path prefix', 'cfp-dev-shortcodes' ) . '</p>
 			</td>
 		  </tr>';
 	echo '<tr>
-			<th scope="row"><label>' . esc_html__( 'Permalinks with Id', 'cfp-dev-shortcodes' ) . '</label></th>
+			<th scope="row"><label for="cfp_dev_content_by_id">' . esc_html__( 'Permalinks with Id', 'cfp-dev-shortcodes' ) . '</label></th>
 			<td>
-			  <select name="cfp_dev_content_by_id">
+			  <select id="cfp_dev_content_by_id" name="cfp_dev_content_by_id">
 					<option value="yes" ' . selected( get_option( 'cfp_dev_content_by_id' ), 'yes', false ) . '>' . esc_html__( 'Yes', 'cfp-dev-shortcodes' ) . '</option>
 					<option value="no" ' . selected( get_option( 'cfp_dev_content_by_id' ), 'no', false ) . '>' . esc_html__( 'No', 'cfp-dev-shortcodes' ) . '</option>
 			  </select>
-			  <br>
-			  <strong>' . esc_html__( 'Must be "Yes" for multisite WordPress installs.', 'cfp-dev-shortcodes' ) . '</strong>
-			  <small>' . esc_html__( 'When "Yes" the content links look as follows https://voxxeddays.com/trieste/speaker?id=123', 'cfp-dev-shortcodes' ) . '</small>
+			  <p class="description"><strong>' . esc_html__( 'Must be "Yes" for multisite WordPress installs.', 'cfp-dev-shortcodes' ) . '</strong><br>'
+				. esc_html__( 'When "Yes" the content links look as follows https://voxxeddays.com/trieste/speaker?id=123', 'cfp-dev-shortcodes' ) . '</p>
 			</td>
 		  </tr>';
 	echo '<tr>
-			<th scope="row"><label>' . esc_html__( 'Show Rooms', 'cfp-dev-shortcodes' ) . '</label></th>
+			<th scope="row"><label for="cfp_dev_show_rooms">' . esc_html__( 'Show Rooms', 'cfp-dev-shortcodes' ) . '</label></th>
 			<td>
-			  <select name="cfp_dev_show_rooms">
+			  <select id="cfp_dev_show_rooms" name="cfp_dev_show_rooms">
 					<option value="yes" ' . selected( get_option( 'cfp_dev_show_rooms' ), 'yes', false ) . '>' . esc_html__( 'Yes', 'cfp-dev-shortcodes' ) . '</option>
 					<option value="no" ' . selected( get_option( 'cfp_dev_show_rooms' ), 'no', false ) . '>' . esc_html__( 'No', 'cfp-dev-shortcodes' ) . '</option>
 			  </select>
-			  <br>
-			  <small>' . esc_html__( 'When "No" rooms will not be displayed on any page', 'cfp-dev-shortcodes' ) . '</small>
+			  <p class="description">' . esc_html__( 'When "No" rooms will not be displayed on any page', 'cfp-dev-shortcodes' ) . '</p>
 			</td>
 		  </tr>';
 	echo '<tr>
-			<th scope="row"><label>' . esc_html__( 'Cache Duration', 'cfp-dev-shortcodes' ) . '</label></th>
+			<th scope="row"><label for="cfp_dev_cache">' . esc_html__( 'Cache Duration', 'cfp-dev-shortcodes' ) . '</label></th>
 			<td>
-				<select name="cfp_dev_cache">
+				<select id="cfp_dev_cache" name="cfp_dev_cache">
 					<option value="0" ' . selected( cfp_dev_get_cache_ttl(), 0, false ) . '>' . esc_html__( 'No Cache', 'cfp-dev-shortcodes' ) . '</option>
 					<option value="3600" ' . selected( cfp_dev_get_cache_ttl(), 3600, false ) . '>' . esc_html__( 'One Hour', 'cfp-dev-shortcodes' ) . '</option>
 					<option value="86400" ' . selected( cfp_dev_get_cache_ttl(), 86400, false ) . '>' . esc_html__( 'One Day', 'cfp-dev-shortcodes' ) . '</option>
 					<option value="604800" ' . selected( cfp_dev_get_cache_ttl(), 604800, false ) . '>' . esc_html__( 'One Week', 'cfp-dev-shortcodes' ) . '</option>
 					<option value="2592000" ' . selected( cfp_dev_get_cache_ttl(), 2592000, false ) . '>' . esc_html__( 'One Month', 'cfp-dev-shortcodes' ) . '</option>
 				</select>
+				<p class="description">' . esc_html__( 'How long API responses and rendered pages are kept before they are fetched again.', 'cfp-dev-shortcodes' ) . '</p>
 			</td>
 		  </tr>';
 	echo '<tr>
-			<th scope="row"><label>' . esc_html__( 'Default Theme', 'cfp-dev-shortcodes' ) . '</label></th>
+			<th scope="row"><label for="cfp_dev_default_theme">' . esc_html__( 'Default Theme', 'cfp-dev-shortcodes' ) . '</label></th>
 			<td>
-				<select name="cfp_dev_default_theme">
+				<select id="cfp_dev_default_theme" name="cfp_dev_default_theme">
 					<option value="light" ' . selected( get_option( 'cfp_dev_default_theme' ), 'light', false ) . '>' . esc_html__( 'Light', 'cfp-dev-shortcodes' ) . '</option>
 					<option value="dark" ' . selected( get_option( 'cfp_dev_default_theme' ), 'dark', false ) . '>' . esc_html__( 'Dark', 'cfp-dev-shortcodes' ) . '</option>
 				</select>
 			</td>
 		  </tr>';
 	echo '<tr>
-			<th scope="row"><label>' . esc_html__( 'Enable Theme Switching', 'cfp-dev-shortcodes' ) . '</label></th>
-			<td><input type="checkbox" name="enable_theme_switch" value="1" ' . checked( true, cfp_dev_theme_switch_enabled(), false ) . ' /></td>
+			<th scope="row"><label for="enable_theme_switch">' . esc_html__( 'Enable Theme Switching', 'cfp-dev-shortcodes' ) . '</label></th>
+			<td><input type="checkbox" id="enable_theme_switch" name="enable_theme_switch" value="1" ' . checked( true, cfp_dev_theme_switch_enabled(), false ) . ' />
+			<span class="description">' . esc_html__( 'Show a light/dark toggle on the public pages.', 'cfp-dev-shortcodes' ) . '</span></td>
 		  </tr>';
 	echo '</table>';
-	echo '<p class="submit"><input type="submit" name="Submit" class="button-primary" value="' . esc_attr__( 'Save Changes', 'cfp-dev-shortcodes' ) . '" /></p>';
+	echo '<p class="submit"><input type="submit" name="Submit" class="button button-primary" value="' . esc_attr__( 'Save Changes', 'cfp-dev-shortcodes' ) . '" /></p>';
 	echo '</form>';
 
+	// ─────────────────────────────────────────────────────────────────────────
 	// Cache Management Section
-	echo '<hr style="border-color: black">';
-	echo '<h3>' . esc_html__( 'Manage Caches', 'cfp-dev-shortcodes' ) . '</h3>';
+	// ─────────────────────────────────────────────────────────────────────────
+	echo '<hr>';
+	echo '<h2 class="title">' . esc_html__( 'Manage Caches', 'cfp-dev-shortcodes' ) . '</h2>';
 	echo '<p>' . esc_html__( 'Here you can view and delete various caches used by the plugin.', 'cfp-dev-shortcodes' ) . '</p>';
 
+	echo '<form method="post" action="" id="cfp-delete-all-caches-form">';
+	wp_nonce_field( 'cfp_dev_options', 'cfp_dev_nonce' );
+	echo '<input type="hidden" name="delete_cache" value="all">
+		<p><input type="submit" class="button" value="' . esc_attr__( 'Delete All Caches', 'cfp-dev-shortcodes' ) . '">
+		<span class="description">' . esc_html__( 'Invalidates every cached speaker, talk, schedule and photo at once.', 'cfp-dev-shortcodes' ) . '</span></p>
+		</form>';
+
 	// Speakers cache
-	echo '<h4>' . esc_html__( 'Speakers Cache', 'cfp-dev-shortcodes' ) . '</h4>';
+	echo '<h3>' . esc_html__( 'Speakers Cache', 'cfp-dev-shortcodes' ) . '</h3>';
 	$speakers_cache = get_transient( cfp_dev_speakers_cache_key( cfp_dev_speakers_default_atts() ) );
 	if ( false !== $speakers_cache ) {
 		echo '<form method="post" action="">';
@@ -235,11 +251,11 @@ function cfp_dev_plugin_options() {
 				<input type="submit" class="button" value="' . esc_attr__( 'Delete Speakers Cache', 'cfp-dev-shortcodes' ) . '">
 			  </form>';
 	} else {
-		echo '<p>' . esc_html__( 'No speakers cache available.', 'cfp-dev-shortcodes' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'No speakers cache available.', 'cfp-dev-shortcodes' ) . '</p>';
 	}
 
 	// Schedule caches
-	echo '<h4>' . esc_html__( 'Schedule Caches', 'cfp-dev-shortcodes' ) . '</h4>';
+	echo '<h3>' . esc_html__( 'Schedule Caches', 'cfp-dev-shortcodes' ) . '</h3>';
 	$days                  = [ 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday' ];
 	$display_days          = [
 		'monday'    => __( 'Monday', 'cfp-dev-shortcodes' ),
@@ -251,22 +267,19 @@ function cfp_dev_plugin_options() {
 		'sunday'    => __( 'Sunday', 'cfp-dev-shortcodes' ),
 	];
 	$schedule_caches_exist = false;
-
-	echo '<table class="wp-list-table widefat fixed striped">
-			<thead><tr><th>' . esc_html__( 'Day', 'cfp-dev-shortcodes' ) . '</th><th>' . esc_html__( 'Action', 'cfp-dev-shortcodes' ) . '</th></tr></thead>
-			<tbody>';
+	$schedule_rows         = '';
 
 	foreach ( $days as $day ) {
 		// Schedule transients are keyed by the capitalised day name (DateTime 'l' format).
 		$cache_key = cfp_dev_group_cache_key( 'cfp_schedule_' . ucfirst( $day ) );
 		if ( get_transient( $cache_key ) !== false ) {
 			$schedule_caches_exist = true;
-			echo '<tr>
+			$schedule_rows        .= '<tr>
 					<td>' . esc_html( $display_days[ $day ] ) . '</td>
 					<td>
-						<form method="post" action="">';
-			wp_nonce_field( 'cfp_dev_options', 'cfp_dev_nonce' );
-			echo '<input type="hidden" name="delete_cache" value="schedule">
+						<form method="post" action="">'
+				. wp_nonce_field( 'cfp_dev_options', 'cfp_dev_nonce', true, false )
+				. '<input type="hidden" name="delete_cache" value="schedule">
 							<input type="hidden" name="cache_day" value="' . esc_attr( $day ) . '">
 							<input type="submit" class="button button-small" value="' . esc_attr__( 'Delete Cache', 'cfp-dev-shortcodes' ) . '">
 						</form>
@@ -275,22 +288,22 @@ function cfp_dev_plugin_options() {
 		}
 	}
 
-	echo '</tbody></table>';
-
-	if ( ! $schedule_caches_exist ) {
-		echo '<p>' . esc_html__( 'No schedule caches available.', 'cfp-dev-shortcodes' ) . '</p>';
+	if ( $schedule_caches_exist ) {
+		// Rows are built first so an empty table is never rendered.
+		echo '<table class="wp-list-table widefat fixed striped">
+			<thead><tr><th>' . esc_html__( 'Day', 'cfp-dev-shortcodes' ) . '</th><th>' . esc_html__( 'Action', 'cfp-dev-shortcodes' ) . '</th></tr></thead>
+			<tbody>' . $schedule_rows . '</tbody></table>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- every dynamic value is escaped where the row is built.
+	} else {
+		echo '<p class="description">' . esc_html__( 'No schedule caches available.', 'cfp-dev-shortcodes' ) . '</p>';
 	}
 
 	// Speaker detail caches
-	echo '<h4>' . esc_html__( 'Speaker Detail Caches', 'cfp-dev-shortcodes' ) . '</h4>';
+	echo '<h3>' . esc_html__( 'Speaker Detail Caches', 'cfp-dev-shortcodes' ) . '</h3>';
 	$speakers             = cfp_dev_get_json( 'public/speakers?size=' . CFP_DEV_SPEAKERS_FETCH_SIZE );
 	$speaker_caches_exist = false;
+	$speaker_rows         = '';
 
 	if ( is_array( $speakers ) || is_object( $speakers ) ) {
-		echo '<table class="wp-list-table widefat fixed striped">
-			<thead><tr><th>' . esc_html__( 'Speaker ID', 'cfp-dev-shortcodes' ) . '</th><th>' . esc_html__( 'Name', 'cfp-dev-shortcodes' ) . '</th><th>' . esc_html__( 'Action', 'cfp-dev-shortcodes' ) . '</th></tr></thead>
-			<tbody>';
-
 		foreach ( $speakers as $speaker ) {
 			// Every field here is read straight off an API record, and a record
 			// that omits one must not turn this screen into a page of warnings —
@@ -300,13 +313,13 @@ function cfp_dev_plugin_options() {
 			$transient_key = cfp_dev_detail_cache_key( 'speaker', $speaker_id );
 			if ( get_transient( $transient_key ) !== false ) {
 				$speaker_caches_exist = true;
-				echo '<tr id="speaker-row-' . esc_attr( (string) $speaker_id ) . '">
+				$speaker_rows        .= '<tr id="speaker-row-' . esc_attr( (string) $speaker_id ) . '">
 					<td>' . esc_html( (string) $speaker_id ) . '</td>
 					<td>' . esc_html( $speaker_name ) . '</td>
 					<td>
-						<form method="post" action="" class="delete-cache-form">';
-				wp_nonce_field( 'cfp_dev_options', 'cfp_dev_nonce' );
-				echo '<input type="hidden" name="delete_cache" value="speaker">
+						<form method="post" action="" class="delete-cache-form">'
+					. wp_nonce_field( 'cfp_dev_options', 'cfp_dev_nonce', true, false )
+					. '<input type="hidden" name="delete_cache" value="speaker">
 							<input type="hidden" name="cache_id" value="' . esc_attr( (string) $speaker_id ) . '">
 							<input type="submit" class="button button-small delete-cache-button" value="' . esc_attr__( 'Delete Cache', 'cfp-dev-shortcodes' ) . '">
 						</form>
@@ -314,52 +327,51 @@ function cfp_dev_plugin_options() {
 				  </tr>';
 			}
 		}
-
-		echo '</tbody></table>';
 	}
 
-	if ( ! $speaker_caches_exist ) {
-		echo '<p>' . esc_html__( 'No speaker detail caches available.', 'cfp-dev-shortcodes' ) . '</p>';
+	if ( $speaker_caches_exist ) {
+		echo '<table class="wp-list-table widefat fixed striped">
+			<thead><tr><th>' . esc_html__( 'Speaker ID', 'cfp-dev-shortcodes' ) . '</th><th>' . esc_html__( 'Name', 'cfp-dev-shortcodes' ) . '</th><th>' . esc_html__( 'Action', 'cfp-dev-shortcodes' ) . '</th></tr></thead>
+			<tbody>' . $speaker_rows . '</tbody></table>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- every dynamic value is escaped where the row is built.
+	} else {
+		echo '<p class="description">' . esc_html__( 'No speaker detail caches available.', 'cfp-dev-shortcodes' ) . '</p>';
 	}
 
 	// Talk detail caches
-	echo '<h4>' . esc_html__( 'Talk Detail Caches', 'cfp-dev-shortcodes' ) . '</h4>';
+	echo '<h3>' . esc_html__( 'Talk Detail Caches', 'cfp-dev-shortcodes' ) . '</h3>';
 	$talks             = cfp_dev_get_json( 'public/talks' );
 	$talk_caches_exist = false;
+	$talk_rows         = '';
 
 	if ( is_array( $talks ) || is_object( $talks ) ) {
-		echo '<table class="wp-list-table widefat fixed striped">
-				<thead><tr><th>' . esc_html__( 'Talk ID', 'cfp-dev-shortcodes' ) . '</th><th>' . esc_html__( 'Title', 'cfp-dev-shortcodes' ) . '</th><th>' . esc_html__( 'Action', 'cfp-dev-shortcodes' ) . '</th></tr></thead>
-				<tbody>';
-
 		foreach ( $talks as $talk ) {
 			$talk_id       = absint( $talk->id ?? 0 );
 			$transient_key = cfp_dev_detail_cache_key( 'talk', $talk_id );
 			if ( get_transient( $transient_key ) !== false ) {
 				$talk_caches_exist = true;
-				echo '<tr>
+				$talk_rows        .= '<tr>
 						<td>' . esc_html( (string) $talk_id ) . '</td>
 						<td>' . esc_html( (string) ( $talk->title ?? '' ) ) . '</td>
 						<td>
-							<form method="post" action="">';
-				wp_nonce_field( 'cfp_dev_options', 'cfp_dev_nonce' );
-				echo '<input type="hidden" name="delete_cache" value="talk">
+							<form method="post" action="" class="delete-cache-form">'
+					. wp_nonce_field( 'cfp_dev_options', 'cfp_dev_nonce', true, false )
+					. '<input type="hidden" name="delete_cache" value="talk">
 								<input type="hidden" name="cache_id" value="' . esc_attr( (string) $talk_id ) . '">
-								<input type="submit" class="button button-small" value="' . esc_attr__( 'Delete Cache', 'cfp-dev-shortcodes' ) . '">
+								<input type="submit" class="button button-small delete-cache-button" value="' . esc_attr__( 'Delete Cache', 'cfp-dev-shortcodes' ) . '">
 							</form>
 						</td>
 					  </tr>';
 			}
 		}
-
-		echo '</tbody></table>';
 	}
 
-	if ( ! $talk_caches_exist ) {
-		echo '<p>' . esc_html__( 'No talk detail caches available.', 'cfp-dev-shortcodes' ) . '</p>';
+	if ( $talk_caches_exist ) {
+		echo '<table class="wp-list-table widefat fixed striped">
+				<thead><tr><th>' . esc_html__( 'Talk ID', 'cfp-dev-shortcodes' ) . '</th><th>' . esc_html__( 'Title', 'cfp-dev-shortcodes' ) . '</th><th>' . esc_html__( 'Action', 'cfp-dev-shortcodes' ) . '</th></tr></thead>
+				<tbody>' . $talk_rows . '</tbody></table>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- every dynamic value is escaped where the row is built.
+	} else {
+		echo '<p class="description">' . esc_html__( 'No talk detail caches available.', 'cfp-dev-shortcodes' ) . '</p>';
 	}
-
-	echo '</div>';
 
 	// ─────────────────────────────────────────────────────────────────────────
 	// Offline Mode Section
@@ -386,16 +398,15 @@ function cfp_dev_plugin_options() {
 		$offline_mode = 1;
 	}
 
-	echo '<div class="wrap">';
-	echo '<hr style="border-color: black">';
-	echo '<h3>' . esc_html__( 'Offline Mode', 'cfp-dev-shortcodes' ) . '</h3>';
+	echo '<hr>';
+	echo '<h2 class="title">' . esc_html__( 'Offline Mode', 'cfp-dev-shortcodes' ) . '</h2>';
 	echo '<p>' . esc_html__( 'When enabled, all API data and images are served from a local snapshot — no external requests are made.', 'cfp-dev-shortcodes' ) . '</p>';
 	echo '<p><em>' . esc_html__( 'Checking the box starts a fresh crawl. Unchecking disables offline mode but keeps the snapshot data. Re-checking creates a new snapshot.', 'cfp-dev-shortcodes' ) . '</em></p>';
 
 	echo '<form name="cfp_offline_form" method="post" action="">';
 	wp_nonce_field( 'cfp_dev_options', 'cfp_dev_nonce' );
 	echo '<input type="hidden" name="cfp_dev_offline_mode_save" value="1">';
-	echo '<table class="form-table">';
+	echo '<table class="form-table" role="presentation">';
 	echo '<tr>
 			<th scope="row"><label for="cfp_dev_offline_mode">' . esc_html__( 'Enable Offline Mode', 'cfp-dev-shortcodes' ) . '</label></th>
 			<td>
@@ -404,11 +415,11 @@ function cfp_dev_plugin_options() {
 			</td>
 		  </tr>';
 	echo '</table>';
-	echo '<p class="submit"><input type="submit" name="Submit" class="button-primary" value="' . esc_attr__( 'Save Offline Mode', 'cfp-dev-shortcodes' ) . '"></p>';
+	echo '<p class="submit"><input type="submit" name="Submit" class="button button-primary" value="' . esc_attr__( 'Save Offline Mode', 'cfp-dev-shortcodes' ) . '"></p>';
 	echo '</form>';
 
 	// Snapshot status box (populated / updated by admin-offline-crawler.js)
-	echo '<h4>' . esc_html__( 'Snapshot Status', 'cfp-dev-shortcodes' ) . '</h4>';
+	echo '<h3>' . esc_html__( 'Snapshot Status', 'cfp-dev-shortcodes' ) . '</h3>';
 	echo '<div id="cfp-crawl-status">';
 
 	if ( $crawling ) {
@@ -481,12 +492,13 @@ function cfp_dev_enqueue_admin_scripts( $hook ) {
 			'ajaxurl' => admin_url( 'admin-ajax.php' ),
 			'nonce'   => wp_create_nonce( 'cfp_dev_delete_cache' ),
 			'i18n'    => [
-				'deleting'      => __( 'Deleting...', 'cfp-dev-shortcodes' ),
-				'deleteCache'   => __( 'Delete Cache', 'cfp-dev-shortcodes' ),
+				'deleting'         => __( 'Deleting...', 'cfp-dev-shortcodes' ),
+				'deleteCache'      => __( 'Delete Cache', 'cfp-dev-shortcodes' ),
+				'confirmDeleteAll' => __( 'Delete all caches? Every cached speaker, talk, schedule and photo will be fetched again from the API.', 'cfp-dev-shortcodes' ),
 				/* translators: %s: error message. */
-				'errorWith'     => __( 'Error: %s', 'cfp-dev-shortcodes' ),
-				'unknownError'  => __( 'Unknown error', 'cfp-dev-shortcodes' ),
-				'requestFailed' => __( 'Request failed. Please try again.', 'cfp-dev-shortcodes' ),
+				'errorWith'        => __( 'Error: %s', 'cfp-dev-shortcodes' ),
+				'unknownError'     => __( 'Unknown error', 'cfp-dev-shortcodes' ),
+				'requestFailed'    => __( 'Request failed. Please try again.', 'cfp-dev-shortcodes' ),
 			],
 		]
 	);

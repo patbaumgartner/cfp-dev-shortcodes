@@ -16,6 +16,12 @@ jQuery(document).ready(function ($) {
 		return String(template).replace('%s', value);
 	}
 
+	$('#cfp-delete-all-caches-form').on('submit', function (e) {
+		if (!window.confirm(i18n.confirmDeleteAll)) {
+			e.preventDefault();
+		}
+	});
+
 	$('.delete-cache-form').on('submit', function (e) {
 		e.preventDefault();
 		var $form = $(this);
