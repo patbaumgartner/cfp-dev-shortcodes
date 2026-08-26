@@ -128,6 +128,46 @@ final class OfflineCrawlerTest extends PluginTestCase {
 	}
 
 	/**
+	 * S3 serves files uploaded without a content type as binary/octet-stream —
+	 * every speaker photo on such a bucket. The header carries no information
+	 * then, so the bytes decide, against the same allow-list.
+	 */
+	public function test_a_real_image_behind_a_generic_content_type_is_accepted(): void {
+		$snapshot = $this->makeSnapshotDir();
+		$log      = [];
+		$errors   = 0;
+		$gif      = base64_decode( 'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- a 1x1 GIF fixture, binary bytes have no readable form
+		$this->image( 'https://s3.test/profile-1.jpg', $gif, 'binary/octet-stream' );
+
+		$this->assertTrue( cfp_dev_download_image( 'https://s3.test/profile-1.jpg', $snapshot . '/images/a.jpg', $log, $errors ) );
+		$this->assertSame( $gif, file_get_contents( $snapshot . '/images/a.jpg' ) );
+		$this->assertSame( 0, $errors );
+	}
+
+	public function test_non_image_bytes_behind_a_generic_content_type_are_rejected(): void {
+		$snapshot = $this->makeSnapshotDir();
+		$log      = [];
+		$errors   = 0;
+		$this->image( 'https://s3.test/payload.jpg', '<?php echo 1;', 'application/octet-stream' );
+
+		$this->assertFalse( cfp_dev_download_image( 'https://s3.test/payload.jpg', $snapshot . '/images/p.jpg', $log, $errors ) );
+		$this->assertFileDoesNotExist( $snapshot . '/images/p.jpg' );
+		$this->assertSame( 1, $errors );
+	}
+
+	/** The sniff must not become an SVG smuggling path: markup is not a raster image. */
+	public function test_svg_bytes_behind_a_generic_content_type_are_rejected(): void {
+		$snapshot = $this->makeSnapshotDir();
+		$log      = [];
+		$errors   = 0;
+		$this->image( 'https://s3.test/logo.jpg', '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>', 'binary/octet-stream' );
+
+		$this->assertFalse( cfp_dev_download_image( 'https://s3.test/logo.jpg', $snapshot . '/images/l.jpg', $log, $errors ) );
+		$this->assertFileDoesNotExist( $snapshot . '/images/l.jpg' );
+		$this->assertSame( 1, $errors );
+	}
+
+	/**
 	 * The snapshot is served from the site's own origin, so an SVG published
 	 * there is same-origin script waiting for a visit — which is why
 	 * WordPress core refuses SVG uploads. The URL comes from a service the
