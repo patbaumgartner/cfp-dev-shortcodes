@@ -214,6 +214,32 @@ final class AdminSettingsPageTest extends PluginTestCase {
 		$this->assertSame( [], \WP_Test_State::$env['localized'] ?? [] );
 	}
 
+	/** With completed snapshots on disk, the offline form offers to pin one. */
+	public function test_the_offline_form_offers_every_completed_snapshot(): void {
+		$this->registerDefaultApi();
+		$snapshot = cfp_dev_offline_dir() . '/2025-01-01_00-00-00';
+		mkdir( $snapshot, 0777, true );
+		file_put_contents( $snapshot . '/manifest.json', '{}' );
+
+		try {
+			$html = $this->render();
+
+			$this->assertStringContainsString( 'name="cfp_dev_active_snapshot"', $html );
+			$this->assertStringContainsString( 'value="2025-01-01_00-00-00"', $html );
+			$this->assertStringContainsString( 'Always the latest snapshot (default)', $html );
+		} finally {
+			unlink( $snapshot . '/manifest.json' );
+			rmdir( $snapshot );
+		}
+	}
+
+	/** Without a snapshot there is nothing to pin, so the picker stays away. */
+	public function test_the_snapshot_picker_is_absent_when_nothing_was_crawled(): void {
+		$this->registerDefaultApi();
+
+		$this->assertStringNotContainsString( 'cfp_dev_active_snapshot', $this->render() );
+	}
+
 	// ─────────────────────────────────────────────────────────────────────────
 
 	/** Renders the settings screen and returns its markup. */

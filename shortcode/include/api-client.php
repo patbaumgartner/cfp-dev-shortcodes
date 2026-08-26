@@ -98,7 +98,7 @@ function cfp_dev_api_timeout( string $query_path = '' ): int {
 function cfp_dev_fetch_json_body( $query_path ) {
 	// Offline mode: serve from local snapshot instead of the live API.
 	if ( get_option( 'cfp_dev_offline_mode', 0 ) ) {
-		if ( '' !== cfp_dev_get_latest_snapshot() ) {
+		if ( '' !== cfp_dev_get_serving_snapshot() ) {
 			// A snapshot exists — stay offline. A null here means this specific
 			// resource is not in the snapshot (unknown id, uncrawlable endpoint
 			// like public/search): treat it as "not found" rather than falling

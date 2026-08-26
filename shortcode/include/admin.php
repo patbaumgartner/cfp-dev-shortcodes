@@ -32,6 +32,7 @@ function cfp_dev_handle_settings_post( array $post ): string {
 	}
 
 	if ( isset( $post['cfp_dev_offline_mode_save'] ) ) {
+		cfp_dev_store_active_snapshot( sanitize_text_field( $post['cfp_dev_active_snapshot'] ?? '' ) );
 		cfp_dev_handle_offline_mode( isset( $post['cfp_dev_offline_mode'] ) );
 		return '';
 	}
@@ -414,6 +415,24 @@ function cfp_dev_plugin_options() {
 				<span class="description">' . esc_html__( 'Check to start a new crawl. Offline mode activates automatically when the crawl finishes.', 'cfp-dev-shortcodes' ) . '</span>
 			</td>
 		  </tr>';
+
+	// Snapshot picker — which dated snapshot offline reads are served from.
+	$snapshot_names = cfp_dev_list_completed_snapshots();
+	if ( ! empty( $snapshot_names ) ) {
+		$pinned = (string) get_option( 'cfp_dev_active_snapshot', '' );
+		echo '<tr>
+			<th scope="row">' . esc_html__( 'Serve From Snapshot', 'cfp-dev-shortcodes' ) . '</th>
+			<td><fieldset>
+				<legend class="screen-reader-text">' . esc_html__( 'Serve From Snapshot', 'cfp-dev-shortcodes' ) . '</legend>
+				<label><input type="radio" name="cfp_dev_active_snapshot" value="" ' . checked( '', $pinned, false ) . '> ' . esc_html__( 'Always the latest snapshot (default)', 'cfp-dev-shortcodes' ) . '</label><br>';
+		foreach ( $snapshot_names as $snapshot_name ) {
+			echo '<label><input type="radio" name="cfp_dev_active_snapshot" value="' . esc_attr( $snapshot_name ) . '" ' . checked( $snapshot_name, $pinned, false ) . '> <code>' . esc_html( $snapshot_name ) . '</code></label><br>';
+		}
+		echo '<p class="description">' . esc_html__( 'Pin a dated snapshot to keep serving its speakers, talks and schedule — useful once the CFP.DEV instance is gone. A pinned snapshot is never pruned and even survives uninstalling the plugin; changing the selection re-renders all cached pages.', 'cfp-dev-shortcodes' ) . '</p>
+			</fieldset></td>
+		  </tr>';
+	}
+
 	echo '</table>';
 	echo '<p class="submit"><input type="submit" name="Submit" class="button button-primary" value="' . esc_attr__( 'Save Offline Mode', 'cfp-dev-shortcodes' ) . '"></p>';
 	echo '</form>';

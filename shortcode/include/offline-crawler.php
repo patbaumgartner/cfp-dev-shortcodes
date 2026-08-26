@@ -61,21 +61,71 @@ function cfp_dev_offline_url(): string {
  * or an empty string when no completed snapshot exists.
  */
 function cfp_dev_get_latest_snapshot(): string {
+	$names = cfp_dev_list_completed_snapshots();
+	return empty( $names ) ? '' : cfp_dev_offline_dir() . '/' . $names[0];
+}
+
+/**
+ * Lists every *completed* snapshot (has manifest.json), newest first.
+ *
+ * @return string[]  Snapshot directory basenames, e.g. '2025-10-06_09-00-00'.
+ */
+function cfp_dev_list_completed_snapshots(): array {
 	$base = cfp_dev_offline_dir();
 	if ( ! is_dir( $base ) ) {
-		return '';
+		return [];
 	}
 	$dirs = glob( $base . '/[0-9]*', GLOB_ONLYDIR );
 	if ( empty( $dirs ) ) {
-		return '';
+		return [];
 	}
 	rsort( $dirs ); // newest first (lexicographic sort works for YYYY-MM-DD_HH-MM-SS)
+	$names = [];
 	foreach ( $dirs as $dir ) {
+		if ( file_exists( $dir . '/manifest.json' ) ) {
+			$names[] = basename( $dir );
+		}
+	}
+	return $names;
+}
+
+/**
+ * Returns the absolute path to the snapshot offline reads are served from:
+ * the pinned snapshot when one is set and still complete, the latest
+ * completed snapshot otherwise. Empty string when nothing can be served.
+ */
+function cfp_dev_get_serving_snapshot(): string {
+	$pinned = (string) get_option( 'cfp_dev_active_snapshot', '' );
+	if ( '' !== $pinned ) {
+		// basename() re-guards against a stored value with path separators.
+		$dir = cfp_dev_offline_dir() . '/' . basename( $pinned );
 		if ( file_exists( $dir . '/manifest.json' ) ) {
 			return $dir;
 		}
+		cfp_dev_log( 'offline: pinned snapshot ' . $pinned . ' is gone — falling back to the latest' );
 	}
-	return '';
+	return cfp_dev_get_latest_snapshot();
+}
+
+/**
+ * Pins offline reads to a specific snapshot ('' returns to "latest").
+ *
+ * Unknown names — including traversal attempts — leave the pin unchanged.
+ * A change clears the page cache: rendered HTML embeds the snapshot's own
+ * image URLs, so pages must re-render from the newly selected one.
+ *
+ * @param string $name  Snapshot directory basename, or '' for the latest.
+ */
+function cfp_dev_store_active_snapshot( string $name ): void {
+	if ( '' !== $name && ! in_array( $name, cfp_dev_list_completed_snapshots(), true ) ) {
+		return;
+	}
+	if ( (string) get_option( 'cfp_dev_active_snapshot', '' ) === $name ) {
+		return;
+	}
+	update_option( 'cfp_dev_active_snapshot', $name );
+	cfp_dev_clear_cache();
+	cfp_dev_log( 'offline: active snapshot set to ' . ( '' === $name ? '(latest)' : $name ) );
 }
 
 /**
@@ -88,6 +138,9 @@ function cfp_dev_get_latest_snapshot(): string {
  *
  * Abandoned directories are dropped too, but only those older than the newest
  * completed snapshot: anything newer may be a crawl still writing.
+ *
+ * The pinned snapshot is never pruned — it may be the only copy of an event
+ * whose CFP.DEV instance no longer exists.
  *
  * @param int $keep  Number of completed snapshots to retain (newest first).
  */
@@ -115,7 +168,11 @@ function cfp_dev_prune_snapshots( int $keep = 2 ): void {
 	$newest    = $complete[0] ?? '';
 	$abandoned = array_filter( $partial, static fn( string $dir ): bool => '' !== $newest && $dir < $newest );
 
-	$removable = array_merge( array_slice( $complete, $keep ), $abandoned );
+	$pinned    = (string) get_option( 'cfp_dev_active_snapshot', '' );
+	$removable = array_filter(
+		array_merge( array_slice( $complete, $keep ), $abandoned ),
+		static fn( string $dir ): bool => '' === $pinned || basename( $dir ) !== $pinned
+	);
 	if ( empty( $removable ) ) {
 		return;
 	}
@@ -147,7 +204,7 @@ function cfp_dev_prune_snapshots( int $keep = 2 ): void {
  * @return string|null  Raw JSON body, or null when unavailable or malformed.
  */
 function cfp_dev_read_snapshot_body( string $query_path ) {
-	$snapshot = cfp_dev_get_latest_snapshot();
+	$snapshot = cfp_dev_get_serving_snapshot();
 	if ( empty( $snapshot ) ) {
 		cfp_dev_log( 'offline: no completed snapshot available for ' . $query_path );
 		return null;
