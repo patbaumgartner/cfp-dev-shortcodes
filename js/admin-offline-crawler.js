@@ -75,8 +75,17 @@
 			if (state.finished_at) {
 				html += '<p>' + escHtml(i18n.finished) + ' ' + escHtml(new Date(state.finished_at * 1000).toLocaleString()) + '</p>';
 			}
-			if (state.errors > 0) {
-				html += '<p style="color:orange;">' + escHtml(format(i18n.warnings, [state.errors])) + '</p>';
+			var albums = state.errors_albums || 0;
+			var images = state.errors_images || 0;
+			var other = (state.errors || 0) - albums - images;
+			if (albums > 0) {
+				html += '<p>' + escHtml(format(i18n.albumsInfo, [albums])) + '</p>';
+			}
+			if (images > 0) {
+				html += '<p style="color:orange;">' + escHtml(format(i18n.imagesWarn, [images])) + '</p>';
+			}
+			if (other > 0) {
+				html += '<p style="color:orange;">' + escHtml(format(i18n.endpointsWarn, [other])) + '</p>';
 			}
 
 		} else if ('error' === status) {

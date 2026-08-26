@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-26T10:26:17+00:00\n"
+"POT-Creation-Date: 2026-08-26T13:45:56+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
@@ -78,9 +78,9 @@ msgid "You do not have sufficient permissions to access this page."
 msgstr ""
 
 #: shortcode/include/admin.php:141
-#: shortcode/include/admin.php:569
-#: shortcode/include/admin.php:608
-#: shortcode/include/admin.php:629
+#: shortcode/include/admin.php:643
+#: shortcode/include/admin.php:682
+#: shortcode/include/admin.php:703
 msgid "Security check failed."
 msgstr ""
 
@@ -259,7 +259,7 @@ msgstr ""
 #: shortcode/include/admin.php:285
 #: shortcode/include/admin.php:325
 #: shortcode/include/admin.php:361
-#: shortcode/include/admin.php:515
+#: shortcode/include/admin.php:585
 msgid "Delete Cache"
 msgstr ""
 
@@ -353,229 +353,253 @@ msgstr ""
 
 #: shortcode/include/admin.php:445
 #: shortcode/include/admin.php:452
-#: shortcode/include/admin.php:466
-#: shortcode/include/admin.php:471
-#: shortcode/include/admin.php:534
+#: shortcode/include/admin.php:458
+#: shortcode/include/admin.php:463
+#: shortcode/include/admin.php:604
 msgid "Status:"
 msgstr ""
 
 #: shortcode/include/admin.php:445
-#: shortcode/include/admin.php:535
+#: shortcode/include/admin.php:605
 msgid "Running"
 msgstr ""
 
 #: shortcode/include/admin.php:445
-#: shortcode/include/admin.php:536
+#: shortcode/include/admin.php:606
 msgid "Pending"
 msgstr ""
 
 #: shortcode/include/admin.php:452
-#: shortcode/include/admin.php:537
+#: shortcode/include/admin.php:607
 msgid "Complete"
 msgstr ""
 
 #: shortcode/include/admin.php:454
-#: shortcode/include/admin.php:541
+#: shortcode/include/admin.php:611
 msgid "Active snapshot:"
 msgstr ""
 
-#. translators: %s: number of items with errors.
-#: shortcode/include/admin.php:460
-#: shortcode/include/admin.php:546
-#, php-format
-msgid "Warnings: %s item(s) had errors (see manifest.json)."
-msgstr ""
-
-#: shortcode/include/admin.php:466
-#: shortcode/include/admin.php:538
+#: shortcode/include/admin.php:458
+#: shortcode/include/admin.php:608
 msgid "Error"
 msgstr ""
 
-#: shortcode/include/admin.php:471
-#: shortcode/include/admin.php:539
+#: shortcode/include/admin.php:463
+#: shortcode/include/admin.php:609
 msgid "Stopped"
 msgstr ""
 
-#: shortcode/include/admin.php:472
-#: shortcode/include/admin.php:540
+#: shortcode/include/admin.php:464
+#: shortcode/include/admin.php:610
 msgid "the last crawl did not finish. Use Re-crawl Now to try again."
 msgstr ""
 
-#: shortcode/include/admin.php:474
+#: shortcode/include/admin.php:466
 msgid "Last snapshot:"
 msgstr ""
 
 #. translators: %s: re-crawl button label.
-#: shortcode/include/admin.php:479
+#: shortcode/include/admin.php:472
 #, php-format
 msgid "No snapshot available. Enable offline mode or click <strong>%s</strong> to create one."
 msgstr ""
 
-#: shortcode/include/admin.php:480
-#: shortcode/include/admin.php:486
-#: shortcode/include/admin.php:551
+#: shortcode/include/admin.php:473
+#: shortcode/include/admin.php:479
+#: shortcode/include/admin.php:625
 msgid "Re-crawl Now"
 msgstr ""
 
-#: shortcode/include/admin.php:514
+#: shortcode/include/admin.php:503
+msgid "Every endpoint and image was captured — the snapshot is fully self-contained."
+msgstr ""
+
+#. translators: %s: number of speakers.
+#: shortcode/include/admin.php:524
+#: shortcode/include/admin.php:616
+#, php-format
+msgid "%s speaker(s) have no Flickr photo album — normal, nothing is missing on the pages."
+msgstr ""
+
+#. translators: %s: number of images.
+#: shortcode/include/admin.php:533
+#: shortcode/include/admin.php:618
+#, php-format
+msgid "%s image(s) could not be saved locally — pages still show them, but from the CDN."
+msgstr ""
+
+#. translators: %s: number of endpoints.
+#: shortcode/include/admin.php:542
+#: shortcode/include/admin.php:620
+#, php-format
+msgid "%s endpoint(s) could not be captured."
+msgstr ""
+
+#. translators: %s: number of failed fetches.
+#: shortcode/include/admin.php:551
+#, php-format
+msgid "Show all %s failed fetch(es)"
+msgstr ""
+
+#: shortcode/include/admin.php:584
 msgid "Deleting..."
 msgstr ""
 
-#: shortcode/include/admin.php:516
+#: shortcode/include/admin.php:586
 msgid "Delete all caches? Every cached speaker, talk, schedule and photo will be fetched again from the API."
 msgstr ""
 
 #. translators: %s: error message.
-#: shortcode/include/admin.php:518
+#: shortcode/include/admin.php:588
 #, php-format
 msgid "Error: %s"
 msgstr ""
 
-#: shortcode/include/admin.php:519
+#: shortcode/include/admin.php:589
 msgid "Unknown error"
 msgstr ""
 
-#: shortcode/include/admin.php:520
-#: shortcode/include/admin.php:555
+#: shortcode/include/admin.php:590
+#: shortcode/include/admin.php:629
 msgid "Request failed. Please try again."
 msgstr ""
 
-#: shortcode/include/admin.php:542
+#: shortcode/include/admin.php:612
 msgid "Finished:"
 msgstr ""
 
 #. translators: 1: percentage, 2: items done, 3: items total.
-#: shortcode/include/admin.php:544
+#: shortcode/include/admin.php:614
 #, php-format
 msgid "%1$s%% (%2$s / %3$s)"
 msgstr ""
 
 #. translators: %s: number of errors so far.
-#: shortcode/include/admin.php:548
+#: shortcode/include/admin.php:622
 #, php-format
 msgid "%s error(s) so far"
 msgstr ""
 
-#: shortcode/include/admin.php:549
+#: shortcode/include/admin.php:623
 msgid "Start a new crawl? This will fetch all API data and images from the live API and create a new snapshot."
 msgstr ""
 
-#: shortcode/include/admin.php:550
+#: shortcode/include/admin.php:624
 msgid "Starting..."
 msgstr ""
 
 #. translators: %s: error message.
-#: shortcode/include/admin.php:553
+#: shortcode/include/admin.php:627
 #, php-format
 msgid "Failed to start crawl: %s"
 msgstr ""
 
-#: shortcode/include/admin.php:554
+#: shortcode/include/admin.php:628
 msgid "Unknown error."
 msgstr ""
 
-#: shortcode/include/admin.php:574
+#: shortcode/include/admin.php:648
 msgid "You do not have permission to perform this action."
 msgstr ""
 
-#: shortcode/include/admin.php:579
+#: shortcode/include/admin.php:653
 msgid "Missing required parameters"
 msgstr ""
 
 #. translators: 1: cache type, 2: cache ID.
-#: shortcode/include/admin.php:595
+#: shortcode/include/admin.php:669
 #, php-format
 msgid "Cache deleted for %1$s with ID: %2$s"
 msgstr ""
 
-#: shortcode/include/admin.php:597
+#: shortcode/include/admin.php:671
 msgid "Invalid cache type"
 msgstr ""
 
-#: shortcode/include/admin.php:612
-#: shortcode/include/admin.php:633
+#: shortcode/include/admin.php:686
+#: shortcode/include/admin.php:707
 msgid "Insufficient permissions."
 msgstr ""
 
-#: shortcode/include/admin.php:637
+#: shortcode/include/admin.php:711
 msgid "A crawl is already running. Wait for it to finish."
 msgstr ""
 
-#: shortcode/include/admin.php:640
+#: shortcode/include/admin.php:714
 msgid "Crawl started."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:401
+#: shortcode/include/offline-crawler.php:449
 msgid "Crawl scheduled, waiting for background job..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:866
+#: shortcode/include/offline-crawler.php:930
 msgid "Snapshot directory missing. Please start a new crawl."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:883
+#: shortcode/include/offline-crawler.php:947
 msgid "Fetching event metadata..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:896
+#: shortcode/include/offline-crawler.php:960
 msgid "Fetching speakers list..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:903
+#: shortcode/include/offline-crawler.php:967
 msgid "Fetching speaker details..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:918
+#: shortcode/include/offline-crawler.php:982
 msgid "Fetching speaker photo albums..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:931
+#: shortcode/include/offline-crawler.php:995
 msgid "Fetching talks list..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:942
+#: shortcode/include/offline-crawler.php:1006
 msgid "Fetching talk details..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:960
+#: shortcode/include/offline-crawler.php:1024
 msgid "Fetching talks by track & session type..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:973
+#: shortcode/include/offline-crawler.php:1037
 msgid "Fetching schedules..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:1010
+#: shortcode/include/offline-crawler.php:1074
 msgid "Collecting image URLs from saved JSON..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:1052
+#: shortcode/include/offline-crawler.php:1116
 msgid "Downloading images..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:1109
+#: shortcode/include/offline-crawler.php:1173
 msgid "Rewriting image URLs in JSON files..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:1142
+#: shortcode/include/offline-crawler.php:1206
 msgid "Finalizing snapshot..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:1161
+#: shortcode/include/offline-crawler.php:1225
 msgid "Crawl produced no talks or speakers — offline mode was left off. Check the CFP.DEV key and that the API is reachable."
 msgstr ""
 
 #. translators: %s: number of endpoints that could not be captured.
-#: shortcode/include/offline-crawler.php:1164
+#: shortcode/include/offline-crawler.php:1228
 #, php-format
 msgid "Crawl could not capture %s required endpoint(s) — offline mode was left off and the previous snapshot is untouched. See the log for which."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:1199
+#: shortcode/include/offline-crawler.php:1265
 msgid "Could not write manifest.json — offline mode was left off. Check filesystem permissions on wp-content/uploads."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:1223
+#: shortcode/include/offline-crawler.php:1289
 msgid "Crawl complete! Offline mode is now active."
 msgstr ""
 

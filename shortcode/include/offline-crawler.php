@@ -90,6 +90,54 @@ function cfp_dev_list_completed_snapshots(): array {
 }
 
 /**
+ * Returns the failed fetches from a snapshot's manifest log.
+ *
+ * The manifest records every fetch; this filters it down to what the operator
+ * asks about when the status box says "N errors": which URLs, and why.
+ *
+ * @param string $snapshot  Absolute path to a completed snapshot.
+ * @return array<int,array{url:string,reason:string}>  Empty when the manifest
+ *                                                     is missing or unreadable.
+ */
+function cfp_dev_snapshot_fetch_errors( string $snapshot ): array {
+	$manifest_file = $snapshot . '/manifest.json';
+	if ( ! is_file( $manifest_file ) ) {
+		return [];
+	}
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local snapshot file
+	$manifest = json_decode( (string) file_get_contents( $manifest_file ), true );
+	if ( ! is_array( $manifest ) || ! is_array( $manifest['log'] ?? null ) ) {
+		return [];
+	}
+
+	$failures = [];
+	foreach ( $manifest['log'] as $entry ) {
+		if ( ! is_array( $entry ) ) {
+			continue;
+		}
+		$status = $entry['status'] ?? null;
+		// 204 is a valid empty endpoint, saved as [].
+		if ( 200 === $status || 204 === $status || 'cached' === $status ) {
+			continue;
+		}
+		$url    = (string) ( $entry['url'] ?? '' );
+		$reason = (string) ( $entry['msg'] ?? '' );
+		if ( '' === $reason && is_numeric( $status ) ) {
+			$reason = 'HTTP ' . $status;
+		}
+		// A failed endpoint is logged twice: once with its status code, once
+		// with the reason. Keyed by URL so the reason entry wins.
+		if ( ! isset( $failures[ $url ] ) || '' !== (string) ( $entry['msg'] ?? '' ) ) {
+			$failures[ $url ] = [
+				'url'    => $url,
+				'reason' => $reason,
+			];
+		}
+	}
+	return array_values( $failures );
+}
+
+/**
  * Returns the absolute path to the snapshot offline reads are served from:
  * the pinned snapshot when one is set and still complete, the latest
  * completed snapshot otherwise. Empty string when nothing can be served.
@@ -488,12 +536,19 @@ function cfp_dev_snapshot_file_path( string $query_path, string $snapshot_dir ):
  * snapshot unfit to serve — a missing image degrades a page, a missing
  * endpoint removes one.
  *
- * @return array{total:int,required:int}
+ * `albums` and `images` exist so the operator can tell the harmless from the
+ * actionable: the only optional endpoint is the per-speaker photo album, and
+ * a speaker without one is normal, not a defect. A failed image keeps its CDN
+ * URL — the page renders, at the cost of an external request.
+ *
+ * @return array{total:int,required:int,albums:int,images:int}
  */
 function cfp_dev_new_error_tally(): array {
 	return [
 		'total'    => 0,
 		'required' => 0,
+		'albums'   => 0,
+		'images'   => 0,
 	];
 }
 
@@ -605,7 +660,10 @@ function cfp_dev_fetch_and_save( string $query_path, string $snapshot_dir, array
  */
 function cfp_dev_record_fetch_failure( array &$tally, array &$fetch_log, bool $optional, string $url, string $message ): void {
 	++$tally['total'];
-	if ( ! $optional ) {
+	if ( $optional ) {
+		// The only optional endpoint is the per-speaker photo album.
+		++$tally['albums'];
+	} else {
 		++$tally['required'];
 	}
 
@@ -718,13 +776,14 @@ function cfp_dev_rewrite_image_urls( $data, array $keys, array $map ) {
  * @param string $url          External image URL.
  * @param string $dest_path    Absolute destination file path.
  * @param array  $fetch_log    Log array, passed by reference.
- * @param int    $error_count  Error counter, passed by reference.
+ * @param array  $tally        Error tally, passed by reference (see cfp_dev_new_error_tally()).
  * @return bool                True on success, false on failure.
  */
-function cfp_dev_download_image( string $url, string $dest_path, array &$fetch_log, int &$error_count ): bool {
+function cfp_dev_download_image( string $url, string $dest_path, array &$fetch_log, array &$tally ): bool {
 	$scheme = strtolower( (string) wp_parse_url( $url, PHP_URL_SCHEME ) );
 	if ( ! in_array( $scheme, [ 'http', 'https' ], true ) ) {
-		++$error_count;
+		++$tally['total'];
+		++$tally['images'];
 		$fetch_log[] = [
 			'url'    => $url,
 			'status' => 'error',
@@ -743,7 +802,8 @@ function cfp_dev_download_image( string $url, string $dest_path, array &$fetch_l
 	);
 
 	if ( is_wp_error( $response ) ) {
-		++$error_count;
+		++$tally['total'];
+		++$tally['images'];
 		$fetch_log[] = [
 			'url'    => $url,
 			'status' => 'error',
@@ -755,7 +815,8 @@ function cfp_dev_download_image( string $url, string $dest_path, array &$fetch_l
 
 	$code = wp_remote_retrieve_response_code( $response );
 	if ( 200 !== $code ) {
-		++$error_count;
+		++$tally['total'];
+		++$tally['images'];
 		$fetch_log[] = [
 			'url'    => $url,
 			'status' => $code,
@@ -785,7 +846,8 @@ function cfp_dev_download_image( string $url, string $dest_path, array &$fetch_l
 	$is_generic    = in_array( $content_type, $generic_types, true );
 
 	if ( ! isset( $by_type[ $content_type ] ) && ! $is_generic ) {
-		++$error_count;
+		++$tally['total'];
+		++$tally['images'];
 		$fetch_log[] = [
 			'url'    => $url,
 			'status' => 'error',
@@ -802,7 +864,8 @@ function cfp_dev_download_image( string $url, string $dest_path, array &$fetch_l
 		$info    = @getimagesizefromstring( $body );
 		$sniffed = is_array( $info ) && isset( $info['mime'] ) ? strtolower( (string) $info['mime'] ) : '';
 		if ( ! isset( $by_type[ $sniffed ] ) ) {
-			++$error_count;
+			++$tally['total'];
+			++$tally['images'];
 			$fetch_log[] = [
 				'url'    => $url,
 				'status' => 'error',
@@ -818,7 +881,8 @@ function cfp_dev_download_image( string $url, string $dest_path, array &$fetch_l
 	$written = file_put_contents( $dest_path, $body );
 
 	if ( false === $written ) {
-		++$error_count;
+		++$tally['total'];
+		++$tally['images'];
 		$fetch_log[] = [
 			'url'    => $url,
 			'status' => 'error',
@@ -1070,7 +1134,7 @@ function cfp_dev_do_crawl(): void {
 			];
 			$available   = true;
 		} else {
-			$available = cfp_dev_download_image( $ext_url, $dest, $fetch_log, $tally['total'] );
+			$available = cfp_dev_download_image( $ext_url, $dest, $fetch_log, $tally );
 		}
 
 		/*
@@ -1181,10 +1245,12 @@ function cfp_dev_do_crawl(): void {
 		'created_at'    => gmdate( 'c' ),
 		'snapshot_name' => $snapshot_name,
 		'stats'         => [
-			'speakers' => count( $speaker_ids ),
-			'talks'    => count( $talk_ids ),
-			'images'   => count( $image_url_map ),
-			'errors'   => $tally['total'],
+			'speakers'      => count( $speaker_ids ),
+			'talks'         => count( $talk_ids ),
+			'images'        => count( $image_url_map ),
+			'errors'        => $tally['total'],
+			'errors_albums' => $tally['albums'],
+			'errors_images' => $tally['images'],
 		],
 		'log'           => $fetch_log,
 	];
@@ -1218,11 +1284,13 @@ function cfp_dev_do_crawl(): void {
 
 	cfp_dev_update_crawl_state(
 		[
-			'status'      => 'done',
-			'step'        => 5,
-			'step_label'  => __( 'Crawl complete! Offline mode is now active.', 'cfp-dev-shortcodes' ),
-			'errors'      => $tally['total'],
-			'finished_at' => time(),
+			'status'        => 'done',
+			'step'          => 5,
+			'step_label'    => __( 'Crawl complete! Offline mode is now active.', 'cfp-dev-shortcodes' ),
+			'errors'        => $tally['total'],
+			'errors_albums' => $tally['albums'],
+			'errors_images' => $tally['images'],
+			'finished_at'   => time(),
 		]
 	);
 
