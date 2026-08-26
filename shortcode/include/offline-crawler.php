@@ -777,7 +777,14 @@ function cfp_dev_download_image( string $url, string $dest_path, array &$fetch_l
 		'image/avif' => 'avif',
 	];
 
-	if ( ! isset( $by_type[ $content_type ] ) ) {
+	// A generic blob type carries no information — S3 serves speaker photos as
+	// binary/octet-stream when no type was set at upload. Only then do the
+	// bytes get to decide, against the same allow-list; a server that names a
+	// real non-image type (text/html, image/svg+xml) is taken at its word.
+	$generic_types = [ '', 'binary/octet-stream', 'application/octet-stream' ];
+	$is_generic    = in_array( $content_type, $generic_types, true );
+
+	if ( ! isset( $by_type[ $content_type ] ) && ! $is_generic ) {
 		++$error_count;
 		$fetch_log[] = [
 			'url'    => $url,
@@ -788,9 +795,27 @@ function cfp_dev_download_image( string $url, string $dest_path, array &$fetch_l
 		return false;
 	}
 
+	$body = wp_remote_retrieve_body( $response );
+
+	if ( $is_generic ) {
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- getimagesizefromstring() warns on unrecognized data; false is the answer we want
+		$info    = @getimagesizefromstring( $body );
+		$sniffed = is_array( $info ) && isset( $info['mime'] ) ? strtolower( (string) $info['mime'] ) : '';
+		if ( ! isset( $by_type[ $sniffed ] ) ) {
+			++$error_count;
+			$fetch_log[] = [
+				'url'    => $url,
+				'status' => 'error',
+				'msg'    => 'undeclared content type and the bytes are not an allowed image',
+			];
+			cfp_dev_log( 'crawl: rejected undeclared non-image response for ' . $url . ' — sniffed ' . ( '' === $sniffed ? '(unrecognized)' : $sniffed ) );
+			return false;
+		}
+	}
+
 	wp_mkdir_p( dirname( $dest_path ) );
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- binary image to local uploads dir
-	$written = file_put_contents( $dest_path, wp_remote_retrieve_body( $response ) );
+	$written = file_put_contents( $dest_path, $body );
 
 	if ( false === $written ) {
 		++$error_count;
