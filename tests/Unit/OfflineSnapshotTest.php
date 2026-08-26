@@ -91,6 +91,83 @@ final class OfflineSnapshotTest extends PluginTestCase {
 		$this->assertSame( [ '2025-02-01_00-00-00', '2025-03-01_00-00-00' ], $remaining );
 	}
 
+	// ─────────────────────────────────────────────────────────────────────────
+	// Snapshot pinning
+	// ─────────────────────────────────────────────────────────────────────────
+
+	public function test_a_pinned_snapshot_is_served_instead_of_the_latest(): void {
+		$old = $this->makeSnapshot( '2025-01-01_00-00-00', true );
+		$new = $this->makeSnapshot( '2025-06-01_00-00-00', true );
+		$this->writeSnapshotJson( $old, 'public/event', [ 'name' => 'old edition' ] );
+		$this->writeSnapshotJson( $new, 'public/event', [ 'name' => 'new edition' ] );
+		$this->option( 'cfp_dev_offline_mode', 1 );
+
+		cfp_dev_store_active_snapshot( '2025-01-01_00-00-00' );
+
+		$this->assertSame( $old, cfp_dev_get_serving_snapshot() );
+		$this->assertSame( 'old edition', cfp_dev_get_json( 'public/event' )->name );
+		$this->assertSame( [], $this->httpLog(), 'a pinned snapshot must not touch the network' );
+	}
+
+	public function test_a_pinned_snapshot_that_disappeared_falls_back_to_the_latest(): void {
+		$this->makeSnapshot( '2025-06-01_00-00-00', true );
+		$this->option( 'cfp_dev_active_snapshot', '2025-01-01_00-00-00' );
+
+		$this->assertSame(
+			cfp_dev_offline_dir() . '/2025-06-01_00-00-00',
+			cfp_dev_get_serving_snapshot()
+		);
+	}
+
+	public function test_a_pin_to_an_unknown_snapshot_is_refused(): void {
+		$this->makeSnapshot( '2025-01-01_00-00-00', true );
+
+		cfp_dev_store_active_snapshot( '../../evil' );
+		$this->assertSame( '', (string) get_option( 'cfp_dev_active_snapshot', '' ) );
+
+		cfp_dev_store_active_snapshot( '2025-12-31_00-00-00' ); // Never crawled.
+		$this->assertSame( '', (string) get_option( 'cfp_dev_active_snapshot', '' ) );
+	}
+
+	public function test_changing_the_pin_re_renders_cached_pages(): void {
+		$this->makeSnapshot( '2025-01-01_00-00-00', true );
+
+		cfp_dev_store_active_snapshot( '2025-01-01_00-00-00' );
+		$this->assertSame( 2, (int) get_option( 'cfp_dev_cache_version' ) );
+
+		// Saving the same selection again must not discard every cached page.
+		cfp_dev_store_active_snapshot( '2025-01-01_00-00-00' );
+		$this->assertSame( 2, (int) get_option( 'cfp_dev_cache_version' ) );
+	}
+
+	public function test_a_pinned_snapshot_is_never_pruned(): void {
+		foreach ( [ '2025-01-01_00-00-00', '2025-02-01_00-00-00', '2025-03-01_00-00-00' ] as $name ) {
+			$this->makeSnapshot( $name, true );
+		}
+		cfp_dev_store_active_snapshot( '2025-01-01_00-00-00' );
+
+		cfp_dev_prune_snapshots( 1 );
+
+		$remaining = array_map( 'basename', (array) glob( cfp_dev_offline_dir() . '/*', GLOB_ONLYDIR ) );
+		sort( $remaining );
+
+		$this->assertSame( [ '2025-01-01_00-00-00', '2025-03-01_00-00-00' ], $remaining );
+	}
+
+	public function test_the_offline_form_save_pins_the_selected_snapshot(): void {
+		$this->makeSnapshot( '2025-01-01_00-00-00', true );
+
+		cfp_dev_handle_settings_post(
+			[
+				'cfp_dev_offline_mode_save' => '1',
+				'cfp_dev_offline_mode'      => '1',
+				'cfp_dev_active_snapshot'   => '2025-01-01_00-00-00',
+			]
+		);
+
+		$this->assertSame( '2025-01-01_00-00-00', get_option( 'cfp_dev_active_snapshot' ) );
+	}
+
 	/**
 	 * Retention counts snapshots a read can be served from. Counting every
 	 * timestamped directory let two abandoned crawls push the last working

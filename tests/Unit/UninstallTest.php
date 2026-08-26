@@ -31,6 +31,7 @@ final class UninstallTest extends PluginTestCase {
 		'cfp_dev_show_rooms',
 		'cfp_dev_offline_mode',
 		'cfp_dev_crawl_state',
+		'cfp_dev_active_snapshot',
 	];
 
 	protected function setUp(): void {
@@ -47,6 +48,7 @@ final class UninstallTest extends PluginTestCase {
 	protected function tearDown(): void {
 		WP_Test_State::$env['multisite'] = false;
 		unset( $GLOBALS['wpdb'] );
+		$this->removeDirectory( cfp_dev_offline_dir() );
 		parent::tearDown();
 	}
 
@@ -161,6 +163,57 @@ final class UninstallTest extends PluginTestCase {
 		// that every site was visited rather than only the current one.
 		$this->assertSame( 1, WP_Test_State::$env['current_blog'] );
 		$this->assertFalse( get_option( 'cfp_dev_key' ) );
+	}
+
+	public function test_offline_snapshots_are_removed_when_none_is_pinned(): void {
+		$this->makeSnapshot( '2025-01-01_00-00-00' );
+
+		$this->runUninstall();
+
+		$this->assertDirectoryDoesNotExist( cfp_dev_offline_dir() );
+	}
+
+	/**
+	 * A pinned snapshot may be the only remaining copy of an event whose
+	 * CFP.DEV instance no longer exists — no re-crawl can ever recreate it.
+	 * It survives uninstall so a re-install can pin it again.
+	 */
+	public function test_a_pinned_snapshot_survives_uninstall(): void {
+		$pinned = $this->makeSnapshot( '2025-01-01_00-00-00' );
+		$other  = $this->makeSnapshot( '2025-06-01_00-00-00' );
+		file_put_contents( cfp_dev_offline_dir() . '/index.html', '' );
+		update_option( 'cfp_dev_active_snapshot', '2025-01-01_00-00-00' );
+
+		$this->runUninstall();
+
+		$this->assertFileExists( $pinned . '/manifest.json', 'the pinned snapshot must outlive the plugin' );
+		$this->assertDirectoryDoesNotExist( $other, 'unpinned snapshots do not' );
+		$this->assertFileExists(
+			cfp_dev_offline_dir() . '/index.html',
+			'the root protection files must keep the surviving snapshot unbrowsable'
+		);
+		$this->assertFalse( get_option( 'cfp_dev_active_snapshot' ), 'the option itself is still cleaned' );
+	}
+
+	private function makeSnapshot( string $name ): string {
+		$snapshot = cfp_dev_offline_dir() . '/' . $name;
+		mkdir( $snapshot, 0777, true );
+		file_put_contents( $snapshot . '/manifest.json', '{}' );
+		return $snapshot;
+	}
+
+	private function removeDirectory( string $dir ): void {
+		if ( ! is_dir( $dir ) ) {
+			return;
+		}
+		$items = new \RecursiveIteratorIterator(
+			new \RecursiveDirectoryIterator( $dir, \FilesystemIterator::SKIP_DOTS ),
+			\RecursiveIteratorIterator::CHILD_FIRST
+		);
+		foreach ( $items as $item ) {
+			$item->isDir() ? rmdir( $item->getPathname() ) : unlink( $item->getPathname() );
+		}
+		rmdir( $dir );
 	}
 
 	private function runUninstall(): void {

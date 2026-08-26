@@ -22,9 +22,15 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
  * switch_to_blog() for each of them — options and transients are per-site
  * tables, and cleaning only the site that happened to trigger the uninstall
  * would leave the rest of the network with orphaned rows.
+ *
+ * @return string  The site's pinned snapshot name ('' when none) — read here
+ *                 because the option is gone once this function returns, and
+ *                 the snapshot cleanup below must know what to spare.
  */
 if ( ! function_exists( 'cfp_dev_uninstall_site' ) ) {
 	function cfp_dev_uninstall_site() {
+		$pinned_snapshot = basename( (string) get_option( 'cfp_dev_active_snapshot', '' ) );
+
 		$options = [
 			'cfp_dev_key',
 			'cfp_dev_event_name',
@@ -39,6 +45,7 @@ if ( ! function_exists( 'cfp_dev_uninstall_site' ) ) {
 			'cfp_dev_show_rooms',
 			'cfp_dev_offline_mode',
 			'cfp_dev_crawl_state',
+			'cfp_dev_active_snapshot',
 		];
 
 		foreach ( $options as $option ) {
@@ -72,8 +79,12 @@ if ( ! function_exists( 'cfp_dev_uninstall_site' ) ) {
 			    OR option_name LIKE '\_transient\_talks\_by\_%'
 			    OR option_name LIKE '\_transient\_timeout\_talks\_by\_%'"
 		);
+
+		return $pinned_snapshot;
 	}
 }
+
+$cfp_dev_pinned_snapshots = [];
 
 if ( is_multisite() ) {
 	$cfp_dev_site_ids = get_sites(
@@ -84,19 +95,28 @@ if ( is_multisite() ) {
 	);
 	foreach ( $cfp_dev_site_ids as $cfp_dev_site_id ) {
 		switch_to_blog( $cfp_dev_site_id );
-		cfp_dev_uninstall_site();
+		$cfp_dev_pinned_snapshots[] = cfp_dev_uninstall_site();
 		restore_current_blog();
 	}
 	unset( $cfp_dev_site_ids, $cfp_dev_site_id );
 } else {
-	cfp_dev_uninstall_site();
+	$cfp_dev_pinned_snapshots[] = cfp_dev_uninstall_site();
 }
+
+$cfp_dev_pinned_snapshots = array_filter( $cfp_dev_pinned_snapshots );
 
 /*
  * Offline snapshot files.
  *
  * Outside the per-site loop: uploads live under one wp-content directory, and
  * the snapshot path is not site-scoped.
+ *
+ * A pinned snapshot survives uninstall. It may be the only remaining copy of
+ * an event whose CFP.DEV instance no longer exists — deleting it here would
+ * destroy data no re-crawl can ever recreate. After a re-install it shows up
+ * in the snapshot picker again, ready to be pinned anew. Only the timestamped
+ * snapshot directories around it are removed, so the root's protection files
+ * (index files, .htaccess) keep the surviving snapshot unbrowsable.
  */
 $cfp_dev_offline_dir = WP_CONTENT_DIR . '/uploads/cfp-dev-offline';
 if ( is_dir( $cfp_dev_offline_dir ) ) {
@@ -104,7 +124,16 @@ if ( is_dir( $cfp_dev_offline_dir ) ) {
 	WP_Filesystem();
 	global $wp_filesystem;
 	if ( $wp_filesystem ) {
-		$wp_filesystem->delete( $cfp_dev_offline_dir, true );
+		if ( empty( $cfp_dev_pinned_snapshots ) ) {
+			$wp_filesystem->delete( $cfp_dev_offline_dir, true );
+		} else {
+			foreach ( (array) glob( $cfp_dev_offline_dir . '/[0-9]*', GLOB_ONLYDIR ) as $cfp_dev_snapshot_dir ) {
+				if ( ! in_array( basename( $cfp_dev_snapshot_dir ), $cfp_dev_pinned_snapshots, true ) ) {
+					$wp_filesystem->delete( $cfp_dev_snapshot_dir, true );
+				}
+			}
+			unset( $cfp_dev_snapshot_dir );
+		}
 	}
 }
-unset( $cfp_dev_offline_dir );
+unset( $cfp_dev_offline_dir, $cfp_dev_pinned_snapshots );
