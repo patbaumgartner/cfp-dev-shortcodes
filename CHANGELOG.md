@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased]
+## [4.8.1] — 2026-08-26
 
 ### Fixed
 - **A speaker photo served with a generic content type was refused by the crawler.** S3 buckets serve files uploaded without a content type as `binary/octet-stream` — on one instance that was 35 of 52 speaker photos, each counted as a crawl error and left pointing at the CDN, quietly defeating offline mode's no-external-requests promise. A generic type carries no information, so the bytes now decide: the body must parse as one of the allowed raster formats (the same allow-list as before). A server that names a real non-image type — `text/html`, `image/svg+xml` — is still taken at its word and refused, so the sniff does not become an SVG smuggling path
