@@ -152,6 +152,17 @@ final class SettingsTest extends PluginTestCase {
 		$this->assertSame( '', $notice );
 	}
 
+	public function test_deleting_all_caches_bumps_the_cache_version(): void {
+		set_transient( cfp_dev_detail_cache_key( 'talk', 7 ), 'html', 60 );
+
+		$notice = cfp_dev_handle_settings_post( [ 'delete_cache' => 'all' ] );
+
+		$this->assertSame( 'All caches deleted.', $notice );
+		// The version bump orphans every existing key in O(1).
+		$this->assertSame( 2, (int) get_option( 'cfp_dev_cache_version' ) );
+		$this->assertFalse( get_transient( cfp_dev_detail_cache_key( 'talk', 7 ) ) );
+	}
+
 	public function test_deleting_a_talk_cache_also_drops_its_photo_cache(): void {
 		set_transient( cfp_dev_detail_cache_key( 'talk', 7 ), 'html', 60 );
 		set_transient( cfp_dev_detail_cache_key( 'photo', 7 ), 'html', 60 );

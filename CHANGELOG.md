@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [Unreleased]
+
+### Added
+- **A "Delete All Caches" button on the settings page.** Every cached speaker, talk, schedule and photo could only be deleted one entry at a time; a full wipe happened only as a side effect of saving the settings. The Manage Caches section now starts with a single button that invalidates everything at once (with a confirmation dialog), using the same O(1) version bump the settings save already used
+
+### Changed
+- **The settings page now follows the WordPress admin conventions.** One `.wrap` instead of two, proper `h2`/`h3` section headings, `notice-success is-dismissible` for notices, labelled form fields (`for`/`id`) with `description` paragraphs instead of `<small>` tags, and no more inline-styled black `<hr>` separators. Empty cache tables are no longer rendered — the "nothing cached" message stands alone — and talk detail caches now delete via AJAX without a page reload, exactly like speaker caches
+
 ## [4.7.1] — 2026-08-25
 
 ### Fixed

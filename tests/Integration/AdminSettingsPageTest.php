@@ -31,6 +31,7 @@ final class AdminSettingsPageTest extends PluginTestCase {
 		$this->assertStringContainsString( 'Modern Java in Practice', $html );
 		$this->assertStringContainsString( 'name="delete_cache" value="speaker"', $html );
 		$this->assertStringContainsString( 'name="delete_cache" value="talk"', $html );
+		$this->assertStringContainsString( 'name="delete_cache" value="all"', $html );
 		// Only the cached entries are listed — 101 and 201 have no transient.
 		$this->assertStringNotContainsString( 'Šumailov', $html );
 		$this->assertStringNotContainsString( 'Architecture Without Tears', $html );
