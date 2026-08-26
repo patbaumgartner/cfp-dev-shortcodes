@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased]
+## [4.8.0] — 2026-08-26
 
 ### Added
 - **A "Delete All Caches" button on the settings page.** Every cached speaker, talk, schedule and photo could only be deleted one entry at a time; a full wipe happened only as a side effect of saving the settings. The Manage Caches section now starts with a single button that invalidates everything at once (with a confirmation dialog), using the same O(1) version bump the settings save already used
