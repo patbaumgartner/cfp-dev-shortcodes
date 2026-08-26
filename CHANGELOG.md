@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased]
+## [4.9.0] — 2026-08-26
 
 ### Added
 - **The Snapshot Status box now explains its fetch errors.** "36 errors (see manifest.json)" sent the operator to a JSON file on the server's filesystem to learn that most of them were speakers without a Flickr photo album. The box now sorts the errors into what they mean — speakers with no photo album (normal, nothing is missing on the pages), images that could not be saved locally (pages still show them, but from the CDN), and endpoints that could not be captured — and a collapsed list names every failed URL with its reason, read from the snapshot's own manifest. The crawl tally, the crawl state and the manifest now carry the same breakdown
