@@ -100,31 +100,104 @@ final class OfflineCrawlerTest extends PluginTestCase {
 
 		$this->assertSame( 0, $tally['required'] );
 		$this->assertSame( 1, $tally['total'] );
+		$this->assertSame( 1, $tally['albums'], 'an optional miss must be reported as a harmless album miss' );
 		$this->assertNotEmpty( $log );
+	}
+
+	/**
+	 * The status box tells the harmless from the actionable, so an image
+	 * failure must land in the images bucket — not the albums one.
+	 */
+	public function test_an_image_failure_is_categorised_as_an_image(): void {
+		$snapshot = $this->makeSnapshotDir();
+		$log      = [];
+		$tally    = cfp_dev_new_error_tally();
+
+		$this->assertFalse( cfp_dev_download_image( 'https://cdn.test/gone2.jpg', $snapshot . '/images/g2.jpg', $log, $tally ) );
+		$this->assertSame( 1, $tally['total'] );
+		$this->assertSame( 1, $tally['images'] );
+		$this->assertSame( 0, $tally['albums'] );
+		$this->assertSame( 0, $tally['required'] );
+	}
+
+	public function test_the_manifest_failure_list_names_each_failed_url_once_with_its_reason(): void {
+		$snapshot = $this->makeSnapshotDir();
+		file_put_contents(
+			$snapshot . '/manifest.json',
+			(string) wp_json_encode(
+				[
+					'log' => [
+						[
+							'url'    => 'https://x.cfp.dev/api/public/event',
+							'status' => 200,
+						],
+						[
+							'url'    => 'https://x.cfp.dev/api/public/schedules/Monday/9',
+							'status' => 204,
+						],
+						[
+							'url'    => 'https://cdn.test/cached.jpg',
+							'status' => 'cached',
+						],
+						// A failed endpoint is logged twice: status code, then reason.
+						[
+							'url'    => 'https://x.cfp.dev/api/public/album/7',
+							'status' => 404,
+						],
+						[
+							'url'    => 'https://x.cfp.dev/api/public/album/7',
+							'status' => 'error',
+							'msg'    => 'HTTP 404',
+						],
+						[
+							'url'    => 'https://cdn.test/broken.jpg',
+							'status' => 500,
+						],
+					],
+				]
+			)
+		);
+
+		$failures = cfp_dev_snapshot_fetch_errors( $snapshot );
+
+		$this->assertCount( 2, $failures, 'successes, empties, cache hits and duplicates must not be listed' );
+		$this->assertSame( 'https://x.cfp.dev/api/public/album/7', $failures[0]['url'] );
+		$this->assertSame( 'HTTP 404', $failures[0]['reason'] );
+		$this->assertSame( 'https://cdn.test/broken.jpg', $failures[1]['url'] );
+		$this->assertSame( 'HTTP 500', $failures[1]['reason'] );
+	}
+
+	public function test_the_failure_list_is_empty_when_the_manifest_is_missing_or_malformed(): void {
+		$snapshot = $this->makeSnapshotDir();
+
+		$this->assertSame( [], cfp_dev_snapshot_fetch_errors( $snapshot ) );
+
+		file_put_contents( $snapshot . '/manifest.json', '{broken' );
+		$this->assertSame( [], cfp_dev_snapshot_fetch_errors( $snapshot ) );
 	}
 
 	public function test_a_downloaded_image_is_written_to_disk(): void {
 		$snapshot = $this->makeSnapshotDir();
 		$log      = [];
-		$errors   = 0;
+		$tally    = cfp_dev_new_error_tally();
 		$this->image( self::IMAGE_URL, 'JPEG-BYTES' );
 
-		$this->assertTrue( cfp_dev_download_image( self::IMAGE_URL, $snapshot . '/images/a.jpg', $log, $errors ) );
+		$this->assertTrue( cfp_dev_download_image( self::IMAGE_URL, $snapshot . '/images/a.jpg', $log, $tally ) );
 		$this->assertSame( 'JPEG-BYTES', file_get_contents( $snapshot . '/images/a.jpg' ) );
-		$this->assertSame( 0, $errors );
+		$this->assertSame( 0, $tally['total'] );
 	}
 
 	public function test_a_non_image_response_is_rejected(): void {
 		$snapshot = $this->makeSnapshotDir();
 		$log      = [];
-		$errors   = 0;
+		$tally    = cfp_dev_new_error_tally();
 		// A hostile upstream can point an image field anywhere; the served
 		// content type decides, not the URL.
 		$this->image( 'https://cdn.test/payload.jpg', '<?php echo 1;', 'text/html' );
 
-		$this->assertFalse( cfp_dev_download_image( 'https://cdn.test/payload.jpg', $snapshot . '/images/p.jpg', $log, $errors ) );
+		$this->assertFalse( cfp_dev_download_image( 'https://cdn.test/payload.jpg', $snapshot . '/images/p.jpg', $log, $tally ) );
 		$this->assertFileDoesNotExist( $snapshot . '/images/p.jpg' );
-		$this->assertSame( 1, $errors );
+		$this->assertSame( 1, $tally['images'] );
 	}
 
 	/**
@@ -135,36 +208,36 @@ final class OfflineCrawlerTest extends PluginTestCase {
 	public function test_a_real_image_behind_a_generic_content_type_is_accepted(): void {
 		$snapshot = $this->makeSnapshotDir();
 		$log      = [];
-		$errors   = 0;
+		$tally    = cfp_dev_new_error_tally();
 		$gif      = base64_decode( 'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- a 1x1 GIF fixture, binary bytes have no readable form
 		$this->image( 'https://s3.test/profile-1.jpg', $gif, 'binary/octet-stream' );
 
-		$this->assertTrue( cfp_dev_download_image( 'https://s3.test/profile-1.jpg', $snapshot . '/images/a.jpg', $log, $errors ) );
+		$this->assertTrue( cfp_dev_download_image( 'https://s3.test/profile-1.jpg', $snapshot . '/images/a.jpg', $log, $tally ) );
 		$this->assertSame( $gif, file_get_contents( $snapshot . '/images/a.jpg' ) );
-		$this->assertSame( 0, $errors );
+		$this->assertSame( 0, $tally['total'] );
 	}
 
 	public function test_non_image_bytes_behind_a_generic_content_type_are_rejected(): void {
 		$snapshot = $this->makeSnapshotDir();
 		$log      = [];
-		$errors   = 0;
+		$tally    = cfp_dev_new_error_tally();
 		$this->image( 'https://s3.test/payload.jpg', '<?php echo 1;', 'application/octet-stream' );
 
-		$this->assertFalse( cfp_dev_download_image( 'https://s3.test/payload.jpg', $snapshot . '/images/p.jpg', $log, $errors ) );
+		$this->assertFalse( cfp_dev_download_image( 'https://s3.test/payload.jpg', $snapshot . '/images/p.jpg', $log, $tally ) );
 		$this->assertFileDoesNotExist( $snapshot . '/images/p.jpg' );
-		$this->assertSame( 1, $errors );
+		$this->assertSame( 1, $tally['images'] );
 	}
 
 	/** The sniff must not become an SVG smuggling path: markup is not a raster image. */
 	public function test_svg_bytes_behind_a_generic_content_type_are_rejected(): void {
 		$snapshot = $this->makeSnapshotDir();
 		$log      = [];
-		$errors   = 0;
+		$tally    = cfp_dev_new_error_tally();
 		$this->image( 'https://s3.test/logo.jpg', '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>', 'binary/octet-stream' );
 
-		$this->assertFalse( cfp_dev_download_image( 'https://s3.test/logo.jpg', $snapshot . '/images/l.jpg', $log, $errors ) );
+		$this->assertFalse( cfp_dev_download_image( 'https://s3.test/logo.jpg', $snapshot . '/images/l.jpg', $log, $tally ) );
 		$this->assertFileDoesNotExist( $snapshot . '/images/l.jpg' );
-		$this->assertSame( 1, $errors );
+		$this->assertSame( 1, $tally['images'] );
 	}
 
 	/**
@@ -176,21 +249,21 @@ final class OfflineCrawlerTest extends PluginTestCase {
 	public function test_an_svg_response_is_not_published_under_the_site_origin(): void {
 		$snapshot = $this->makeSnapshotDir();
 		$log      = [];
-		$errors   = 0;
+		$tally    = cfp_dev_new_error_tally();
 		$this->image( 'https://cdn.test/logo.svg', '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>', 'image/svg+xml' );
 
-		$this->assertFalse( cfp_dev_download_image( 'https://cdn.test/logo.svg', $snapshot . '/images/l.svg', $log, $errors ) );
+		$this->assertFalse( cfp_dev_download_image( 'https://cdn.test/logo.svg', $snapshot . '/images/l.svg', $log, $tally ) );
 		$this->assertFileDoesNotExist( $snapshot . '/images/l.svg' );
-		$this->assertSame( 1, $errors );
+		$this->assertSame( 1, $tally['images'] );
 	}
 
 	public function test_an_image_on_a_private_address_is_not_fetched(): void {
 		$snapshot = $this->makeSnapshotDir();
 		$log      = [];
-		$errors   = 0;
+		$tally    = cfp_dev_new_error_tally();
 		$this->image( 'http://127.0.0.1/secret.jpg', 'INTERNAL' );
 
-		$this->assertFalse( cfp_dev_download_image( 'http://127.0.0.1/secret.jpg', $snapshot . '/images/s.jpg', $log, $errors ) );
+		$this->assertFalse( cfp_dev_download_image( 'http://127.0.0.1/secret.jpg', $snapshot . '/images/s.jpg', $log, $tally ) );
 		$this->assertFileDoesNotExist( $snapshot . '/images/s.jpg' );
 		$this->assertSame( [], $this->httpLog(), 'a loopback URL must never be requested' );
 	}
@@ -198,19 +271,19 @@ final class OfflineCrawlerTest extends PluginTestCase {
 	public function test_a_non_http_image_scheme_is_rejected(): void {
 		$snapshot = $this->makeSnapshotDir();
 		$log      = [];
-		$errors   = 0;
+		$tally    = cfp_dev_new_error_tally();
 
-		$this->assertFalse( cfp_dev_download_image( 'file:///etc/passwd', $snapshot . '/images/f.jpg', $log, $errors ) );
-		$this->assertSame( 1, $errors );
+		$this->assertFalse( cfp_dev_download_image( 'file:///etc/passwd', $snapshot . '/images/f.jpg', $log, $tally ) );
+		$this->assertSame( 1, $tally['images'] );
 	}
 
 	public function test_an_unreachable_image_is_counted_as_an_error(): void {
 		$snapshot = $this->makeSnapshotDir();
 		$log      = [];
-		$errors   = 0;
+		$tally    = cfp_dev_new_error_tally();
 
-		$this->assertFalse( cfp_dev_download_image( 'https://cdn.test/gone.jpg', $snapshot . '/images/g.jpg', $log, $errors ) );
-		$this->assertSame( 1, $errors );
+		$this->assertFalse( cfp_dev_download_image( 'https://cdn.test/gone.jpg', $snapshot . '/images/g.jpg', $log, $tally ) );
+		$this->assertSame( 1, $tally['images'] );
 	}
 
 	// ─────────────────────────────────────────────────────────────────────────

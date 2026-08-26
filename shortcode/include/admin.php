@@ -453,15 +453,7 @@ function cfp_dev_plugin_options() {
 		if ( ! empty( $crawl_state['snapshot_name'] ) ) {
 			echo '<p>' . esc_html__( 'Active snapshot:', 'cfp-dev-shortcodes' ) . ' <code>' . esc_html( $crawl_state['snapshot_name'] ) . '</code></p>';
 		}
-		if ( ! empty( $crawl_state['errors'] ) ) {
-			echo '<p style="color:orange;">' . esc_html(
-				sprintf(
-					/* translators: %s: number of items with errors. */
-					__( 'Warnings: %s item(s) had errors (see manifest.json).', 'cfp-dev-shortcodes' ),
-					$crawl_state['errors']
-				)
-			) . '</p>';
-		}
+		cfp_dev_render_fetch_error_summary( $latest_snapshot );
 	} elseif ( 'error' === $crawl_status ) {
 		echo '<p style="color:red;">' . esc_html__( 'Status:', 'cfp-dev-shortcodes' ) . ' <strong>' . esc_html__( 'Error', 'cfp-dev-shortcodes' ) . '</strong> — ' . esc_html( $crawl_state['step_label'] ?? '' ) . '</p>';
 	} elseif ( 'stopped' === $crawl_status ) {
@@ -472,6 +464,7 @@ function cfp_dev_plugin_options() {
 			. esc_html__( 'the last crawl did not finish. Use Re-crawl Now to try again.', 'cfp-dev-shortcodes' ) . '</p>';
 	} elseif ( ! empty( $latest_snapshot ) ) {
 		echo '<p>' . esc_html__( 'Last snapshot:', 'cfp-dev-shortcodes' ) . ' <code>' . esc_html( basename( $latest_snapshot ) ) . '</code></p>';
+		cfp_dev_render_fetch_error_summary( $latest_snapshot );
 	} else {
 		echo '<p>' . wp_kses_post(
 			sprintf(
@@ -486,6 +479,83 @@ function cfp_dev_plugin_options() {
 	echo '<p><button type="button" id="cfp-recrawl-btn" class="button">' . esc_html__( 'Re-crawl Now', 'cfp-dev-shortcodes' ) . '</button></p>';
 
 	echo '</div>';
+}
+
+/**
+ * Renders what the latest snapshot's fetch errors were and whether they matter.
+ *
+ * A bare "N errors" number sends the operator to manifest.json on the server's
+ * filesystem to learn that most of them are speakers without a Flickr album.
+ * This says it on the page instead: album misses are normal, image failures
+ * cost offline purity but not content, endpoint failures cost content — and
+ * the collapsed list names every failed URL and reason.
+ *
+ * @param string $latest_snapshot  Absolute path to the latest completed
+ *                                 snapshot ('' when none).
+ */
+function cfp_dev_render_fetch_error_summary( string $latest_snapshot ): void {
+	if ( '' === $latest_snapshot ) {
+		return;
+	}
+
+	$failures = cfp_dev_snapshot_fetch_errors( $latest_snapshot );
+	if ( empty( $failures ) ) {
+		echo '<p style="color:green;">' . esc_html__( 'Every endpoint and image was captured — the snapshot is fully self-contained.', 'cfp-dev-shortcodes' ) . '</p>';
+		return;
+	}
+
+	$albums    = [];
+	$images    = [];
+	$endpoints = [];
+	foreach ( $failures as $failure ) {
+		if ( str_contains( $failure['url'], '/api/public/album/' ) ) {
+			$albums[] = $failure;
+		} elseif ( str_contains( $failure['url'], '/api/public/' ) ) {
+			$endpoints[] = $failure;
+		} else {
+			$images[] = $failure;
+		}
+	}
+
+	if ( ! empty( $albums ) ) {
+		echo '<p>' . esc_html(
+			sprintf(
+				/* translators: %s: number of speakers. */
+				__( '%s speaker(s) have no Flickr photo album — normal, nothing is missing on the pages.', 'cfp-dev-shortcodes' ),
+				number_format_i18n( count( $albums ) )
+			)
+		) . '</p>';
+	}
+	if ( ! empty( $images ) ) {
+		echo '<p style="color:orange;">' . esc_html(
+			sprintf(
+				/* translators: %s: number of images. */
+				__( '%s image(s) could not be saved locally — pages still show them, but from the CDN.', 'cfp-dev-shortcodes' ),
+				number_format_i18n( count( $images ) )
+			)
+		) . '</p>';
+	}
+	if ( ! empty( $endpoints ) ) {
+		echo '<p style="color:orange;">' . esc_html(
+			sprintf(
+				/* translators: %s: number of endpoints. */
+				__( '%s endpoint(s) could not be captured.', 'cfp-dev-shortcodes' ),
+				number_format_i18n( count( $endpoints ) )
+			)
+		) . '</p>';
+	}
+
+	echo '<details><summary>' . esc_html(
+		sprintf(
+			/* translators: %s: number of failed fetches. */
+			__( 'Show all %s failed fetch(es)', 'cfp-dev-shortcodes' ),
+			number_format_i18n( count( $failures ) )
+		)
+	) . '</summary><ul style="font-family:monospace;font-size:12px;">';
+	foreach ( $failures as $failure ) {
+		echo '<li>' . esc_html( $failure['url'] ) . ' — ' . esc_html( $failure['reason'] ) . '</li>';
+	}
+	echo '</ul></details>';
 }
 
 /**
@@ -542,8 +612,12 @@ function cfp_dev_enqueue_admin_scripts( $hook ) {
 				'finished'       => __( 'Finished:', 'cfp-dev-shortcodes' ),
 				/* translators: 1: percentage, 2: items done, 3: items total. */
 				'progress'       => __( '%1$s%% (%2$s / %3$s)', 'cfp-dev-shortcodes' ),
-				/* translators: %s: number of items with errors. */
-				'warnings'       => __( 'Warnings: %s item(s) had errors (see manifest.json).', 'cfp-dev-shortcodes' ),
+				/* translators: %s: number of speakers. */
+				'albumsInfo'     => __( '%s speaker(s) have no Flickr photo album — normal, nothing is missing on the pages.', 'cfp-dev-shortcodes' ),
+				/* translators: %s: number of images. */
+				'imagesWarn'     => __( '%s image(s) could not be saved locally — pages still show them, but from the CDN.', 'cfp-dev-shortcodes' ),
+				/* translators: %s: number of endpoints. */
+				'endpointsWarn'  => __( '%s endpoint(s) could not be captured.', 'cfp-dev-shortcodes' ),
 				/* translators: %s: number of errors so far. */
 				'errorsSoFar'    => __( '%s error(s) so far', 'cfp-dev-shortcodes' ),
 				'confirmCrawl'   => __( 'Start a new crawl? This will fetch all API data and images from the live API and create a new snapshot.', 'cfp-dev-shortcodes' ),

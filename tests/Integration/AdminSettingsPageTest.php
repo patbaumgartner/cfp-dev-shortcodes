@@ -20,6 +20,20 @@ use CfpDev\Tests\PluginTestCase;
 
 final class AdminSettingsPageTest extends PluginTestCase {
 
+	private function removeDirectory( string $dir ): void {
+		if ( ! is_dir( $dir ) ) {
+			return;
+		}
+		$items = new \RecursiveIteratorIterator(
+			new \RecursiveDirectoryIterator( $dir, \FilesystemIterator::SKIP_DOTS ),
+			\RecursiveIteratorIterator::CHILD_FIRST
+		);
+		foreach ( $items as $item ) {
+			$item->isDir() ? rmdir( $item->getPathname() ) : unlink( $item->getPathname() );
+		}
+		rmdir( $dir );
+	}
+
 	public function test_the_page_offers_a_delete_button_for_every_cache_that_exists(): void {
 		$this->registerDefaultApi();
 		set_transient( cfp_dev_detail_cache_key( 'speaker', 100 ), 'html', 60 );
@@ -99,6 +113,77 @@ final class AdminSettingsPageTest extends PluginTestCase {
 		);
 
 		$this->assertStringContainsString( '2025-10-06_09-00-00', $this->render() );
+	}
+
+	/**
+	 * "N errors" used to send the operator to manifest.json on the server's
+	 * filesystem to learn that most of them were speakers without a Flickr
+	 * album. The page now says which errors are harmless, which cost offline
+	 * purity, and names every failed URL.
+	 */
+	public function test_the_page_explains_the_fetch_errors_of_the_latest_snapshot(): void {
+		$this->registerDefaultApi();
+		$snapshot = cfp_dev_offline_dir() . '/2025-10-06_09-00-00';
+		mkdir( $snapshot . '/api/public', 0777, true );
+		file_put_contents(
+			$snapshot . '/manifest.json',
+			(string) wp_json_encode(
+				[
+					'log' => [
+						[
+							'url'    => 'https://x.cfp.dev/api/public/album/7',
+							'status' => 'error',
+							'msg'    => 'HTTP 404',
+						],
+						[
+							'url'    => 'https://cdn.test/broken.jpg',
+							'status' => 'error',
+							'msg'    => 'non-image content type: text/html',
+						],
+					],
+				]
+			)
+		);
+		$this->option(
+			'cfp_dev_crawl_state',
+			[
+				'status'        => 'done',
+				'snapshot_name' => '2025-10-06_09-00-00',
+			]
+		);
+
+		$html = $this->render();
+		$this->removeDirectory( cfp_dev_offline_dir() );
+
+		$this->assertStringContainsString( 'no Flickr photo album', $html );
+		$this->assertStringContainsString( 'could not be saved locally', $html );
+		$this->assertStringContainsString( 'https://cdn.test/broken.jpg', $html );
+		$this->assertStringContainsString( 'non-image content type: text/html', $html );
+	}
+
+	/** No errors is a statement worth making too, not just the absence of a warning. */
+	public function test_the_page_reports_a_fully_captured_snapshot(): void {
+		$this->registerDefaultApi();
+		$snapshot = cfp_dev_offline_dir() . '/2025-10-06_09-00-00';
+		mkdir( $snapshot . '/api/public', 0777, true );
+		file_put_contents(
+			$snapshot . '/manifest.json',
+			(string) wp_json_encode(
+				[
+					'log' => [
+						[
+							'url'    => 'x',
+							'status' => 200,
+						],
+					],
+				]
+			)
+		);
+
+		$html = $this->render();
+		$this->removeDirectory( cfp_dev_offline_dir() );
+
+		$this->assertStringContainsString( 'fully self-contained', $html );
 	}
 
 	/**
@@ -186,7 +271,7 @@ final class AdminSettingsPageTest extends PluginTestCase {
 			'offline crawler'  => [
 				'cfp-dev-admin-offline',
 				'cfp_dev_offline_ajax',
-				[ 'statusLabel', 'running', 'pending', 'complete', 'error', 'stopped', 'stoppedHint', 'progress', 'warnings', 'confirmCrawl', 'recrawl', 'startFailed' ],
+				[ 'statusLabel', 'running', 'pending', 'complete', 'error', 'stopped', 'stoppedHint', 'progress', 'albumsInfo', 'imagesWarn', 'endpointsWarn', 'confirmCrawl', 'recrawl', 'startFailed' ],
 			],
 		];
 	}
