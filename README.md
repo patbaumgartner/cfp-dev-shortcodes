@@ -195,7 +195,8 @@ Once active:
 - A `manifest.json` is written at crawl completion with per-URL stats
 - Click **Re-crawl Now** in the admin UI to refresh the snapshot at any time
 - Only the two newest **completed** snapshots are kept — older ones, and any
-  abandoned crawl they supersede, are pruned after each successful crawl
+  abandoned crawl they supersede, are pruned after each successful crawl. A
+  **pinned** snapshot (see below) is never pruned
 
 A crawl only publishes a snapshot it captured in full. If any endpoint the site
 needs fails, or answers with something that is not JSON, the crawl stops,
@@ -206,6 +207,22 @@ downloaded keeps pointing at the CDN, so the page still renders.
 An SVG is never downloaded into a snapshot. Snapshots live under
 `wp-content/uploads` and are served from your own origin, and an SVG is a
 document that can carry script, so those URLs are left pointing at the CDN too.
+
+### Pinning a snapshot
+
+By default offline reads serve the newest completed snapshot. The **Serve From
+Snapshot** picker in the Offline Mode section lets you pin a specific dated
+snapshot instead — useful once the CFP.DEV instance behind an event is gone and
+a snapshot is the only remaining copy of its data:
+
+- Pinned reads keep serving that date's speakers, talks, and schedule
+- A pinned snapshot is never pruned by retention and even survives
+  uninstalling the plugin; after a re-install it reappears in the picker,
+  ready to be pinned anew
+- Changing the selection re-renders all cached pages, since their HTML embeds
+  the snapshot's own image URLs
+- If a pinned snapshot disappears from disk, reads fall back to the latest
+  snapshot instead of taking the site down
 
 ---
 
@@ -312,6 +329,10 @@ Deleting the plugin through the WordPress admin removes all of its data:
 settings, cached transients, any scheduled crawl, and offline snapshot files.
 On a multisite network every site is cleaned, not only the one the deletion
 was triggered from.
+
+The one deliberate exception is a **pinned** offline snapshot: it may be the
+only remaining copy of an event whose CFP.DEV instance no longer exists, so it
+is left on disk and reappears in the snapshot picker after a re-install.
 
 ---
 
