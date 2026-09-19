@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased]
+## [4.9.1] — 2026-09-19
 
 ### Added
 - **The schedule can be dropped into a calendar as one .ics file.** A new "Add to Calendar" button next to "Mobile Schedule" links to `/schedule/ical/`, which downloads the whole event programme — every session across all days, breaks left out — as a single iCalendar file with each session's title, plain-text description, speakers, track, room and talk URL. The download is built from the same day-level endpoints as the grid, so it works in offline mode too, and the assembled file is cached under the same versioned key as every other plugin cache
