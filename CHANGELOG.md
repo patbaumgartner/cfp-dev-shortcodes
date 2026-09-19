@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [Unreleased]
+
+### Added
+- **The schedule can be dropped into a calendar as one .ics file.** A new "Add to Calendar" button next to "Mobile Schedule" links to `/schedule/ical/`, which downloads the whole event programme — every session across all days, breaks left out — as a single iCalendar file with each session's title, plain-text description, speakers, track, room and talk URL. The download is built from the same day-level endpoints as the grid, so it works in offline mode too, and the assembled file is cached under the same versioned key as every other plugin cache
+- **Each session can be dropped into a calendar on its own.** Every session card in the `[cfp_schedule]` grid — and the talk details page's own **Add to Calendar** button — links to that talk's one-event `.ics` (`/talk/<slug>/ical/`, or `/talk/ical/?id=<talk>` under permalinks-with-id) built from the talk detail endpoint, so offline mode covers it as well. The talk's event carries the same UID as the whole-programme export, so importing both does not duplicate the session
+- **The exported sessions carry the fields calendar apps turn into a usable schedule.** Each VEVENT now names its track as a `CATEGORIES` entry (Google colour-codes by category on import and subscription) and every calendar declares a stable `X-WR-RELCALID` derived from the event id, so a URL subscription keeps one calendar as the export's content changes instead of churning into a new one. `LOCATION` composes the room, the venue and the city into one address block, and each event is explicitly `STATUS:CONFIRMED` with `SEQUENCE:0`; the calendar header also names the event's timezone (`X-WR-TIMEZONE`) — the times themselves stay UTC instants, which every importer converts into the viewer's own clock
+
+### Fixed
+- **The whole-programme "Add to Calendar" button no longer bakes the absolute site URL into its link.** The button's `href` was built with `home_url()`, so the moment the schedule was opened under any other address than the configured site URL (a `localhost` alias, a forwarded port, a preview host) the click left the site and the download failed — while the session cards' relative links kept working. The button now links with the same site-relative `/schedule/ical/` path the rest of the plugin uses
+- **The session card's calendar icon matches the favourite heart and leads the card's top row.** The icon was sized in `em` against the card's inherited font-size, so it rendered roughly twice as tall as the heart glyph beside it — and it floated at the card's top corner instead of sitting in line with the heart. It now uses the heart's exact dimensions (`1.125em`) and responsive font scale, is vertically centred on the heart, and takes the first place in the card's top row in front of the favourite heart. The corner the icon used to float in belongs to the track picture again: a full 32&nbsp;px track sits unshrunk in its original top-right spot with the calendar, heart and favourite count all in the row and nothing overlapping. The schedule columns stay anchored to a full nine-slot programme — the layout's width divided by nine, so a full roster of rooms fits the design width exactly without spilling — but they also stretch: when an event lists fewer rooms than the grid has slots, the columns share the leftover width instead of keeping the fixed nine-slot size, so a sparse programme reads as wide, comfortable cards, and the row's breathing room returns with them. Only at the narrowest nine-slot width does the row tighten its gaps, just enough for the calendar, heart, count and full-size track to keep fitting alongside each other
+- **The talk details page's "Add to Calendar" button gets breathing room again.** It sat flush against the schedule line above it with no top margin; it now opens with the same `--cfp-gutter` spacing the other foreword fields use
+
+### Changed
+- **The stylesheet advances to `cfp_dev_v4_9.css`**, following the plugin's minor version, to carry the calendar additions
+
 ## [4.9.0] — 2026-08-26
 
 ### Added

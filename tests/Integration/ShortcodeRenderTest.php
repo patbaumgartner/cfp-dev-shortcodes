@@ -145,6 +145,29 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		$this->assertStringContainsString( '10:30', $html );
 	}
 
+	public function test_talk_details_link_the_session_to_its_calendar_download(): void {
+		$this->registerDefaultApi();
+		$this->search( 'x', [] );
+		$this->queryVar( 'id', 200 );
+
+		$html = cfp_dev_talk_details_shortcode();
+
+		$this->assertStringContainsString( cfp_dev_url( '/talk/modern-java-in-practice/ical/' ), $html );
+		$this->assertStringContainsString( '>Add to Calendar</a>', $html );
+	}
+
+	public function test_an_unscheduled_talk_offers_no_calendar_download(): void {
+		$this->registerDefaultApi();
+		$this->search( 'x', [] );
+		$this->queryVar( 'id', 201 );
+
+		$this->assertStringNotContainsString(
+			'Add to Calendar',
+			cfp_dev_talk_details_shortcode(),
+			'an unscheduled talk has no calendar entry to import'
+		);
+	}
+
 	public function test_talk_details_embeds_only_spotify_hosted_podcasts(): void {
 		$this->registerDefaultApi();
 		$detail               = Fixtures::talkDetail( 200 );
@@ -488,6 +511,34 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		$this->assertStringContainsString( 'Jane Doe', $html );
 		$this->assertStringContainsString( '?id=Monday', $html );
 		$this->assertStringContainsString( '?id=Wednesday', $html );
+	}
+
+	public function test_schedule_links_to_the_mobile_app_and_the_calendar_download(): void {
+		$this->registerScheduleApi();
+
+		$html = cfp_dev_schedule_shortcode( [] );
+
+		$this->assertStringContainsString(
+			'class="cfp-button" href="' . esc_url( cfp_dev_url( '/schedule/ical/' ) ) . '"',
+			$html,
+			'the whole-programme button must link to the calendar download with a site-relative path'
+		);
+		$this->assertStringNotContainsString(
+			home_url( cfp_dev_url( '/schedule/ical/' ) ),
+			$html,
+			'the button must not carry an absolute host, or it breaks when the site is reached via another host'
+		);
+		$this->assertStringContainsString( '>Add to Calendar</a>', $html );
+		$this->assertStringContainsString( '>Mobile Schedule</a>', $html, 'the mobile link must remain' );
+	}
+
+	public function test_schedule_sessions_link_to_their_own_calendar_entry(): void {
+		$this->registerScheduleApi();
+
+		$html = cfp_dev_schedule_shortcode( [] );
+
+		$this->assertStringContainsString( 'aria-label="Add to Calendar"', $html );
+		$this->assertStringContainsString( cfp_dev_url( '/talk/modern-java-in-practice/ical/' ), $html );
 	}
 
 	public function test_schedule_time_ruler_uses_the_event_timezone_and_the_viewed_day(): void {

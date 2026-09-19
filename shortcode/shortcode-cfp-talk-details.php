@@ -77,6 +77,12 @@ if ( ! function_exists( 'cfp_dev_talk_details_shortcode' ) ) {
 			. esc_html( (string) ( $talk->sessionTypeName ?? '' ) ) . '</a> <em>(' . esc_html( $audience_level ) . ')</em>';
 		$content .= '       </div>';
 		$content .= cfp_dev_render_talk_schedule( $talk );
+
+		// A calendar entry needs a time slot; without one there is nothing to import.
+		if ( ! empty( $talk->timeSlots ) && is_array( $talk->timeSlots ) ) {
+			$content .= '    <a class="cfp-button" href="' . esc_url( cfp_dev_talk_ical_url( $talk ) ) . '">' . esc_html__( 'Add to Calendar', 'cfp-dev-shortcodes' ) . '</a>';
+		}
+
 		$content .= cfp_dev_render_tags( $talk );
 		$content .= cfp_dev_render_related_talks( $talk );
 		$content .= '</div>';
