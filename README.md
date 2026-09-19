@@ -5,7 +5,7 @@
 [![PHP Version](https://img.shields.io/badge/PHP-%3E%3D8.1-8892BF?logo=php)](https://php.net)
 [![WordPress](https://img.shields.io/badge/WordPress-6.0%2B-21759B?logo=wordpress)](https://wordpress.org)
 [![License: GPL v2+](https://img.shields.io/badge/License-GPL%20v2%2B-blue.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
-[![Stable Tag](https://img.shields.io/badge/stable-4.9.0-brightgreen)](https://github.com/patbaumgartner/cfp-dev-shortcodes/releases)
+[![Stable Tag](https://img.shields.io/badge/stable-4.9.1-brightgreen)](https://github.com/patbaumgartner/cfp-dev-shortcodes/releases)
 
 > WordPress shortcodes plugin for [CFP.DEV](https://cfp.dev) — display speakers, talks, schedules, and search results from your CFP.DEV instance directly on your WordPress site (Devoxx, VoxxedDays, and more).
 
@@ -130,12 +130,23 @@ Renders the full speaker profile page. Reads `speaker_slug` or `id` from the URL
 
 Renders the full talk details page. Reads `talk_slug` or `id` from the URL query string — no attributes needed. No page heading is rendered by design (the talk title is the heading).
 
+A scheduled talk offers an **Add to Calendar** button that links to
+`/talk/<slug>/ical/` (or `/talk/ical/?id=<talk>` with **Permalinks with Id**),
+the talk's own one-session iCalendar download.
+
 ---
 
 ### `[cfp_schedule]`
 
 Displays the conference schedule grid. Reads the day from the URL query string
 (`?id=Tuesday`); defaults to the first day of the event.
+
+The header also offers an **Add to Calendar** button. It links to
+`/schedule/ical/`, a hidden page that downloads the *whole event programme* as
+one iCalendar file — sessions only, no breaks — which a phone or desktop
+calendar can import in one tap. Each session card carries a small calendar icon
+in its corner that downloads that *single talk's* `.ics` instead, matching the
+talk details page's own button.
 
 | Attribute | Default | Description |
 |-----------|---------|-------------|

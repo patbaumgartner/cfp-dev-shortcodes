@@ -244,7 +244,7 @@ final class PluginStructureTest extends PluginTestCase {
 				'LICENSE.txt',
 				'README.md',
 				'shortcode/include/api-client.php',
-				'shortcode/css/cfp_dev_v4_5.css',
+				'shortcode/css/cfp_dev_v4_9.css',
 				'js/site.js',
 				'images/loading-spinner.svg',
 				'languages/cfp-dev-shortcodes.pot',

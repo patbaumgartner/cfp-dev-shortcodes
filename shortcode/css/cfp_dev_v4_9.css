@@ -1566,7 +1566,7 @@ section.cfp-schedule .cfp-now {
 section.cfp-schedule .cfp-scope {
   display: grid;
   overflow: auto;
-  grid-auto-columns: minmax(var(--column-x), minmax(0, 1fr));
+  grid-auto-columns: minmax(var(--column-x), 1fr);
   grid-auto-flow: column;
   grid-template-columns: max(var(--column-x), 64px);
   grid-template-rows: auto;
@@ -1617,11 +1617,25 @@ section.cfp-schedule .cfp-column.cfp-datetime time.cfp-time {
 
 /* ----------------------------------------------------------- COLUMN : EVENT --- */
 section.cfp-schedule .cfp-column.cfp-event {
+  container-type: inline-size;
   grid-template-rows: repeat(calc((var(--hour-finish) - var(--hour-start)) * 6 * 2), var(--cfp-gutter));
 }
 
 section.cfp-schedule.cfp-personal .cfp-column.cfp-event {
   gap: 0 calc(var(--cfp-gutter) * 0.5);
+}
+
+/* At the widest nine-slot programme a room column falls back to --column-x
+   (about a 105px column); the calendar, heart and track row barely fits, so
+   tighten its gaps there and let the track keep its full size. Wider columns
+   — when there are fewer rooms — keep the breathing room. */
+@container (max-width: 113px) {
+  section.cfp-schedule .cfp-column.cfp-event article.cfp-article.cfp-session .cfp-meta {
+    gap: 0;
+  }
+  section.cfp-schedule .cfp-column.cfp-event article.cfp-article.cfp-session .cfp-favourite {
+    gap: 0;
+  }
 }
 
 /* ------------------------------------------------------------------ ARTICLE --- */
@@ -1641,13 +1655,16 @@ section.cfp-schedule article.cfp-article .cfp-content {
 }
 
 section.cfp-schedule article.cfp-article.cfp-session:hover,
-section.cfp-schedule article.cfp-article.cfp-session:hover .cfp-content {
+section.cfp-schedule article.cfp-article.cfp-session:hover .cfp-content,
+section.cfp-schedule article.cfp-article.cfp-session:hover .cfp-meta {
   background-color: orange;
   z-index: 10;
 }
 
 section.cfp-schedule article.cfp-article.cfp-session:hover .cfp-content,
-section.cfp-schedule article.cfp-article.cfp-session:hover .cfp-content * {
+section.cfp-schedule article.cfp-article.cfp-session:hover .cfp-content *,
+section.cfp-schedule article.cfp-article.cfp-session:hover .cfp-meta,
+section.cfp-schedule article.cfp-article.cfp-session:hover .cfp-meta * {
   color: black !important;
 }
 
@@ -1709,9 +1726,13 @@ section.cfp-schedule article.cfp-article.cfp-session .cfp-content {
 
 section.cfp-schedule article.cfp-article.cfp-session .cfp-meta {
   display: flex;
+  gap: 0 0.375em;
   align-items: flex-start;
   justify-content: flex-end;
   flex-direction: row;
+  padding: calc(var(--cfp-gutter) * 0.5) calc(var(--cfp-gutter) * 0.5) 0;
+  background-color: var(--cfp-background-secondary);
+  border-radius: 5px 5px 0 0;
 }
 
 section.cfp-schedule article.cfp-article.cfp-session .cfp-favourite {
@@ -1742,7 +1763,7 @@ section.cfp-schedule article.cfp-article.cfp-session .cfp-favourite::before {
 }
 
 section.cfp-schedule article.cfp-article.cfp-session .cfp-track {
-  width: 32px;
+  flex: 0 0 32px;
 }
 
 section.cfp-schedule article.cfp-article.cfp-session *:where(.cfp-room, .cfp-type) {
@@ -4238,6 +4259,10 @@ section.cfp-session .cfp-foreword .cfp-datetime {
   font-size: clamp(13px, calc(((100vw - 460px) / 884) * (15 - 13) + (13 * 1px)), 15px);
 }
 
+section.cfp-session .cfp-foreword > a.cfp-button {
+  margin-top: var(--cfp-gutter);
+}
+
 section.cfp-session .cfp-foreword .cfp-datetime time.cfp-time {
   color: var(--cfp-text-primary);
   font-weight: 400;
@@ -4998,4 +5023,33 @@ html.cfp-html.cfp-page\:speaker:not(.cfp-view\:detail) section.cfp-speaker nav.c
 
 #photo-loading-message {
   margin: 0;
+}
+
+/* ------------------------------------------------- SESSION CALENDAR LINK --- */
+/* The per-session "add to calendar" link leads the card's top row, in front of
+   the favourite heart, so it lines up with the heart and never covers the
+   track picture that ends the same row. */
+section.cfp-schedule article.cfp-article.cfp-session .cfp-meta a.cfp-ical {
+  display: block;
+  width: 1.125em;
+  height: 1.125em;
+  margin-top: calc((1.4em - 1.125em) / 2);
+  color: var(--cfp-accept-primary);
+  font-size: clamp(10px, calc(((100vw - 460px) / 884) * (12 - 10) + (10 * 1px)), 12px);
+}
+
+section.cfp-schedule article.cfp-article.cfp-session .cfp-meta a.cfp-ical::before {
+  display: block;
+  width: 1.125em;
+  height: 1.125em;
+  content: '';
+  background-color: currentColor;
+  -webkit-mask-image: url('../gfx/session/calendar.svg');
+  mask-image: url('../gfx/session/calendar.svg');
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
 }

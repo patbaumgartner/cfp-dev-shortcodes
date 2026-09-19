@@ -184,6 +184,7 @@ if ( ! function_exists( 'cfp_dev_schedule_shortcode' ) ) {
 			}
 			$content .= '		</nav>';
 			$content .= '		<a class="cfp-button" href="' . esc_url( 'https://mobile.devoxx.com/events/' . cfp_dev_get_key() . '/schedule' ) . '">' . esc_html__( 'Mobile Schedule', 'cfp-dev-shortcodes' ) . '</a>';
+			$content .= '		<a class="cfp-button" href="' . esc_url( cfp_dev_url( '/schedule/ical/' ) ) . '">' . esc_html__( 'Add to Calendar', 'cfp-dev-shortcodes' ) . '</a>';
 			$content .= '	</div>';
 
 			$content .= '</div>';
@@ -369,22 +370,20 @@ if ( ! function_exists( 'cfp_dev_schedule_shortcode' ) ) {
 		$content = '<article class="cfp-article ' . $session_type . '" data-event-start="' . esc_attr( $event_start ) . '" data-event-finish="' . esc_attr( $event_finish ) . '" data-event-duration="' . esc_attr( (string) $duration ) . '">';
 
 		if ( $has_proposal ) {
+			$content .= '        <div class="cfp-meta">';
+			// The session's own calendar download leads the row, before the heart.
+			$content .= '            <a class="cfp-ical" href="' . esc_url( cfp_dev_talk_ical_url( $item->proposal ) ) . '" aria-label="' . esc_attr__( 'Add to Calendar', 'cfp-dev-shortcodes' ) . '"></a>';
+			if ( ! empty( $item->proposal->totalFavourites ) ) {
+				$content .= '            <div id="dev-cfp-talk-' . absint( $item->proposal->id ?? 0 ) . '" class="cfp-favourite">' . absint( $item->proposal->totalFavourites ) . '</div>';
+			}
+			if ( ! empty( $item->proposal->track->imageURL ) ) {
+				$content .= '            <div class="cfp-track" style="background-image: url(\'' . esc_url( $item->proposal->track->imageURL ) . '\');filter: grayscale(100%);"></div>';
+			}
+			$content .= '        </div>';
 			$content .= '        <a class="cfp-a" href="' . esc_url( cfp_dev_talk_url( $item->proposal ) ) . '">';
 		}
 
 		$content .= '            <div class="cfp-content">';
-		$content .= '                <div class="cfp-meta">';
-
-		if ( $has_proposal ) {
-			if ( ! empty( $item->proposal->totalFavourites ) ) {
-				$content .= '        <div id="dev-cfp-talk-' . absint( $item->proposal->id ?? 0 ) . '" class="cfp-favourite">' . absint( $item->proposal->totalFavourites ) . '</div>';
-			}
-			if ( ! empty( $item->proposal->track->imageURL ) ) {
-				$content .= '        <div class="cfp-track" style="background-image: url(\'' . esc_url( $item->proposal->track->imageURL ) . '\');filter: grayscale(100%);"></div>';
-			}
-		}
-
-		$content .= '                </div>';
 		if ( $has_proposal && 'yes' === get_option( 'cfp_dev_show_rooms', 'yes' ) && ! empty( $item->room->name ) ) {
 			$content .= '                <div class="cfp-room">' . esc_html( $item->room->name ) . '</div>';
 		}

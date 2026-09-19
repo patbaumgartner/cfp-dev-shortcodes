@@ -25,6 +25,22 @@ function cfp_dev_add_rewrite_rules() {
 		'top'
 	);
 
+	// One session's calendar download lives under the talk page.
+	// These must be registered before the bare /talk/<slug> rule below: the
+	// rules are evaluated in registration order, and ^talk/([^/]+)/?$ would
+	// otherwise capture "ical" as a talk slug and swallow /talk/ical/.
+	add_rewrite_rule(
+		'^' . $prefix . 'talk/([^/]+)/ical/?$',
+		'index.php?pagename=talk&talk_slug=$matches[1]&cfp_ical=1',
+		'top'
+	);
+
+	add_rewrite_rule(
+		'^' . $prefix . 'talk/ical/?$',
+		'index.php?pagename=talk&cfp_ical=1',
+		'top'
+	);
+
 	add_rewrite_rule(
 		'^' . $prefix . 'talk/([^/]+)/?$',
 		'index.php?pagename=talk&talk_slug=$matches[1]',
@@ -34,6 +50,13 @@ function cfp_dev_add_rewrite_rules() {
 	add_rewrite_rule(
 		'^' . $prefix . 'schedule/?$',
 		'index.php?pagename=schedule',
+		'top'
+	);
+
+	// The calendar download lives under the schedule page: /schedule/ical/.
+	add_rewrite_rule(
+		'^' . $prefix . 'schedule/ical/?$',
+		'index.php?pagename=schedule&cfp_ical=1',
 		'top'
 	);
 
@@ -108,6 +131,22 @@ function cfp_dev_talk_url( $talk ): string {
 }
 
 /**
+ * Download URL for one session's calendar entry, alongside the talk permalink
+ * it sits under.
+ *
+ * @param mixed $talk  Talk object with an id and/or a title.
+ */
+function cfp_dev_talk_ical_url( $talk ): string {
+	$slug = cfp_dev_generate_slug( (string) ( $talk->title ?? '' ) );
+
+	if ( cfp_dev_uses_slugs() && '' !== $slug ) {
+		return cfp_dev_url( '/talk/' . $slug . '/ical/' );
+	}
+
+	return add_query_arg( 'id', absint( $talk->id ?? 0 ), home_url( cfp_dev_url( '/talk/ical/' ) ) );
+}
+
+/**
  * Permalink for a speaker, in whichever form the site is configured for.
  *
  * @param mixed $speaker  Speaker object with an id and/or a first/last name.
@@ -129,6 +168,7 @@ function cfp_dev_add_query_vars( $vars ) {
 	$vars[] = 'talk_slug';
 	$vars[] = 'id';
 	$vars[] = 'query';
+	$vars[] = 'cfp_ical';
 	return $vars;
 }
 add_filter( 'query_vars', 'cfp_dev_add_query_vars' );
