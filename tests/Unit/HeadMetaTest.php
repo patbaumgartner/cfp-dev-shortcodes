@@ -15,6 +15,7 @@ namespace CfpDev\Tests\Unit;
 
 use CfpDev\Tests\Fixtures;
 use CfpDev\Tests\PluginTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 final class HeadMetaTest extends PluginTestCase {
 
@@ -199,8 +200,8 @@ final class HeadMetaTest extends PluginTestCase {
 	 * empty meant a minute of API downtime told Google that every talk and
 	 * speaker on the site was gone.
 	 *
-	 * @dataProvider outageLookupProvider
 	 */
+	#[DataProvider('outageLookupProvider')]
 	public function test_an_unreachable_api_does_not_report_a_detail_page_as_gone( string $page, string $query_var, string $value, string $failing_path ): void {
 		$this->registerDefaultApi();
 		$this->api( $failing_path, null, 503 );
@@ -245,8 +246,8 @@ final class HeadMetaTest extends PluginTestCase {
 	 * slug URL the operator had turned off, and that is the URL a search
 	 * engine indexes.
 	 *
-	 * @dataProvider canonicalModeProvider
 	 */
+	#[DataProvider('canonicalModeProvider')]
 	public function test_the_canonical_follows_the_configured_permalink_mode( string $by_id, string $page, string $expected ): void {
 		$this->registerDefaultApi();
 		$this->option( 'cfp_dev_content_by_id', $by_id );

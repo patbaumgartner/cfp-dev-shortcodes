@@ -17,6 +17,7 @@ namespace CfpDev\Tests\Integration;
 
 use CfpDev\Tests\Fixtures;
 use CfpDev\Tests\PluginTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 final class AdminSettingsPageTest extends PluginTestCase {
 
@@ -251,8 +252,8 @@ final class AdminSettingsPageTest extends PluginTestCase {
 	 * They are handed their strings from PHP instead, which also puts them in
 	 * the .pot the drift guard checks.
 	 *
-	 * @dataProvider adminScriptProvider
 	 */
+	#[DataProvider('adminScriptProvider')]
 	public function test_the_admin_scripts_are_handed_their_strings( string $handle, string $js_object, array $expected ): void {
 		cfp_dev_enqueue_admin_scripts( 'settings_page_cfp-dev-settings' );
 

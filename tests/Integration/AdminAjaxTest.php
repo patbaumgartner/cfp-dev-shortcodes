@@ -19,6 +19,7 @@ namespace CfpDev\Tests\Integration;
 use CfpDev\Tests\JsonResponseSent;
 use CfpDev\Tests\PluginTestCase;
 use WP_Test_State;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 final class AdminAjaxTest extends PluginTestCase {
 
@@ -35,8 +36,8 @@ final class AdminAjaxTest extends PluginTestCase {
 	 * Both endpoints change state and are reachable by anyone who can reach
 	 * admin-ajax.php, so the two guards are all that stands in front of them.
 	 *
-	 * @dataProvider guardedEndpointProvider
 	 */
+	#[DataProvider('guardedEndpointProvider')]
 	public function test_a_missing_or_forged_nonce_is_rejected( string $handler, string $action ): void {
 		set_transient( cfp_dev_detail_cache_key( 'talk', 200 ), 'markup', 3600 );
 
@@ -54,8 +55,8 @@ final class AdminAjaxTest extends PluginTestCase {
 	}
 
 	/**
-	 * @dataProvider guardedEndpointProvider
 	 */
+	#[DataProvider('guardedEndpointProvider')]
 	public function test_a_valid_nonce_without_the_capability_is_rejected( string $handler, string $action ): void {
 		// A nonce is proof of intent, not of permission: a subscriber's page
 		// carries valid nonces for the actions that page offers.

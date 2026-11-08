@@ -14,6 +14,7 @@ namespace CfpDev\Tests\Integration;
 
 use CfpDev\Tests\Fixtures;
 use CfpDev\Tests\PluginTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 final class ShortcodeRenderTest extends PluginTestCase {
 
@@ -260,8 +261,8 @@ final class ShortcodeRenderTest extends PluginTestCase {
 	 * fetched, so it has to be a page — laid out with the classes the
 	 * stylesheet knows, not the dev-cfp-* ones it has no rules for.
 	 *
-	 * @dataProvider emptyListPageProvider
 	 */
+	#[DataProvider('emptyListPageProvider')]
 	public function test_a_list_page_falls_back_to_a_laid_out_message( string $shortcode, string $path, string $message ): void {
 		$this->api( $path, null, 500 );
 
@@ -464,8 +465,8 @@ final class ShortcodeRenderTest extends PluginTestCase {
 	}
 
 	/**
-	 * @dataProvider sparseTalkListProvider
 	 */
+	#[DataProvider('sparseTalkListProvider')]
 	public function test_talk_lists_survive_a_talk_with_no_optional_fields( string $shortcode, string $path ): void {
 		$this->registerDefaultApi();
 		$this->api( $path, [ Fixtures::sparseTalk() ] );
@@ -602,8 +603,8 @@ final class ShortcodeRenderTest extends PluginTestCase {
 	 * control, and DateTime throws on anything it cannot parse. Uncaught, that
 	 * is a blank page rather than a blank schedule.
 	 *
-	 * @dataProvider unusableEventDateProvider
 	 */
+	#[DataProvider('unusableEventDateProvider')]
 	public function test_schedule_reports_an_unusable_event_date_range( string $field, string $value ): void {
 		$this->registerScheduleApi();
 		$event           = Fixtures::event();
@@ -686,8 +687,8 @@ final class ShortcodeRenderTest extends PluginTestCase {
 	 * session disappears. sessionType.duration is optional, and 0 is exactly
 	 * such a figure — the slot's own timestamps always know the answer.
 	 *
-	 * @dataProvider gridDurationProvider
 	 */
+	#[DataProvider('gridDurationProvider')]
 	public function test_a_session_gets_a_height_the_stylesheet_can_render( $api_duration, string $expected ): void {
 		$this->registerScheduleApi();
 		$session = Fixtures::roomSchedule()[0];
@@ -810,8 +811,8 @@ final class ShortcodeRenderTest extends PluginTestCase {
 	 * period — up to a month on the longest TTL, with nothing a visitor could
 	 * do to clear it.
 	 *
-	 * @dataProvider outageProvider
 	 */
+	#[DataProvider('outageProvider')]
 	public function test_an_api_outage_is_not_cached_as_a_missing_page(
 		string $shortcode,
 		string $failing_path,
@@ -864,8 +865,8 @@ final class ShortcodeRenderTest extends PluginTestCase {
 	 * the visitor's browser, and this URL comes straight from the API — with
 	 * autoplay and encrypted-media already granted by the allow attribute.
 	 *
-	 * @dataProvider videoUrlProvider
 	 */
+	#[DataProvider('videoUrlProvider')]
 	public function test_only_video_from_a_supported_host_is_embedded( string $url, bool $embedded ): void {
 		$talk             = Fixtures::talkDetail( 200 );
 		$talk['videoURL'] = $url;
@@ -978,8 +979,8 @@ final class ShortcodeRenderTest extends PluginTestCase {
 	 * An unnamed navigation landmark collides with every other one on the
 	 * page, and a theme always has at least one of its own.
 	 *
-	 * @dataProvider navigationLandmarkProvider
 	 */
+	#[DataProvider('navigationLandmarkProvider')]
 	public function test_every_navigation_landmark_is_named( string $shortcode, string $label ): void {
 		$this->registerDefaultApi();
 		$this->registerScheduleApi();
