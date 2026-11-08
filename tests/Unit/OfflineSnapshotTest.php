@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace CfpDev\Tests\Unit;
 
 use CfpDev\Tests\PluginTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 final class OfflineSnapshotTest extends PluginTestCase {
 
@@ -242,8 +243,8 @@ final class OfflineSnapshotTest extends PluginTestCase {
 	}
 
 	/**
-	 * @dataProvider executableExtensionProvider
 	 */
+	#[DataProvider('executableExtensionProvider')]
 	public function test_executable_extensions_never_reach_the_filesystem( string $url ): void {
 		$map = [];
 		cfp_dev_collect_image_urls( [ 'imageUrl' => $url ], [ 'imageUrl' ], $map );

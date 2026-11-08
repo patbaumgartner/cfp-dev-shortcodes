@@ -15,6 +15,7 @@ namespace CfpDev\Tests\Integration;
 use CfpDev\Tests\Fixtures;
 use CfpDev\Tests\PluginTestCase;
 use WP_Test_State;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 final class AssetLoadingTest extends PluginTestCase {
 
@@ -40,8 +41,8 @@ final class AssetLoadingTest extends PluginTestCase {
 	 * assets silently stopped loading and the plugin's pages, which exist for
 	 * no other purpose, rendered unstyled on those sites.
 	 *
-	 * @dataProvider pluginPageProvider
 	 */
+	#[DataProvider('pluginPageProvider')]
 	public function test_the_plugins_own_pages_load_the_assets_however_the_theme_renders_them( string $slug ): void {
 		$this->queriedPost( '' );
 		$this->onPage( $slug );
@@ -72,8 +73,8 @@ final class AssetLoadingTest extends PluginTestCase {
 	 * eight speaker cards with no stylesheet at all. Rendering the shortcode
 	 * is itself proof the page needs the assets.
 	 *
-	 * @dataProvider renderedShortcodeProvider
 	 */
+	#[DataProvider('renderedShortcodeProvider')]
 	public function test_rendering_a_shortcode_anywhere_loads_the_assets( string $shortcode ): void {
 		$this->registerDefaultApi();
 		$this->api( 'public/speakers?size=300', Fixtures::speakers() );

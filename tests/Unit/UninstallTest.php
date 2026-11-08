@@ -15,6 +15,7 @@ namespace CfpDev\Tests\Unit;
 use CfpDev\Tests\PluginTestCase;
 use WP_Test_State;
 use WP_Test_Wpdb;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 final class UninstallTest extends PluginTestCase {
 
@@ -97,8 +98,8 @@ final class UninstallTest extends PluginTestCase {
 	 * caught here instead of being left behind on every site that removes the
 	 * plugin.
 	 *
-	 * @dataProvider cacheKeyProvider
 	 */
+	#[DataProvider('cacheKeyProvider')]
 	public function test_every_key_the_plugin_writes_is_removed( string $key ): void {
 		set_transient( $key, 'cached', 3600 );
 
