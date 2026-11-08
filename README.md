@@ -2,7 +2,7 @@
 
 [![PHP Lint](https://github.com/patbaumgartner/cfp-dev-shortcodes/actions/workflows/lint.yml/badge.svg)](https://github.com/patbaumgartner/cfp-dev-shortcodes/actions/workflows/lint.yml)
 [![Tests](https://github.com/patbaumgartner/cfp-dev-shortcodes/actions/workflows/tests.yml/badge.svg)](https://github.com/patbaumgartner/cfp-dev-shortcodes/actions/workflows/tests.yml)
-[![PHP Version](https://img.shields.io/badge/PHP-%3E%3D8.1-8892BF?logo=php)](https://php.net)
+[![PHP Version](https://img.shields.io/badge/PHP-%3E%3D8.4-8892BF?logo=php)](https://php.net)
 [![WordPress](https://img.shields.io/badge/WordPress-6.0%2B-21759B?logo=wordpress)](https://wordpress.org)
 [![License: GPL v2+](https://img.shields.io/badge/License-GPL%20v2%2B-blue.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
 [![Stable Tag](https://img.shields.io/badge/stable-4.9.1-brightgreen)](https://github.com/patbaumgartner/cfp-dev-shortcodes/releases)
@@ -35,7 +35,7 @@
 
 | Requirement | Version |
 |-------------|---------|
-| PHP | ≥ 8.1 |
+| PHP | ≥ 8.4 |
 | WordPress | ≥ 6.0 |
 | CFP.DEV instance | any |
 
@@ -351,7 +351,7 @@ is left on disk and reappears in the snapshot picker after a re-install.
 
 ### Prerequisites
 
-- PHP ≥ 8.1
+- PHP ≥ 8.4
 - [Composer](https://getcomposer.org)
 
 ### Setup
@@ -407,8 +407,8 @@ GitHub Actions runs on every push and pull request to `main`:
 
 | Workflow | What it does |
 |----------|--------------|
-| `lint.yml` | `php -l` on PHP 8.1 (the declared minimum) and 8.4, plus PHPCS |
-| `tests.yml` | PHPUnit on PHP 8.1, 8.2, 8.3 and 8.4 |
+| `lint.yml` | `php -l` on PHP 8.4 (the declared minimum), plus PHPCS |
+| `tests.yml` | PHPUnit on PHP 8.4 |
 | `release.yml` | On a `v*` tag: runs `composer check`, verifies the tag is on `main` and that the plugin header, `CFP_DEV_VERSION` and the CHANGELOG all match it, builds the ZIP with `git archive`, fails if dev files leak in or runtime files are missing, and publishes it with a SHA-256 checksum and build provenance |
 
 ---
