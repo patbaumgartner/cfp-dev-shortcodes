@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace CfpDev\Tests\Unit;
 
 use CfpDev\Tests\PluginTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 final class PluginStructureTest extends PluginTestCase {
 
@@ -131,8 +132,8 @@ final class PluginStructureTest extends PluginTestCase {
 	 * register against a path WordPress does not know as a plugin — the hook
 	 * then simply never fires, with no error anywhere.
 	 *
-	 * @dataProvider lifecycleHookProvider
 	 */
+	#[DataProvider( 'lifecycleHookProvider' )]
 	public function test_lifecycle_hooks_are_registered_against_the_main_plugin_file( string $stage ): void {
 		$registered = \WP_Test_State::$hooks[ $stage ] ?? [];
 
@@ -187,8 +188,8 @@ final class PluginStructureTest extends PluginTestCase {
 	 * packaging manifest. A dev file without export-ignore ships to every user;
 	 * a runtime file with one breaks the plugin after install.
 	 *
-	 * @dataProvider excludedFromReleaseProvider
 	 */
+	#[DataProvider( 'excludedFromReleaseProvider' )]
 	public function test_development_files_are_excluded_from_the_release( string $path ): void {
 		$this->assertContains(
 			$path,
@@ -218,8 +219,8 @@ final class PluginStructureTest extends PluginTestCase {
 	}
 
 	/**
-	 * @dataProvider requiredInReleaseProvider
 	 */
+	#[DataProvider( 'requiredInReleaseProvider' )]
 	public function test_runtime_paths_are_not_excluded_from_the_release( string $path ): void {
 		$ignored = $this->exportIgnoredPaths();
 
@@ -270,8 +271,8 @@ final class PluginStructureTest extends PluginTestCase {
 	 * between them they covered the table column headers, every placeholder,
 	 * and the session type on a talk page.
 	 *
-	 * @dataProvider themedColourProvider
 	 */
+	#[DataProvider( 'themedColourProvider' )]
 	public function test_no_text_colour_is_hardcoded_for_one_theme( string $colour ): void {
 		$this->assertStringNotContainsString(
 			'color: ' . $colour,
@@ -323,6 +324,28 @@ final class PluginStructureTest extends PluginTestCase {
 
 		$this->assertSame( 1, preg_match( '/^ \* Version:\s+(\S+)$/m', $header, $matches ) );
 		$this->assertSame( CFP_DEV_VERSION, $matches[1] );
+	}
+
+	public function test_the_php_support_matrix_is_consistent_and_covers_the_current_version(): void {
+		$root     = dirname( __DIR__, 2 );
+		$header   = (string) file_get_contents( $root . '/cfp-dev-wordpress-shortcodes.php' );
+		$composer = json_decode( (string) file_get_contents( $root . '/composer.json' ), true );
+		$readme   = (string) file_get_contents( $root . '/README.md' );
+		$phpcs    = (string) file_get_contents( $root . '/phpcs.xml.dist' );
+		$release  = (string) file_get_contents( $root . '/.github/workflows/release.yml' );
+
+		$this->assertSame( 1, preg_match( '/^ \* Requires PHP:\s+(\S+)$/m', $header, $matches ) );
+		$minimum = $matches[1];
+
+		$this->assertSame( '>=' . $minimum, $composer['require']['php'] );
+		$this->assertStringContainsString( '| PHP | ≥ ' . $minimum . ' |', $readme );
+		$this->assertStringContainsString( 'name="testVersion" value="' . $minimum . '-"', $phpcs );
+		$this->assertStringContainsString( "php-version: '" . $minimum . "'", $release, 'the release must run on a PHP version its test toolchain supports' );
+
+		foreach ( [ 'lint.yml', 'tests.yml' ] as $workflow ) {
+			$yaml = (string) file_get_contents( $root . '/.github/workflows/' . $workflow );
+			$this->assertStringContainsString( "php: [ '" . $minimum . "', '8.5' ]", $yaml, $workflow . ' must cover the minimum and current PHP versions' );
+		}
 	}
 
 	/**

@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace CfpDev\Tests\Integration;
 
+use CfpDev\Tests\Fixtures;
 use CfpDev\Tests\PluginTestCase;
 use WP_Test_State;
 
@@ -180,10 +181,10 @@ final class OfflineCrawlerTest extends PluginTestCase {
 		$snapshot = $this->makeSnapshotDir();
 		$log      = [];
 		$tally    = cfp_dev_new_error_tally();
-		$this->image( self::IMAGE_URL, 'JPEG-BYTES' );
+		$this->image( self::IMAGE_URL, Fixtures::jpeg() );
 
 		$this->assertTrue( cfp_dev_download_image( self::IMAGE_URL, $snapshot . '/images/a.jpg', $log, $tally ) );
-		$this->assertSame( 'JPEG-BYTES', file_get_contents( $snapshot . '/images/a.jpg' ) );
+		$this->assertSame( Fixtures::jpeg(), file_get_contents( $snapshot . '/images/a.jpg' ) );
 		$this->assertSame( 0, $tally['total'] );
 	}
 
@@ -194,6 +195,17 @@ final class OfflineCrawlerTest extends PluginTestCase {
 		// A hostile upstream can point an image field anywhere; the served
 		// content type decides, not the URL.
 		$this->image( 'https://cdn.test/payload.jpg', '<?php echo 1;', 'text/html' );
+
+		$this->assertFalse( cfp_dev_download_image( 'https://cdn.test/payload.jpg', $snapshot . '/images/p.jpg', $log, $tally ) );
+		$this->assertFileDoesNotExist( $snapshot . '/images/p.jpg' );
+		$this->assertSame( 1, $tally['images'] );
+	}
+
+	public function test_non_image_bytes_behind_an_image_content_type_are_rejected(): void {
+		$snapshot = $this->makeSnapshotDir();
+		$log      = [];
+		$tally    = cfp_dev_new_error_tally();
+		$this->image( 'https://cdn.test/payload.jpg', '<html><script>alert(1)</script></html>', 'image/jpeg' );
 
 		$this->assertFalse( cfp_dev_download_image( 'https://cdn.test/payload.jpg', $snapshot . '/images/p.jpg', $log, $tally ) );
 		$this->assertFileDoesNotExist( $snapshot . '/images/p.jpg' );
@@ -390,7 +402,7 @@ final class OfflineCrawlerTest extends PluginTestCase {
 
 		$local_name = md5( self::IMAGE_URL ) . '.jpg';
 		$this->assertFileExists( $snapshot . '/images/' . $local_name );
-		$this->assertSame( 'JPEG-BYTES', file_get_contents( $snapshot . '/images/' . $local_name ) );
+		$this->assertSame( Fixtures::jpeg(), file_get_contents( $snapshot . '/images/' . $local_name ) );
 
 		$speakers = file_get_contents( $snapshot . '/api/public/speakers.json' );
 		$this->assertStringNotContainsString( self::IMAGE_URL, $speakers, 'an external URL survived the rewrite' );
@@ -499,6 +511,20 @@ final class OfflineCrawlerTest extends PluginTestCase {
 
 		$this->assertSame( 'error', get_option( 'cfp_dev_crawl_state' )['status'] );
 		$this->assertSame( 0, (int) get_option( 'cfp_dev_offline_mode' ) );
+	}
+
+	public function test_wrong_shaped_required_json_leaves_offline_mode_off(): void {
+		$this->registerCrawlableApi();
+		$this->api( 'public/rooms', (string) wp_json_encode( 'not-a-list' ) );
+		cfp_dev_start_crawl();
+		$snapshot = get_option( 'cfp_dev_crawl_state' )['snapshot'];
+
+		cfp_dev_do_crawl();
+
+		$this->assertSame( 'error', get_option( 'cfp_dev_crawl_state' )['status'] );
+		$this->assertSame( 0, (int) get_option( 'cfp_dev_offline_mode' ) );
+		$this->assertFileDoesNotExist( $snapshot . '/manifest.json' );
+		$this->assertFileDoesNotExist( $snapshot . '/api/public/rooms.json' );
 	}
 
 	/** An album nobody has, or an image behind a 500, is not a broken snapshot. */
@@ -733,7 +759,7 @@ final class OfflineCrawlerTest extends PluginTestCase {
 
 		WP_Test_State::$http_responses[ self::IMAGE_URL ] = [
 			'code'    => 200,
-			'body'    => 'JPEG-BYTES',
+			'body'    => Fixtures::jpeg(),
 			'headers' => [ 'content-type' => 'image/jpeg' ],
 		];
 	}

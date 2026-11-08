@@ -69,7 +69,7 @@ if ( ! function_exists( 'cfp_dev_talk_details_shortcode' ) ) {
 
 		$content .= '    <div class="cfp-foreword">';
 		$content .= '		<a class="cfp-a" href="' . esc_url( cfp_dev_url( '/talks-by-tracks/?id=' . absint( $talk->trackId ?? 0 ) ) ) . '">';
-		$content .= '			<div class="cfp-track" title="' . esc_attr( (string) ( $talk->trackName ?? '' ) ) . '"  style="background-image: url(\'' . esc_url( (string) ( $talk->trackImageURL ?? '' ) ) . '\')"></div>';
+		$content .= '			<div class="cfp-track" title="' . esc_attr( (string) ( $talk->trackName ?? '' ) ) . '"  style="background-image: url(\'' . cfp_dev_css_url( (string) ( $talk->trackImageURL ?? '' ) ) . '\')"></div>';
 		$content .= '		</a>';
 		$content .= '		<div class="cfp-name"' . cfp_dev_heading( 2 ) . '>' . esc_html( (string) ( $talk->title ?? '' ) ) . '</div>';
 		$content .= '       <div class="cfp-type">';
@@ -244,9 +244,9 @@ if ( ! function_exists( 'cfp_dev_talk_details_shortcode' ) ) {
 			$content .= '		<div class="cfp-profile">';
 			$content .= '<a class="cfp-a" href="' . esc_url( cfp_dev_speaker_url( $speaker ) ) . '">';
 			if ( empty( $speaker->imageUrl ) ) {
-				$content .= '			<div class="cfp-picture" title="' . esc_attr( (string) ( $speaker->company ?? '' ) ) . '" style="background-image: url(\'' . esc_url( plugins_url( 'shortcode/gfx/avatar.jpg', __DIR__ ) ) . '\')"></div>';
+				$content .= '			<div class="cfp-picture" title="' . esc_attr( (string) ( $speaker->company ?? '' ) ) . '" style="background-image: url(\'' . cfp_dev_css_url( plugins_url( 'shortcode/gfx/avatar.jpg', __DIR__ ) ) . '\')"></div>';
 			} else {
-				$content .= '			<div class="cfp-picture" title="' . esc_attr( (string) ( $speaker->company ?? '' ) ) . '" style="background-image: url(\'' . esc_url( (string) ( $speaker->imageUrl ?? '' ) ) . '\')"></div>';
+				$content .= '			<div class="cfp-picture" title="' . esc_attr( (string) ( $speaker->company ?? '' ) ) . '" style="background-image: url(\'' . cfp_dev_css_url( (string) ( $speaker->imageUrl ?? '' ) ) . '\')"></div>';
 			}
 			$content .= '		</a>';
 			$content .= '		<div class="cfp-detail">';

@@ -32,8 +32,8 @@
     </rule>
     <rule ref="Generic.Arrays.DisallowLongArraySyntax" />
 
-    <!-- PHP version compatibility: require PHP 8.1+ -->
-    <config name="testVersion" value="8.1-" />
+    <!-- PHP version compatibility: require PHP 8.4+ -->
+    <config name="testVersion" value="8.4-" />
     <rule ref="PHPCompatibilityWP" />
 
     <!-- Minimum supported WordPress version -->

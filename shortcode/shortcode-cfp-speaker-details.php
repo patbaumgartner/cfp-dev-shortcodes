@@ -133,7 +133,7 @@ if ( ! function_exists( 'cfp_dev_speaker_details_shortcode' ) ) {
 	 */
 	function cfp_dev_render_speaker_profile( $speaker ) {
 		$content  = '<section class="cfp-profile">';
-		$content .= '    <div class="cfp-picture" style="background-image: url(\'' . esc_url( (string) ( $speaker->imageUrl ?? '' ) ) . '\')"></div>';
+		$content .= '    <div class="cfp-picture" style="background-image: url(\'' . cfp_dev_css_url( (string) ( $speaker->imageUrl ?? '' ) ) . '\')"></div>';
 		$content .= '    <div class="cfp-content">';
 		$content .= '        <div class="cfp-detail">';
 		$content .= '            <div class="cfp-name"' . cfp_dev_heading( 2 ) . '>' . esc_html( trim( ( $speaker->firstName ?? '' ) . ' ' . ( $speaker->lastName ?? '' ) ) ) . '</div>';
@@ -170,7 +170,7 @@ if ( ! function_exists( 'cfp_dev_speaker_details_shortcode' ) ) {
 		$content  = '<section class="cfp-session">';
 		$content .= '    <div class="cfp-foreword">';
 		$content .= '        <a class="cfp-a" href="' . esc_url( cfp_dev_url( '/talks-by-tracks/?id=' . absint( $talk->track->id ?? 0 ) ) ) . '">';
-		$content .= '            <div class="cfp-track" title="' . esc_attr( (string) ( $talk->track->name ?? '' ) ) . '" style="background-image: url(\'' . esc_url( (string) ( $talk->track->imageURL ?? '' ) ) . '\')"></div>';
+		$content .= '            <div class="cfp-track" title="' . esc_attr( (string) ( $talk->track->name ?? '' ) ) . '" style="background-image: url(\'' . cfp_dev_css_url( (string) ( $talk->track->imageURL ?? '' ) ) . '\')"></div>';
 		$content .= '        </a>';
 		$content .= '        <a class="cfp-a" href="' . esc_url( $talk_url ) . '">';
 		$content .= '            <div class="cfp-name"' . cfp_dev_heading( 3 ) . '>' . esc_html( (string) ( $talk->title ?? '' ) ) . '</div>';

@@ -13,12 +13,13 @@ declare(strict_types=1);
 namespace CfpDev\Tests\Unit;
 
 use CfpDev\Tests\PluginTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 final class HelpersTest extends PluginTestCase {
 
 	/**
-	 * @dataProvider slugProvider
 	 */
+	#[DataProvider( 'slugProvider' )]
 	public function test_generate_slug_produces_url_safe_lowercase_slugs( string $input, string $expected ): void {
 		$this->assertSame( $expected, cfp_dev_generate_slug( $input ) );
 	}
@@ -60,13 +61,17 @@ final class HelpersTest extends PluginTestCase {
 		$this->assertStringNotContainsString( 'wor…', $excerpt, 'truncation cut a word in half' );
 	}
 
+	public function test_meta_excerpt_truncates_multibyte_text_on_a_word_boundary(): void {
+		$this->assertSame( 'Jürgen Jürgen…', cfp_dev_meta_excerpt( str_repeat( 'Jürgen ', 20 ), 20 ) );
+	}
+
 	public function test_meta_excerpt_keeps_short_text_verbatim(): void {
 		$this->assertSame( 'Short text', cfp_dev_meta_excerpt( 'Short text' ) );
 	}
 
 	/**
-	 * @dataProvider boolAttrProvider
 	 */
+	#[DataProvider( 'boolAttrProvider' )]
 	public function test_attr_bool_normalises_shortcode_booleans( $input, bool $expected ): void {
 		$this->assertSame( $expected, cfp_dev_attr_bool( $input ) );
 	}

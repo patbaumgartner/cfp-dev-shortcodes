@@ -57,7 +57,16 @@ function cfp_dev_option_choice( $value, array $allowed, string $fallback ): stri
  * @param mixed $value  Name as the API sent it, possibly absent.
  */
 function cfp_dev_sort_key( $value ): string {
-	return (string) iconv( 'utf-8', 'ascii//TRANSLIT', (string) $value );
+	$value = (string) $value;
+
+	if ( function_exists( 'iconv' ) ) {
+		$transliterated = iconv( 'utf-8', 'ascii//TRANSLIT', $value );
+		if ( false !== $transliterated ) {
+			return $transliterated;
+		}
+	}
+
+	return remove_accents( $value );
 }
 
 /** usort() comparator: orders speakers by last name, accent-insensitively. */
@@ -178,9 +187,11 @@ function cfp_dev_meta_excerpt( $text, $length = 160 ) {
 	if ( mb_strlen( $text ) <= $length ) {
 		return $text;
 	}
-	$cut   = mb_substr( $text, 0, $length );
-	$space = mb_strrpos( $cut, ' ' );
-	return ( false !== $space ? mb_substr( $cut, 0, $space ) : $cut ) . '…';
+	$cut = mb_substr( $text, 0, $length );
+	// A space is one byte in UTF-8, so byte offsets are safe at this boundary.
+	// This also avoids mb_strrpos(), which WordPress does not polyfill.
+	$space = strrpos( $cut, ' ' );
+	return ( false !== $space ? substr( $cut, 0, $space ) : $cut ) . '…';
 }
 
 /**

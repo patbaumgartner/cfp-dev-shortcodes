@@ -553,6 +553,28 @@ function cfp_dev_new_error_tally(): array {
 }
 
 /**
+ * Whether a decoded response has the shape the endpoint's consumers require.
+ *
+ * JSON syntax alone is not enough: a scalar or an object where a list belongs
+ * can otherwise be published as a complete snapshot and fail on a public page.
+ * Event and entity-detail endpoints return objects; every crawled list returns
+ * an array. This check belongs to the crawler, not cfp_dev_get_json(), whose
+ * public contract deliberately accommodates all of the API's response shapes.
+ *
+ * @param string $query_path  API path being captured.
+ * @param mixed  $decoded     Decoded JSON payload.
+ */
+function cfp_dev_snapshot_payload_has_expected_shape( string $query_path, $decoded ): bool {
+	$path = (string) preg_replace( '/\?.*$/', '', $query_path );
+
+	if ( 'public/event' === $path || 1 === preg_match( '#^public/(?:speakers|talks)/[0-9]+$#', $path ) ) {
+		return is_object( $decoded );
+	}
+
+	return is_array( $decoded );
+}
+
+/**
  * Fetches one API endpoint and saves the raw response body as a JSON file
  * inside the snapshot directory.
  *
@@ -608,32 +630,28 @@ function cfp_dev_fetch_and_save( string $query_path, string $snapshot_dir, array
 		'status' => $code,
 	];
 
-	// 204 No Content means the endpoint is valid but has no data (e.g. room with no sessions).
-	// Save an empty JSON array so offline reads return [] instead of null.
 	if ( 204 === $code ) {
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- local snapshot file
-		if ( false === file_put_contents( $file_path, '[]' ) ) {
-			cfp_dev_record_fetch_failure( $tally, $fetch_log, $optional, $url, 'write failed' );
-			cfp_dev_log( 'crawl: failed to write ' . $file_path );
-			return null;
-		}
-		cfp_dev_log( 'crawl: HTTP 204 (empty) for ' . $query_path );
-		return [];
-	}
-
-	if ( 200 !== $code ) {
+		// An empty list is a valid answer for endpoints such as a room schedule.
+		$decoded = [];
+		$body    = '[]';
+	} elseif ( 200 !== $code ) {
 		cfp_dev_record_fetch_failure( $tally, $fetch_log, $optional, $url, 'HTTP ' . $code );
 		cfp_dev_log( 'crawl: HTTP ' . $code . ' for ' . $query_path );
 		return null;
+	} else {
+		// A 200 is not a promise of JSON. A captive portal, a proxy error page or a
+		// truncated response would otherwise be stored as though it were data.
+		$decoded = json_decode( $body );
+		if ( JSON_ERROR_NONE !== json_last_error() ) {
+			cfp_dev_record_fetch_failure( $tally, $fetch_log, $optional, $url, 'response was not JSON: ' . json_last_error_msg() );
+			cfp_dev_log( 'crawl: non-JSON body for ' . $query_path . ' — ' . json_last_error_msg() );
+			return null;
+		}
 	}
 
-	// A 200 is not a promise of JSON. A captive portal, a proxy error page or a
-	// truncated response would otherwise be stored as though it were data, and
-	// the failure would only surface later, from the snapshot, on a live page.
-	$decoded = json_decode( $body );
-	if ( JSON_ERROR_NONE !== json_last_error() ) {
-		cfp_dev_record_fetch_failure( $tally, $fetch_log, $optional, $url, 'response was not JSON: ' . json_last_error_msg() );
-		cfp_dev_log( 'crawl: non-JSON body for ' . $query_path . ' — ' . json_last_error_msg() );
+	if ( ! cfp_dev_snapshot_payload_has_expected_shape( $query_path, $decoded ) ) {
+		cfp_dev_record_fetch_failure( $tally, $fetch_log, $optional, $url, 'unexpected JSON shape for endpoint' );
+		cfp_dev_log( 'crawl: unexpected JSON shape for ' . $query_path );
 		return null;
 	}
 
@@ -644,6 +662,10 @@ function cfp_dev_fetch_and_save( string $query_path, string $snapshot_dir, array
 		cfp_dev_record_fetch_failure( $tally, $fetch_log, $optional, $url, 'write failed' );
 		cfp_dev_log( 'crawl: failed to write ' . $file_path );
 		return null;
+	}
+
+	if ( 204 === $code ) {
+		cfp_dev_log( 'crawl: HTTP 204 (empty) for ' . $query_path );
 	}
 
 	return $decoded;
@@ -859,21 +881,22 @@ function cfp_dev_download_image( string $url, string $dest_path, array &$fetch_l
 
 	$body = wp_remote_retrieve_body( $response );
 
-	if ( $is_generic ) {
-		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- getimagesizefromstring() warns on unrecognized data; false is the answer we want
-		$info    = @getimagesizefromstring( $body );
-		$sniffed = is_array( $info ) && isset( $info['mime'] ) ? strtolower( (string) $info['mime'] ) : '';
-		if ( ! isset( $by_type[ $sniffed ] ) ) {
-			++$tally['total'];
-			++$tally['images'];
-			$fetch_log[] = [
-				'url'    => $url,
-				'status' => 'error',
-				'msg'    => 'undeclared content type and the bytes are not an allowed image',
-			];
-			cfp_dev_log( 'crawl: rejected undeclared non-image response for ' . $url . ' — sniffed ' . ( '' === $sniffed ? '(unrecognized)' : $sniffed ) );
-			return false;
-		}
+	// A declared image type is only a claim. Validate every response so a
+	// compromised origin cannot publish markup behind an image content type.
+	// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- getimagesizefromstring() warns on unrecognized data; false is the answer we want
+	$info    = @getimagesizefromstring( $body );
+	$sniffed = is_array( $info ) && isset( $info['mime'] ) ? strtolower( (string) $info['mime'] ) : '';
+
+	if ( ! isset( $by_type[ $sniffed ] ) || ( ! $is_generic && $content_type !== $sniffed ) ) {
+		++$tally['total'];
+		++$tally['images'];
+		$fetch_log[] = [
+			'url'    => $url,
+			'status' => 'error',
+			'msg'    => 'response bytes are not the declared allowed image type',
+		];
+		cfp_dev_log( 'crawl: rejected invalid image response for ' . $url . ' — declared ' . $content_type . ', sniffed ' . ( '' === $sniffed ? '(unrecognized)' : $sniffed ) );
+		return false;
 	}
 
 	wp_mkdir_p( dirname( $dest_path ) );

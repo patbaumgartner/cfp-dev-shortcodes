@@ -12,7 +12,7 @@ Please be respectful and constructive in all interactions. We follow the [Contri
 
 ## Getting Started
 
-This project requires PHP 8.1 or later.
+The plugin requires PHP 8.4 or later. Development uses the locked PHPUnit 13 toolchain, which requires PHP 8.4.1 or later.
 
 ```bash
 git clone https://github.com/patbaumgartner/cfp-dev-shortcodes.git

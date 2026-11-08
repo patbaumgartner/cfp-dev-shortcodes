@@ -148,6 +148,14 @@ final class PartialApiDataTest extends PluginTestCase {
 		$this->assertStringContainsString( 'Jane Doe', $html );
 	}
 
+	public function test_the_schedule_rejects_a_scalar_rooms_response_without_a_php_warning(): void {
+		$this->api( 'public/event', Fixtures::event() );
+		$this->api( 'public/rooms', (string) wp_json_encode( 'not-a-list' ) );
+		$this->api( 'public/schedules/Monday', Fixtures::daySchedule() );
+
+		$this->assertSame( 'Failed to retrieve rooms', cfp_dev_schedule_shortcode( [] ) );
+	}
+
 	/** The schedule heading falls back to the event's own name. */
 	public function test_the_schedule_renders_an_event_with_no_name(): void {
 		$event = Fixtures::event();

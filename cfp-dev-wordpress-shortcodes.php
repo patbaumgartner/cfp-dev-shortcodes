@@ -5,7 +5,7 @@
  * Description:       Display CFP.DEV conference content on your WordPress site: speakers, talks, schedule, and search — with light/dark theming, caching, and offline mode.
  * Version:           4.9.1
  * Requires at least: 6.0
- * Requires PHP:      8.1
+ * Requires PHP:      8.4
  * Author:            Stephan Janssen, Patrick Baumgartner
  * Author URI:        https://x.com/stephan007
  * License:           GPL-2.0+

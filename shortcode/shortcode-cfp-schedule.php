@@ -103,7 +103,7 @@ if ( ! function_exists( 'cfp_dev_schedule_shortcode' ) ) {
 
 		$rooms = cfp_dev_get_json( 'public/rooms' );
 
-		if ( is_null( $rooms ) ) {
+		if ( ! is_array( $rooms ) ) {
 			cfp_dev_log( 'schedule: failed to retrieve rooms' );
 			return esc_html__( 'Failed to retrieve rooms', 'cfp-dev-shortcodes' );
 		}
@@ -377,7 +377,7 @@ if ( ! function_exists( 'cfp_dev_schedule_shortcode' ) ) {
 				$content .= '            <div id="dev-cfp-talk-' . absint( $item->proposal->id ?? 0 ) . '" class="cfp-favourite">' . absint( $item->proposal->totalFavourites ) . '</div>';
 			}
 			if ( ! empty( $item->proposal->track->imageURL ) ) {
-				$content .= '            <div class="cfp-track" style="background-image: url(\'' . esc_url( $item->proposal->track->imageURL ) . '\');filter: grayscale(100%);"></div>';
+				$content .= '            <div class="cfp-track" style="background-image: url(\'' . cfp_dev_css_url( $item->proposal->track->imageURL ) . '\');filter: grayscale(100%);"></div>';
 			}
 			$content .= '        </div>';
 			$content .= '        <a class="cfp-a" href="' . esc_url( cfp_dev_talk_url( $item->proposal ) ) . '">';

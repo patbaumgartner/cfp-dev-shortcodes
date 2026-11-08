@@ -107,11 +107,13 @@ abstract class PluginTestCase extends TestCase {
 	 * the crawler trusts it over the URL's extension.
 	 *
 	 * @param string $url           Absolute image URL.
-	 * @param string $body          Raw response body.
+	 * @param string|null $body          Raw response body (a real JPEG when omitted).
 	 * @param string $content_type  Content-Type header to serve.
 	 * @param int    $code          HTTP status code.
 	 */
-	protected function image( string $url, string $body = 'IMAGE-BYTES', string $content_type = 'image/jpeg', int $code = 200 ): void {
+	protected function image( string $url, ?string $body = null, string $content_type = 'image/jpeg', int $code = 200 ): void {
+		$body ??= Fixtures::jpeg();
+
 		WP_Test_State::$http_responses[ $url ] = [
 			'code'    => $code,
 			'body'    => $body,

@@ -98,7 +98,7 @@ if ( ! function_exists( 'cfp_dev_speakers_shortcode' ) ) {
 			$first    = (string) ( $speaker->firstName ?? '' );
 			$last     = (string) ( $speaker->lastName ?? '' );
 			$content .= '<a class="cfp-a" href="' . esc_url( cfp_dev_speaker_url( $speaker ) ) . '">';
-			$content .= '           <div class="cfp-picture" style="background-image: url(\'' . esc_url( (string) ( $speaker->imageUrl ?? '' ) ) . '\')"></div>';
+			$content .= '           <div class="cfp-picture" style="background-image: url(\'' . cfp_dev_css_url( (string) ( $speaker->imageUrl ?? '' ) ) . '\')"></div>';
 			$content .= '        <div class="cfp-name"' . cfp_dev_heading( $card_level ) . '>' . esc_html( trim( $first . ' ' . $last ) ) . '</div>';
 			if ( ! empty( $speaker->company ) ) {
 				$content .= '        <div class="cfp-company">' . esc_html( $speaker->company ) . '</div>';

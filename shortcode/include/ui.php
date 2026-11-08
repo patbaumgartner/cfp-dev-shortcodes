@@ -216,6 +216,23 @@ function cfp_dev_render_time_slot( $slot, bool $timing_for_page = false ): strin
 }
 
 /**
+ * Escapes a URL for a single-quoted CSS url() token inside an HTML attribute.
+ *
+ * HTML escaping alone is not enough: the browser decodes &#039; back to a
+ * quote before parsing the CSS, which would let an API URL close the token.
+ * Percent-encoding CSS delimiters keeps them inside the URL. esc_attr() then
+ * handles the independent HTML-attribute context without double-encoding &.
+ *
+ * @param mixed $url  Candidate image URL.
+ */
+function cfp_dev_css_url( $url ): string {
+	$url = esc_url_raw( (string) $url );
+	$url = str_replace( [ '\\', "'", '"' ], [ '%5C', '%27', '%22' ], $url );
+
+	return esc_attr( $url );
+}
+
+/**
  * Returns $url when it is served by one of $allowed_hosts, otherwise ''.
  *
  * An <iframe src> is not just a link: the framed origin runs its own code in

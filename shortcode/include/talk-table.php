@@ -63,7 +63,7 @@ function cfp_dev_talk_table_rows( $talks ) {
 		$content .= cfp_dev_talk_table_speakers( $talk );
 		$content .= '    </div>';
 		$content .= '    <div class="cfp-field">';
-		$content .= '        <div class="cfp-track" style="background-image: url(\'' . esc_url( $track_image ) . '\')"></div>';
+		$content .= '        <div class="cfp-track" style="background-image: url(\'' . cfp_dev_css_url( $track_image ) . '\')"></div>';
 		$content .= '    </div>';
 		$content .= '    <div class="cfp-field">';
 		$content .= '        <a class="cfp-a" href="' . esc_url( $talk_url ) . '">' . esc_html__( 'View', 'cfp-dev-shortcodes' ) . '</a>';
