@@ -262,7 +262,7 @@ final class ShortcodeRenderTest extends PluginTestCase {
 	 * stylesheet knows, not the dev-cfp-* ones it has no rules for.
 	 *
 	 */
-	#[DataProvider('emptyListPageProvider')]
+	#[DataProvider( 'emptyListPageProvider' )]
 	public function test_a_list_page_falls_back_to_a_laid_out_message( string $shortcode, string $path, string $message ): void {
 		$this->api( $path, null, 500 );
 
@@ -466,7 +466,7 @@ final class ShortcodeRenderTest extends PluginTestCase {
 
 	/**
 	 */
-	#[DataProvider('sparseTalkListProvider')]
+	#[DataProvider( 'sparseTalkListProvider' )]
 	public function test_talk_lists_survive_a_talk_with_no_optional_fields( string $shortcode, string $path ): void {
 		$this->registerDefaultApi();
 		$this->api( $path, [ Fixtures::sparseTalk() ] );
@@ -604,7 +604,7 @@ final class ShortcodeRenderTest extends PluginTestCase {
 	 * is a blank page rather than a blank schedule.
 	 *
 	 */
-	#[DataProvider('unusableEventDateProvider')]
+	#[DataProvider( 'unusableEventDateProvider' )]
 	public function test_schedule_reports_an_unusable_event_date_range( string $field, string $value ): void {
 		$this->registerScheduleApi();
 		$event           = Fixtures::event();
@@ -688,7 +688,7 @@ final class ShortcodeRenderTest extends PluginTestCase {
 	 * such a figure — the slot's own timestamps always know the answer.
 	 *
 	 */
-	#[DataProvider('gridDurationProvider')]
+	#[DataProvider( 'gridDurationProvider' )]
 	public function test_a_session_gets_a_height_the_stylesheet_can_render( $api_duration, string $expected ): void {
 		$this->registerScheduleApi();
 		$session = Fixtures::roomSchedule()[0];
@@ -812,7 +812,7 @@ final class ShortcodeRenderTest extends PluginTestCase {
 	 * do to clear it.
 	 *
 	 */
-	#[DataProvider('outageProvider')]
+	#[DataProvider( 'outageProvider' )]
 	public function test_an_api_outage_is_not_cached_as_a_missing_page(
 		string $shortcode,
 		string $failing_path,
@@ -866,7 +866,7 @@ final class ShortcodeRenderTest extends PluginTestCase {
 	 * autoplay and encrypted-media already granted by the allow attribute.
 	 *
 	 */
-	#[DataProvider('videoUrlProvider')]
+	#[DataProvider( 'videoUrlProvider' )]
 	public function test_only_video_from_a_supported_host_is_embedded( string $url, bool $embedded ): void {
 		$talk             = Fixtures::talkDetail( 200 );
 		$talk['videoURL'] = $url;
@@ -980,7 +980,7 @@ final class ShortcodeRenderTest extends PluginTestCase {
 	 * page, and a theme always has at least one of its own.
 	 *
 	 */
-	#[DataProvider('navigationLandmarkProvider')]
+	#[DataProvider( 'navigationLandmarkProvider' )]
 	public function test_every_navigation_landmark_is_named( string $shortcode, string $label ): void {
 		$this->registerDefaultApi();
 		$this->registerScheduleApi();

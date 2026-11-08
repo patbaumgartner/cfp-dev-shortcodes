@@ -122,7 +122,7 @@ final class ApiClientTest extends PluginTestCase {
 
 	/**
 	 */
-	#[DataProvider('traversalProvider')]
+	#[DataProvider( 'traversalProvider' )]
 	public function test_get_json_rejects_traversal_and_absolute_paths( string $path ): void {
 		$this->assertNull( cfp_dev_get_json( $path ) );
 		$this->assertSame( [], $this->httpLog(), 'a rejected path must not reach the network' );

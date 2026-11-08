@@ -99,7 +99,7 @@ final class UninstallTest extends PluginTestCase {
 	 * plugin.
 	 *
 	 */
-	#[DataProvider('cacheKeyProvider')]
+	#[DataProvider( 'cacheKeyProvider' )]
 	public function test_every_key_the_plugin_writes_is_removed( string $key ): void {
 		set_transient( $key, 'cached', 3600 );
 

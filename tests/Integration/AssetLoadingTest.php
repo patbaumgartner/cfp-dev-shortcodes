@@ -42,7 +42,7 @@ final class AssetLoadingTest extends PluginTestCase {
 	 * no other purpose, rendered unstyled on those sites.
 	 *
 	 */
-	#[DataProvider('pluginPageProvider')]
+	#[DataProvider( 'pluginPageProvider' )]
 	public function test_the_plugins_own_pages_load_the_assets_however_the_theme_renders_them( string $slug ): void {
 		$this->queriedPost( '' );
 		$this->onPage( $slug );
@@ -74,7 +74,7 @@ final class AssetLoadingTest extends PluginTestCase {
 	 * is itself proof the page needs the assets.
 	 *
 	 */
-	#[DataProvider('renderedShortcodeProvider')]
+	#[DataProvider( 'renderedShortcodeProvider' )]
 	public function test_rendering_a_shortcode_anywhere_loads_the_assets( string $shortcode ): void {
 		$this->registerDefaultApi();
 		$this->api( 'public/speakers?size=300', Fixtures::speakers() );

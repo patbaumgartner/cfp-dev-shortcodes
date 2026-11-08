@@ -253,7 +253,7 @@ final class AdminSettingsPageTest extends PluginTestCase {
 	 * the .pot the drift guard checks.
 	 *
 	 */
-	#[DataProvider('adminScriptProvider')]
+	#[DataProvider( 'adminScriptProvider' )]
 	public function test_the_admin_scripts_are_handed_their_strings( string $handle, string $js_object, array $expected ): void {
 		cfp_dev_enqueue_admin_scripts( 'settings_page_cfp-dev-settings' );
 

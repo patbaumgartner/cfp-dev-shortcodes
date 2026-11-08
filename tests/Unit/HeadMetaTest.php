@@ -201,7 +201,7 @@ final class HeadMetaTest extends PluginTestCase {
 	 * speaker on the site was gone.
 	 *
 	 */
-	#[DataProvider('outageLookupProvider')]
+	#[DataProvider( 'outageLookupProvider' )]
 	public function test_an_unreachable_api_does_not_report_a_detail_page_as_gone( string $page, string $query_var, string $value, string $failing_path ): void {
 		$this->registerDefaultApi();
 		$this->api( $failing_path, null, 503 );
@@ -247,7 +247,7 @@ final class HeadMetaTest extends PluginTestCase {
 	 * engine indexes.
 	 *
 	 */
-	#[DataProvider('canonicalModeProvider')]
+	#[DataProvider( 'canonicalModeProvider' )]
 	public function test_the_canonical_follows_the_configured_permalink_mode( string $by_id, string $page, string $expected ): void {
 		$this->registerDefaultApi();
 		$this->option( 'cfp_dev_content_by_id', $by_id );

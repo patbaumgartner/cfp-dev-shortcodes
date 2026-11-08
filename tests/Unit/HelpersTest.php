@@ -19,7 +19,7 @@ final class HelpersTest extends PluginTestCase {
 
 	/**
 	 */
-	#[DataProvider('slugProvider')]
+	#[DataProvider( 'slugProvider' )]
 	public function test_generate_slug_produces_url_safe_lowercase_slugs( string $input, string $expected ): void {
 		$this->assertSame( $expected, cfp_dev_generate_slug( $input ) );
 	}
@@ -67,7 +67,7 @@ final class HelpersTest extends PluginTestCase {
 
 	/**
 	 */
-	#[DataProvider('boolAttrProvider')]
+	#[DataProvider( 'boolAttrProvider' )]
 	public function test_attr_bool_normalises_shortcode_booleans( $input, bool $expected ): void {
 		$this->assertSame( $expected, cfp_dev_attr_bool( $input ) );
 	}
