@@ -244,7 +244,7 @@ final class OfflineSnapshotTest extends PluginTestCase {
 
 	/**
 	 */
-	#[DataProvider('executableExtensionProvider')]
+	#[DataProvider( 'executableExtensionProvider' )]
 	public function test_executable_extensions_never_reach_the_filesystem( string $url ): void {
 		$map = [];
 		cfp_dev_collect_image_urls( [ 'imageUrl' => $url ], [ 'imageUrl' ], $map );

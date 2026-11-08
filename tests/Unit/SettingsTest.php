@@ -41,7 +41,7 @@ final class SettingsTest extends PluginTestCase {
 
 	/**
 	 */
-	#[DataProvider('hostileChoiceProvider')]
+	#[DataProvider( 'hostileChoiceProvider' )]
 	public function test_choice_settings_reject_values_outside_their_allow_list( string $field, string $expected ): void {
 		cfp_dev_handle_settings_post( array_merge( self::GENERAL_FORM, [ $field => 'dark" onload=alert(1) x' ] ) );
 
@@ -66,7 +66,7 @@ final class SettingsTest extends PluginTestCase {
 
 	/**
 	 */
-	#[DataProvider('pathPrefixProvider')]
+	#[DataProvider( 'pathPrefixProvider' )]
 	public function test_path_prefix_is_reduced_to_url_slugs( string $input, string $expected ): void {
 		$this->assertSame( $expected, cfp_dev_sanitize_path_prefix( $input ) );
 	}

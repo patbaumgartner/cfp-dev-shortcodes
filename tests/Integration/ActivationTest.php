@@ -173,7 +173,7 @@ final class ActivationTest extends PluginTestCase {
 	 * would advertise a permalink form that site does not link to.
 	 *
 	 */
-	#[DataProvider('sitemapModeProvider')]
+	#[DataProvider( 'sitemapModeProvider' )]
 	public function test_the_sitemap_provider_registers_only_in_slug_mode( string $by_id, bool $expected ): void {
 		$this->option( 'cfp_dev_content_by_id', $by_id );
 

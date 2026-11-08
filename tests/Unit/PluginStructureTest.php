@@ -133,7 +133,7 @@ final class PluginStructureTest extends PluginTestCase {
 	 * then simply never fires, with no error anywhere.
 	 *
 	 */
-	#[DataProvider('lifecycleHookProvider')]
+	#[DataProvider( 'lifecycleHookProvider' )]
 	public function test_lifecycle_hooks_are_registered_against_the_main_plugin_file( string $stage ): void {
 		$registered = \WP_Test_State::$hooks[ $stage ] ?? [];
 
@@ -189,7 +189,7 @@ final class PluginStructureTest extends PluginTestCase {
 	 * a runtime file with one breaks the plugin after install.
 	 *
 	 */
-	#[DataProvider('excludedFromReleaseProvider')]
+	#[DataProvider( 'excludedFromReleaseProvider' )]
 	public function test_development_files_are_excluded_from_the_release( string $path ): void {
 		$this->assertContains(
 			$path,
@@ -220,7 +220,7 @@ final class PluginStructureTest extends PluginTestCase {
 
 	/**
 	 */
-	#[DataProvider('requiredInReleaseProvider')]
+	#[DataProvider( 'requiredInReleaseProvider' )]
 	public function test_runtime_paths_are_not_excluded_from_the_release( string $path ): void {
 		$ignored = $this->exportIgnoredPaths();
 
@@ -272,7 +272,7 @@ final class PluginStructureTest extends PluginTestCase {
 	 * and the session type on a talk page.
 	 *
 	 */
-	#[DataProvider('themedColourProvider')]
+	#[DataProvider( 'themedColourProvider' )]
 	public function test_no_text_colour_is_hardcoded_for_one_theme( string $colour ): void {
 		$this->assertStringNotContainsString(
 			'color: ' . $colour,
