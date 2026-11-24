@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased]
+## [4.9.2] — 2026-11-25
 
 ### Changed
 - **Talk titles in `[cfp_talks_by_tracks]` and `[cfp_talks_by_sessions]` now open the talk details page.** The only clickable part of each row used to be a separate **View** link, which cost the title a whole column. The title itself is now the link, the View column is gone, and its grid unit goes to the title on wide screens
