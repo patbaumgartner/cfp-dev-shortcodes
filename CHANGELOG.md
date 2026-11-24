@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [Unreleased]
+
+### Changed
+- **Talk titles in `[cfp_talks_by_tracks]` and `[cfp_talks_by_sessions]` now open the talk details page.** The only clickable part of each row used to be a separate **View** link, which cost the title a whole column. The title itself is now the link, the View column is gone, and its grid unit goes to the title on wide screens
+- **The session-type filter follows the agenda instead of the catalog.** The catalog can contain categories with no scheduled talk, so the list showed tabs that led nowhere. Only non-break types attached to a talk in the event's day schedules are shown now, and an `?id=` pointing at an unscheduled type falls back to the first visible category
+
 ## [4.9.1] — 2026-09-19
 
 ### Added

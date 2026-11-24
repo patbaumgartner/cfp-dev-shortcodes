@@ -276,12 +276,30 @@ final class Fixtures {
 	public static function daySchedule(): array {
 		return [
 			[
-				'fromDate' => '2025-10-06T07:00:00Z',
-				'toDate'   => '2025-10-06T07:50:00Z',
+				'fromDate'    => '2025-10-06T07:00:00Z',
+				'toDate'      => '2025-10-06T07:50:00Z',
+				'overflow'    => false,
+				'sessionType' => [
+					'id'    => 21,
+					'name'  => 'Coffee Break',
+					'pause' => true,
+				],
+				'proposal'    => null,
 			],
 			[
-				'fromDate' => '2025-10-06T08:30:00Z',
-				'toDate'   => '2025-10-06T09:20:00Z',
+				'fromDate'    => '2025-10-06T08:30:00Z',
+				'toDate'      => '2025-10-06T09:20:00Z',
+				'overflow'    => false,
+				'sessionType' => [
+					'id'       => 20,
+					'name'     => 'Conference',
+					'pause'    => false,
+					'duration' => 50,
+				],
+				'proposal'    => [
+					'id'    => 200,
+					'title' => 'Modern Java in Practice',
+				],
 			],
 		];
 	}
@@ -295,7 +313,9 @@ final class Fixtures {
 				'overflow'    => false,
 				'room'        => [ 'name' => 'Room 4' ],
 				'sessionType' => [
+					'id'       => 20,
 					'name'     => 'Conference',
+					'pause'    => false,
 					'duration' => 50,
 				],
 				'proposal'    => [

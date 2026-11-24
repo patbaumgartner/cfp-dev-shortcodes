@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-19T12:15:12+00:00\n"
+"POT-Creation-Date: 2026-11-24T22:58:35+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
@@ -529,11 +529,11 @@ msgstr ""
 msgid "Crawl started."
 msgstr ""
 
-#: shortcode/include/ical.php:416
+#: shortcode/include/ical.php:510
 msgid "Speakers:"
 msgstr ""
 
-#: shortcode/include/ical.php:422
+#: shortcode/include/ical.php:516
 msgid "Track:"
 msgstr ""
 
@@ -541,73 +541,73 @@ msgstr ""
 msgid "Crawl scheduled, waiting for background job..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:930
+#: shortcode/include/offline-crawler.php:953
 msgid "Snapshot directory missing. Please start a new crawl."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:947
+#: shortcode/include/offline-crawler.php:970
 msgid "Fetching event metadata..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:960
+#: shortcode/include/offline-crawler.php:983
 msgid "Fetching speakers list..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:967
+#: shortcode/include/offline-crawler.php:990
 msgid "Fetching speaker details..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:982
+#: shortcode/include/offline-crawler.php:1005
 msgid "Fetching speaker photo albums..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:995
+#: shortcode/include/offline-crawler.php:1018
 msgid "Fetching talks list..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:1006
+#: shortcode/include/offline-crawler.php:1029
 msgid "Fetching talk details..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:1024
+#: shortcode/include/offline-crawler.php:1047
 msgid "Fetching talks by track & session type..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:1037
+#: shortcode/include/offline-crawler.php:1060
 msgid "Fetching schedules..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:1074
+#: shortcode/include/offline-crawler.php:1097
 msgid "Collecting image URLs from saved JSON..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:1116
+#: shortcode/include/offline-crawler.php:1139
 msgid "Downloading images..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:1173
+#: shortcode/include/offline-crawler.php:1196
 msgid "Rewriting image URLs in JSON files..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:1206
+#: shortcode/include/offline-crawler.php:1229
 msgid "Finalizing snapshot..."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:1225
+#: shortcode/include/offline-crawler.php:1248
 msgid "Crawl produced no talks or speakers — offline mode was left off. Check the CFP.DEV key and that the API is reachable."
 msgstr ""
 
 #. translators: %s: number of endpoints that could not be captured.
-#: shortcode/include/offline-crawler.php:1228
+#: shortcode/include/offline-crawler.php:1251
 #, php-format
 msgid "Crawl could not capture %s required endpoint(s) — offline mode was left off and the previous snapshot is untouched. See the log for which."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:1265
+#: shortcode/include/offline-crawler.php:1288
 msgid "Could not write manifest.json — offline mode was left off. Check filesystem permissions on wp-content/uploads."
 msgstr ""
 
-#: shortcode/include/offline-crawler.php:1289
+#: shortcode/include/offline-crawler.php:1312
 msgid "Crawl complete! Offline mode is now active."
 msgstr ""
 
@@ -723,11 +723,6 @@ msgstr ""
 msgid "Track"
 msgstr ""
 
-#: shortcode/include/talk-table.php:69
-#: shortcode/shortcode-cfp-search-results.php:91
-msgid "View"
-msgstr ""
-
 #: shortcode/include/ui.php:126
 msgid "Colour theme"
 msgstr ""
@@ -747,30 +742,30 @@ msgid "%1$s from %2$s"
 msgstr ""
 
 #. translators: %s: speaker name.
-#: shortcode/include/ui.php:279
+#: shortcode/include/ui.php:296
 #, php-format
 msgid "LinkedIn profile of %s"
 msgstr ""
 
 #. translators: %s: speaker name.
-#: shortcode/include/ui.php:286
+#: shortcode/include/ui.php:303
 #, php-format
 msgid "Bluesky profile of %s"
 msgstr ""
 
 #. translators: %s: speaker name.
-#: shortcode/include/ui.php:294
+#: shortcode/include/ui.php:311
 #, php-format
 msgid "Mastodon profile of %s"
 msgstr ""
 
 #. translators: %s: speaker name.
-#: shortcode/include/ui.php:301
+#: shortcode/include/ui.php:318
 #, php-format
 msgid "X (Twitter) profile of %s"
 msgstr ""
 
-#: shortcode/include/ui.php:321
+#: shortcode/include/ui.php:338
 msgid "Social media profiles"
 msgstr ""
 
@@ -805,12 +800,12 @@ msgid "Mobile Schedule"
 msgstr ""
 
 #: shortcode/shortcode-cfp-schedule.php:187
-#: shortcode/shortcode-cfp-schedule.php:414
+#: shortcode/shortcode-cfp-schedule.php:375
 #: shortcode/shortcode-cfp-talk-details.php:83
 msgid "Add to Calendar"
 msgstr ""
 
-#: shortcode/shortcode-cfp-schedule.php:403
+#: shortcode/shortcode-cfp-schedule.php:401
 msgid "OVERFLOW"
 msgstr ""
 
@@ -832,6 +827,10 @@ msgstr ""
 #: shortcode/shortcode-cfp-search-results.php:83
 #, php-format
 msgid "%s LEVEL"
+msgstr ""
+
+#: shortcode/shortcode-cfp-search-results.php:91
+msgid "View"
 msgstr ""
 
 #: shortcode/shortcode-cfp-search-results.php:108
@@ -927,7 +926,7 @@ msgid "Related"
 msgstr ""
 
 #: shortcode/shortcode-cfp-talks-by-sessions.php:32
-#: shortcode/shortcode-cfp-talks-by-sessions.php:86
+#: shortcode/shortcode-cfp-talks-by-sessions.php:177
 msgid "Talks grouped by Session Types"
 msgstr ""
 
@@ -935,7 +934,7 @@ msgstr ""
 msgid "No session types found"
 msgstr ""
 
-#: shortcode/shortcode-cfp-talks-by-sessions.php:94
+#: shortcode/shortcode-cfp-talks-by-sessions.php:185
 msgid "Session types"
 msgstr ""
 

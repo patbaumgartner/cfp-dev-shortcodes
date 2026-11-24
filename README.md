@@ -162,7 +162,7 @@ talk details page's own button.
 
 ### `[cfp_talks_by_tracks]`
 
-Lists talks grouped by track.
+Lists talks grouped by track. Each talk title links directly to its details page.
 
 | Attribute | Default | Description |
 |-----------|---------|-------------|
@@ -179,7 +179,7 @@ Lists talks grouped by track.
 
 ### `[cfp_talks_by_sessions]`
 
-Lists talks grouped by session type (Conference, Workshop, BOF, Lightning Talk, …).
+Lists talks grouped by session type (Conference, Workshop, BOF, Lightning Talk, …). Each talk title links directly to its details page. Filters are limited to non-break session types that have a talk in the agenda.
 
 | Attribute | Default | Description |
 |-----------|---------|-------------|

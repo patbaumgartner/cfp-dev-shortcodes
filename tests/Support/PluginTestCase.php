@@ -156,6 +156,10 @@ abstract class PluginTestCase extends TestCase {
 		$this->api( 'public/talks', Fixtures::talks() );
 		$this->api( 'public/speakers?size=' . CFP_DEV_SPEAKERS_FETCH_SIZE, Fixtures::speakers() );
 
+		foreach ( [ 'Monday', 'Tuesday', 'Wednesday' ] as $day ) {
+			$this->api( 'public/schedules/' . $day, Fixtures::daySchedule() );
+		}
+
 		foreach ( Fixtures::talks() as $talk ) {
 			$this->api( 'public/talks/' . $talk['id'], Fixtures::talkDetail( (int) $talk['id'] ) );
 		}

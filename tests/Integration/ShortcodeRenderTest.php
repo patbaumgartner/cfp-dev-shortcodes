@@ -227,6 +227,20 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		$this->assertSame( 'Talk not found.', cfp_dev_talk_details_shortcode() );
 	}
 
+	public function test_talk_table_titles_link_to_details_without_a_view_column(): void {
+		$talks = json_decode( (string) wp_json_encode( [ Fixtures::talks()[0] ] ) );
+
+		$heading = cfp_dev_talk_table_heading();
+		$rows    = cfp_dev_talk_table_rows( $talks );
+
+		$this->assertStringContainsString(
+			'<div class="cfp-field"><a class="cfp-a" href="/talk/modern-java-in-practice/">Modern Java in Practice</a></div>',
+			$rows
+		);
+		$this->assertStringNotContainsString( '>View</a>', $rows );
+		$this->assertSame( 2, substr_count( $heading, 'class="cfp-field"' ), 'only Title and Track remain plain header cells; Speakers has its own class' );
+	}
+
 	/**
 	 * The filter nav is ordered by track name, so "the first track" has to mean
 	 * the first tab the reader sees. Choosing it from the API's own order
@@ -317,6 +331,29 @@ final class ShortcodeRenderTest extends PluginTestCase {
 		$this->assertStringContainsString( 'Conference', $html );
 		$this->assertStringNotContainsString( 'Coffee Break', $html );
 		$this->assertStringContainsString( 'Modern Java in Practice', $html );
+	}
+
+	public function test_talks_by_sessions_hides_non_pause_types_that_are_not_in_the_agenda(): void {
+		$this->registerDefaultApi();
+		$this->api( 'public/talks/session-type/20', [ Fixtures::talks()[0] ] );
+
+		$html = cfp_dev_talks_by_sessions_shortcode( [] );
+
+		$this->assertStringContainsString( 'href="?id=20"', $html, 'the scheduled Conference type must remain available' );
+		$this->assertStringNotContainsString( 'href="?id=22"', $html, 'the duplicate Conference type has no agenda session and must not be a tab' );
+		$this->assertStringNotContainsString( 'href="?id=21"', $html, 'breaks are not talk categories' );
+	}
+
+	public function test_an_unscheduled_session_type_selection_falls_back_to_the_first_agenda_type(): void {
+		$this->registerDefaultApi();
+		$this->api( 'public/talks/session-type/20', [ Fixtures::talks()[0] ] );
+		$this->queryVar( 'id', 22 );
+
+		$html = cfp_dev_talks_by_sessions_shortcode( [] );
+
+		$this->assertStringContainsString( 'cfp-a cfp-active" href="?id=20"', $html );
+		$this->assertStringContainsString( 'Modern Java in Practice', $html );
+		$this->assertSame( 0, $this->apiCallCount( 'public/talks/session-type/22' ) );
 	}
 
 	public function test_search_results_renders_exact_and_semantic_matches(): void {

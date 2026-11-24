@@ -26,13 +26,12 @@ function cfp_dev_talk_table_heading() {
 	$content .= '        <div class="cfp-field">' . esc_html__( 'Title', 'cfp-dev-shortcodes' ) . '</div>';
 	$content .= '        <div class="cfp-field cfp-speaker">' . esc_html__( 'Speakers', 'cfp-dev-shortcodes' ) . '</div>';
 	$content .= '        <div class="cfp-field">' . esc_html__( 'Track', 'cfp-dev-shortcodes' ) . '</div>';
-	$content .= '        <div class="cfp-field"></div>';
 	$content .= '    </div>';
 	return $content;
 }
 
 /**
- * Renders one table row per talk (title, speakers, track image, view link).
+ * Renders one table row per talk (linked title, speakers, track image).
  *
  * Every field is optional in the API response, so each is read defensively.
  *
@@ -58,15 +57,12 @@ function cfp_dev_talk_table_rows( $talks ) {
 		}
 
 		$content .= '<article class="cfp-article cfp-row cfp-event">';
-		$content .= '    <div class="cfp-field">' . esc_html( $title ) . '</div>';
+		$content .= '    <div class="cfp-field"><a class="cfp-a" href="' . esc_url( $talk_url ) . '">' . esc_html( $title ) . '</a></div>';
 		$content .= '    <div class="cfp-field cfp-speaker">';
 		$content .= cfp_dev_talk_table_speakers( $talk );
 		$content .= '    </div>';
 		$content .= '    <div class="cfp-field">';
 		$content .= '        <div class="cfp-track" style="background-image: url(\'' . cfp_dev_css_url( $track_image ) . '\')"></div>';
-		$content .= '    </div>';
-		$content .= '    <div class="cfp-field">';
-		$content .= '        <a class="cfp-a" href="' . esc_url( $talk_url ) . '">' . esc_html__( 'View', 'cfp-dev-shortcodes' ) . '</a>';
 		$content .= '    </div>';
 		$content .= '</article>';
 	}

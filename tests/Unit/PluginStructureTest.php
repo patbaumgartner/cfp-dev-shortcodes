@@ -303,6 +303,14 @@ final class PluginStructureTest extends PluginTestCase {
 		return (string) file_get_contents( CFP_DEV_DIR . '/shortcode/' . CFP_DEV_CSS );
 	}
 
+	public function test_the_talk_title_column_includes_the_removed_view_column_width(): void {
+		$this->assertSame(
+			1,
+			preg_match( '~section\.cfp-list \.cfp-field:nth-child\(1\)\s*\{\s*width:\s*calc\(\(\(6 / 12\)~', $this->stylesheet() ),
+			'the title keeps its original five grid units plus the View column\'s one unit'
+		);
+	}
+
 	/**
 	 * Without font-display the browser hides the text it is about to draw for
 	 * up to three seconds while the webfont arrives — on a plugin page that is
